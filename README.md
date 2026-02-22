@@ -7,8 +7,8 @@
 **Vkino** — современный онлайн кинотеатр, разрабатываемый с любовью к кино и вниманием к каждой детали.
 
 🔗 **Ссылки:**  
-[Figma](https://www.figma.com/design/jR5lArGm6QGh69Y2kPTKUZ/Vkino?node-id=0-1&p=f&m=draw)
-[GitHub - Backend](https://github.com/go-park-mail-ru/2026_1_Vkino)
+* [Figma](https://www.figma.com/design/jR5lArGm6QGh69Y2kPTKUZ/Vkino?node-id=0-1&p=f&m=draw)
+* [GitHub - Backend](https://github.com/go-park-mail-ru/2026_1_Vkino)
 
 ## 🚀 Попробовать
 
