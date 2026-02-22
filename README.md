@@ -4,31 +4,30 @@
 
 ## ✨ О проекте
 
-**Vkino** — это современный онлайн кинотеатр, разрабатываемый с любовью к кино и вниманием к каждой детали.
+**Vkino** — современный онлайн кинотеатр, разрабатываемый с любовью к кино и вниманием к каждой детали.
 
 
-## 🚀 Наш деплой
+## 🚀 Попробовать
 
-Оценить работу нашего сервиса в действии вы сможете по адресу:
-[vkino.tech](http://vkino.tech)
+Оцените наш сервис в действии:
+[vkino.tech](https://vkino.tech)
 
-## 👥 Наша команда
+## 🥋 Наша команда
 
 Мы — команда энтузиастов, увлеченных созданием крутого продукта:
 
-*   **Архипов Артем** - [GitHub](https://github.com/Saucesamba)
-*   **Оглоблина Александра** - [GitHub](https://github.com/Ahandii)
-*   **Косыхин Тимофей** - [GitHub](https://github.com/Tim-arc)
-*   **Мальков Олег** - [GitHub](https://github.com/Karielka)
+* **Архипов Артем** - [GitHub](https://github.com/Saucesamba)
+* **Оглоблина Александра** - [GitHub](https://github.com/Ahandii)
+* **Косыхин Тимофей** - [GitHub](https://github.com/Tim-arc)
+* **Мальков Олег** - [GitHub](https://github.com/Karielka)
 
-## 👨‍🏫 Наши менторы
+## 🧙‍♂️ Наши менторы
 
 Мы благодарны за ценные советы и поддержку нашим менторам:
 
-*   **Алехин Владислав** - [GitHub](https://github.com/3kybika)
-*   **Зотов Алексей** - [GitHub](https://github.com/let-robots-reign)
-*   **Мироненько Даниил🏅** - [GitHub](https://github.com/dmironenko)
-*   **Эльвира Слободян** - [Telegram](https://t.me/im_ellie)
+* **Алехин Владислав** - [GitHub](https://github.com/3kybika)
+* **Зотов Алексей** - [GitHub](https://github.com/let-robots-reign)
+* **Мироненько Даниил🏅** - [GitHub](https://github.com/dmironenko)
+* **Эльвира Слободян** - [Telegram](https://t.me/im_ellie)
 
 ---
-
