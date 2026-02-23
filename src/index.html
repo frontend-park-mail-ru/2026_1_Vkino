@@ -3,11 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="css/main.css" />
+    <title>Vkino</title>
+    <link rel="stylesheet" href="css/index.css">
 </head>
 <body>
-    <p>Лучший проект по фронтенду теперь отдаёт статику</p>
-    <script src="js/index.js"></script>
+    <header class="header">
+        <div class="header-container"> 
+            <div class="name">
+                <h1 class="name-text">Vkino</h1>
+            </div>           
+            <div class="search-bar">
+                <input type="text" placeholder="Поиск" class="search-input">
+            </div>
+            
+            <div class="user-profile">
+                <span class="username">Саша</span>
+                <img src="img/user-avatar.png" alt="User avatar" class="avatar">
+            </div>
+        </div>
+    </header>
+
+    <div class="main">
+        <div class="side-menu" id="side-menu">
+            <a href="javascript:void(0)"
+                class="side-menu__close-button"
+                onclick="toggleNav()">
+                x
+            </a>
+            <div class="side-menu__menu">
+                <a href="javascript:void(0)"
+                onclick="showContent('Новинки')">Новинки</a>
+                <a href="javascript:void(0)"
+                onclick="showContent('Фильмы')">Фильмы</a>
+                <a href="javascript:void(0)"
+                onclick="showContent('Сериалы')">Сериалы</a>
+                <a href="javascript:void(0)"
+                onclick="showContent('Мультфильмы')">Мультфильмы</a>
+            </div>
+        </div>
+        <div class="main-content" id="main-content">
+            <span class="open-icon" onclick="toggleNav()" id="open-icon">☰</span>
+        
+            <div class="carousel-section">
+                <div class="carousel-container">
+                    <img class="carousel-image" src="img/image 10.jpg">
+                    <img class="carousel-image" src="img/image 12.jpg">
+                    <img class="carousel-image" src="img/image 11.jpg">
+                </div>
+            </div>
+            <div class="selection-section">
+                <h2 class="selection-title"><span>Новинки&nbsp;</span><span class="selection-triangle">▸</span></h2> 
+                <div class="scroll-container">
+                    <div class="scroll-items">
+                        <img class="movie-poster" src="img/1.jpg" data-movie-poster-id="1">
+                        <img class="movie-poster" src="img/2.jpeg" data-movie-poster-id="2">
+                        <img class="movie-poster" src="img/3.jpg" data-movie-poster-id="3">
+                        <img class="movie-poster" src="img/4.jpg" data-movie-poster-id="4">
+                        <img class="movie-poster" src="img/5.jpg" data-movie-poster-id="5">
+                        <img class="movie-poster" src="img/1.jpg">
+                        <img class="movie-poster" src="img/2.jpeg">
+                        <img class="movie-poster" src="img/3.jpg">
+                        <img class="movie-poster" src="img/4.jpg">
+                        <img class="movie-poster" src="img/5.jpg">
+                    </div>
+                </div>
+            </div>
+            <div class="selection-section">
+                <h2 class="selection-title"><span>Популярные&nbsp;</span><span class="selection-triangle">▸</span></h2> 
+                <div class="scroll-container">
+                    <div class="scroll-items">
+                        <img class="movie-poster" src="img/1.jpg">
+                        <img class="movie-poster" src="img/2.jpeg">
+                        <img class="movie-poster" src="img/3.jpg">
+                        <img class="movie-poster" src="img/4.jpg">
+                        <img class="movie-poster" src="img/5.jpg">
+                        <img class="movie-poster" src="img/1.jpg">
+                        <img class="movie-poster" src="img/2.jpeg">
+                        <img class="movie-poster" src="img/3.jpg">
+                        <img class="movie-poster" src="img/4.jpg">
+                        <img class="movie-poster" src="img/5.jpg">
+                    </div>
+                </div>
+            </div>
+            <div class="selection-section">
+                <h2 class="selection-title"><span>Комедии&nbsp;</span><span class="selection-triangle">▸</span></h2> 
+                <div class="scroll-container">
+                    <div class="scroll-items">
+                        <img class="movie-poster" src="img/1.jpg">
+                        <img class="movie-poster" src="img/2.jpeg">
+                        <img class="movie-poster" src="img/3.jpg">
+                        <img class="movie-poster" src="img/4.jpg">
+                        <img class="movie-poster" src="img/5.jpg">
+                        <img class="movie-poster" src="img/1.jpg">
+                        <img class="movie-poster" src="img/2.jpeg">
+                        <img class="movie-poster" src="img/3.jpg">
+                        <img class="movie-poster" src="img/4.jpg">
+                        <img class="movie-poster" src="img/5.jpg">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="js/sidebar.js"></script>
+    <script src="js/moviescroll.js"></script>
 </body>
 </html>

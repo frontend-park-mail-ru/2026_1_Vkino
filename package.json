@@ -1,0 +1,11 @@
+{
+  "name": "vkino-front",
+  "version": "1.0.0",
+  "description": "Добро пожаловать в репозиторий **Vkino**, вашего нового любимого сервиса для онлайн-просмотра фильмов и сериалов!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}

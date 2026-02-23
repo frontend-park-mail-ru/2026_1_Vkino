@@ -1,0 +1,240 @@
+:root {
+  --font-service-name: #FF9862;
+  --side-bg-color: #36312C;
+  --side-bg-color-hover: #534d46;
+  --side-font-color: #111;
+  --header-font-color: #fafafa;
+  --font-color: #FFFFFF;
+  --header-bg-color: #2D2925;
+  --search-bg-color: #e7e7e7; 
+  --accent-color: #FF9862;
+  --bg-color: #1E1A14;
+}
+
+body {
+    margin: 0;
+    font-family: Arial;
+    height: 100%;
+}
+
+.header {
+    background-color: var(--header-bg-color);
+    height: 50px;
+    padding: 15px 30px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+}
+
+.header-container {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.name {
+    flex-shrink: 0;
+    color: var(--font-service-name);
+}
+
+.search-bar {
+    flex: 1;
+    max-width: 500px;
+    margin: 0 40px;
+    min-width: 200px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 8px 16px;
+    background-color: var(--search-bg-color);
+    border: 1px solid;
+    border-radius: 20px;
+    color: var(--text-color);
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s;
+}
+
+.search-input:focus {
+    border-color: var(--accent-color);
+}
+
+.user-profile {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-shrink: 0;
+}
+
+.username {
+    color: var(--header-font-color);
+    font-size: 1.3rem;
+}
+
+.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* стили для side menu */
+
+.side-menu {
+    height: 100vh;
+    width: 0px;
+    position: fixed;
+    z-index: 1;
+    top: 80px;  /*  тут высота header + паддинги не забыть посчитать*/ 
+    left: 0;
+    background: var(--side-bg-color);
+    overflow-x: hidden;
+    transition: 0.5s;
+    padding-top: 60px;
+}
+
+.side-menu.menu-active {
+    width: 200px;
+}
+
+.side-menu a {
+    padding: 8px 8px 8px 16px;
+    text-decoration: none;
+    color: #fff;
+    display: block;
+    transition: 0.3s;
+    font-size: 18px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.selection-triangle {
+    color: var(--accent-color);
+}
+
+.side-menu .side-menu__close-button {
+    position: absolute;
+    top: 0;
+    right: 25px;
+    font-size: 36px;
+    margin-left: 50px;
+}
+
+.side-menu__menu h2 {
+    text-align: center;
+    letter-spacing: 7px;
+    color: var(--side-font-color);
+    background: #445554;
+    padding: 10px 0;
+}
+
+.side-menu__menu a:hover {
+    color: #fff;
+    background: var(--side-bg-color-hover);
+}
+
+.main-content {
+    transition: margin-left 0.5s;
+    padding: 16px;
+    position: relative;
+    background-color: var(--bg-color);
+}
+
+.main {
+    position: relative;
+    min-height: 100%;
+}
+
+.main-content.menu-active {
+    margin-left: 200px;
+}
+
+.open-icon {
+    top: 100px;
+    left: 20px;
+    cursor: pointer;
+    font-size: 30px;
+    z-index: 5;
+    position: fixed;
+    color: var(--accent-color);
+
+    border-radius: 8px;
+    padding: 5px 12px;
+    background-color: rgba(54, 49, 44, 0.5);
+
+    transition: 0.5s ease;
+}
+
+.open-icon:hover {
+    background-color: rgba(9, 9, 8, 0.5);
+    transform: scale(1.05);
+}
+
+.open-icon.menu-active {
+    display: none;
+}
+
+.selection-section {
+  margin: 15px 0;
+}
+
+.selection-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--font-color);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+}
+/*  каруселька */
+
+.carousel-image {
+    height: 200px;
+    width: 400px;
+    object-fit: cover;
+}
+
+/* стили для scroll */
+
+
+.scroll-container {
+  overflow-x: auto;
+  padding: 8px 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; 
+  -ms-overflow-style: none; 
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+
+.scroll-items {
+  display: flex;
+  gap: 14px;
+  min-width: 100%;
+  padding: 0 5px;
+}
+
+.movie-poster {
+  width: 150px;
+  height: 225px;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+  transition: transform 0.3s ease-in-out;
+}
+
+.movie-poster:hover {
+  transform: scale(1.05);
+  z-index: 2;
+}
+
