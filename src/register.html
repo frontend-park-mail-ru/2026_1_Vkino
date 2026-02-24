@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vkino - регистрация</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/register.css">
+</head>
+<body>
+    <canvas id="fx"></canvas>
+
+    <div class="container-main">
+        <span class="bg-dot yellow" style="width:180px;height:180px;left:50px;top:60px;"></span>
+        <span class="bg-dot light" style="width:150px;height:150px;left:300px;top:-30px;"></span>
+        <span class="bg-dot yellow" style="width:180px;height:180px;right:10px;top:230px;"></span>
+        <span class="bg-dot yellow" style="width:180px;height:180px;top:230px;"></span>
+        <span class="bg-dot light" style="width:150px;height:150px;left:30px;bottom:140px;"></span>
+        <span class="bg-dot light" style="width:190px;height:190px;right:60px;bottom:30px;"></span>
+        <div class="container-form">
+            <div class="form-section">
+                <div class="logo">
+                    <img src="img/logo.png" alt="VKino логотип">Vkino
+                </div>
+                <form>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="text" placeholder="Начните вводить" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Пароль</label>
+                        <input type="password" placeholder="Начните вводить" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Повтор пароля</label>
+                        <input type="password" placeholder="Начните вводить" required>
+                    </div>
+                    <button type="submit" class="btn">Зарегистрироваться</button>
+                </form>
+                <div class="footer-text">
+                    Уже есть аккаунт? <a href="#">Войти</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="container-bottle">
+            <div id="scene">
+                <div id="puddle"></div>
+                <div id="stream"></div>
+
+                <div id="bw">
+                    <svg viewBox="0 0 190 540" fill="none" xmlns="http://www.w3.org/2000/svg"
+                         width="190" height="540"
+                         style="filter:drop-shadow(0 28px 55px rgba(0,0,0,.9)) drop-shadow(0 0 35px rgba(200,0,0,.12))">
+                        <defs>
+                            <linearGradient id="body" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stop-color="#030308"/>
+                                <stop offset="9%" stop-color="#12121f"/>
+                                <stop offset="22%" stop-color="#0b0b16"/>
+                                <stop offset="42%" stop-color="#1e1e35"/>
+                                <stop offset="58%" stop-color="#1b1b30"/>
+                                <stop offset="78%" stop-color="#0b0b16"/>
+                                <stop offset="91%" stop-color="#12121f"/>
+                                <stop offset="100%" stop-color="#030308"/>
+                            </linearGradient>
+
+                            <linearGradient id="neckG" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stop-color="#06060e"/>
+                                <stop offset="35%" stop-color="#22223a"/>
+                                <stop offset="65%" stop-color="#1a1a2e"/>
+                                <stop offset="100%" stop-color="#06060e"/>
+                            </linearGradient>
+
+                            <linearGradient id="lblG" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stop-color="#520000"/>
+                                <stop offset="10%" stop-color="#a00000"/>
+                                <stop offset="30%" stop-color="#d90000"/>
+                                <stop offset="50%" stop-color="#f01a1a"/>
+                                <stop offset="70%" stop-color="#d90000"/>
+                                <stop offset="90%" stop-color="#a00000"/>
+                                <stop offset="100%" stop-color="#520000"/>
+                            </linearGradient>
+
+                            <linearGradient id="wvG" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stop-color="white" stop-opacity="0"/>
+                                <stop offset="20%" stop-color="white" stop-opacity=".55"/>
+                                <stop offset="50%" stop-color="white" stop-opacity=".7"/>
+                                <stop offset="80%" stop-color="white" stop-opacity=".55"/>
+                                <stop offset="100%" stop-color="white" stop-opacity="0"/>
+                            </linearGradient>
+
+                            <linearGradient id="cpG" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#ff4040"/>
+                                <stop offset="60%" stop-color="#cc0000"/>
+                                <stop offset="100%" stop-color="#880000"/>
+                            </linearGradient>
+
+                            <linearGradient id="lqG" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#180000" stop-opacity=".96"/>
+                                <stop offset="100%" stop-color="#040001" stop-opacity=".99"/>
+                            </linearGradient>
+
+                            <linearGradient id="shL" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stop-color="white" stop-opacity=".2"/>
+                                <stop offset="100%" stop-color="white" stop-opacity="0"/>
+                            </linearGradient>
+                            <linearGradient id="shL2" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stop-color="white" stop-opacity=".08"/>
+                                <stop offset="100%" stop-color="white" stop-opacity="0"/>
+                            </linearGradient>
+
+                            <path id="bp" d="
+                                M88 26
+                                C88 26 84 28 84 40
+                                L82 62
+                                C81 70 80 76 80 84
+                                L80 90
+                                C60 100 35 118 30 148
+                                L28 165
+                                L28 300
+                                C28 308 30 316 30 320
+                                L30 340
+                                C28 348 26 360 26 375
+                                L26 440
+                                C26 460 30 478 95 485
+                                C160 478 164 460 164 440
+                                L164 375
+                                C164 360 162 348 160 340
+                                L160 320
+                                C160 316 162 308 162 300
+                                L162 165
+                                L160 148
+                                C155 118 130 100 110 90
+                                L110 84
+                                C110 76 109 70 108 62
+                                L106 40
+                                C106 28 102 26 102 26
+                                Z
+                            "/>
+
+                            <clipPath id="bc"><use href="#bp"/></clipPath>
+                        </defs>
+
+                        <use href="#bp" fill="url(#body)" stroke="#18182a" stroke-width="1.3"/>
+
+                        <g clip-path="url(#bc)">
+                            <rect x="26" y="165" width="138" height="325" fill="url(#lqG)"/>
+                            <rect x="26" y="165" width="138" height="10" fill="rgba(255,60,60,.06)"/>
+                            <circle cx="50" cy="400" r="4" fill="rgba(255,255,255,.04)"/>
+                            <circle cx="140" cy="330" r="5.5" fill="rgba(255,255,255,.03)"/>
+                            <circle cx="80" cy="460" r="3.5" fill="rgba(255,255,255,.04)"/>
+                            <circle cx="155" cy="410" r="3" fill="rgba(255,255,255,.03)"/>
+                            <circle cx="40" cy="280" r="6" fill="rgba(255,255,255,.025)"/>
+                            <circle cx="110" cy="250" r="2.5" fill="rgba(255,255,255,.04)"/>
+                        </g>
+
+                        <path d="
+                            M29 165 L29 350
+                            C29 352 95 356 95 356
+                            C95 356 161 352 161 350
+                            L161 165
+                            C130 158 95 155 95 155
+                            C95 155 60 158 29 165 Z
+                        " fill="url(#lblG)"/>
+
+                        <path d="
+                            M29 165 L161 165 L161 178
+                            C130 171 95 168 95 168
+                            C95 168 60 171 29 178 Z
+                        " fill="white" fill-opacity=".88"/>
+
+                        <path d="
+                            M29 340 C60 345 95 347 95 347
+                            C95 347 130 345 161 340
+                            L161 353
+                            C130 358 95 360 95 360
+                            C95 360 60 358 29 353 Z
+                        " fill="white" fill-opacity=".88"/>
+
+                        <path d="M29 255 Q60 240 95 248 Q130 256 161 241"
+                              stroke="url(#wvG)" stroke-width="14" fill="none" stroke-linecap="round"/>
+                        <path d="M29 274 Q60 259 95 267 Q130 275 161 262"
+                              stroke="url(#wvG)" stroke-width="5.5" fill="none" stroke-linecap="round" opacity=".32"/>
+
+                        <foreignObject x="20" y="197" width="150" height="62">
+                            <div xmlns="http://www.w3.org/1999/xhtml" style="
+                                font-family:'Dancing Script',cursive;
+                                font-size:52px;font-weight:700;
+                                color:white;text-align:center;
+                                line-height:1;
+                                text-shadow:1px 2px 0 rgba(0,0,0,.45),2px 4px 10px rgba(0,0,0,.7),0 0 22px rgba(255,80,80,.15);
+                                letter-spacing:-1px;white-space:nowrap;
+                            ">Coola</div>
+                        </foreignObject>
+
+                        <path d="M29 165 L29 355 L38 358 L38 162 Z" fill="rgba(0,0,0,.18)"/>
+                        <path d="M161 165 L161 355 L152 358 L152 162 Z" fill="rgba(0,0,0,.18)"/>
+
+                        <path d="
+                            M80 90 C60 100 35 118 29 148 L29 168
+                            C60 158 95 155 95 155
+                            C95 155 130 158 161 168
+                            L161 148 C155 118 130 100 110 90 Z
+                        " fill="url(#neckG)" opacity=".9"/>
+
+                        <path d="M82 92 Q72 98 56 116 L64 128 Q78 110 84 100 Z"
+                              fill="white" fill-opacity=".08"/>
+
+                        <rect x="81" y="26" width="28" height="66" rx="3" fill="url(#neckG)"/>
+
+                        <ellipse cx="95" cy="83" rx="15" ry="3.5" fill="#0c0c1c" stroke="#1e1e30" stroke-width="1.2"/>
+
+                        <path d="M82 28 L82 90 L86 90 L86 28 Z" fill="url(#shL)" opacity=".55"/>
+
+                        <path d="M28 222 Q95 218 162 222" stroke="rgba(255,255,255,.04)" stroke-width="4" fill="none"/>
+                        <path d="M28 304 Q95 300 162 304" stroke="rgba(255,255,255,.04)" stroke-width="4" fill="none"/>
+                        <path d="M28 390 Q95 386 162 390" stroke="rgba(0,0,0,.25)" stroke-width="3" fill="none"/>
+                        <path d="M26 355 Q95 350 164 355 Q164 365 95 369 Q26 365 26 355 Z"
+                              fill="rgba(0,0,0,.15)"/>
+
+                        <path d="
+                            M29 155 L29 440
+                            Q34 442 38 440
+                            L38 160
+                            Q33 158 29 155 Z
+                        " fill="url(#shL)" opacity=".5"/>
+                        <path d="
+                            M40 152 L40 445
+                            L46 445 L46 154 Z
+                        " fill="url(#shL2)" opacity=".6"/>
+
+                        <path d="
+                            M26 440 C26 480 50 488 95 490
+                            C140 488 164 480 164 440 Z
+                        " fill="url(#body)" stroke="#111120" stroke-width="1"/>
+
+                        <ellipse cx="95" cy="486" rx="69" ry="8" fill="#020206" fill-opacity=".95"/>
+
+                        <ellipse cx="95" cy="484" rx="20" ry="5" fill="none" stroke="#0e0e1c" stroke-width="2"/>
+                        <line x1="95" y1="460" x2="60" y2="485" stroke="#101018" stroke-width="1.2" opacity=".7"/>
+                        <line x1="95" y1="460" x2="73" y2="488" stroke="#101018" stroke-width="1.2" opacity=".7"/>
+                        <line x1="95" y1="460" x2="95" y2="490" stroke="#101018" stroke-width="1.2" opacity=".7"/>
+                        <line x1="95" y1="460" x2="117" y2="488" stroke="#101018" stroke-width="1.2" opacity=".7"/>
+                        <line x1="95" y1="460" x2="130" y2="485" stroke="#101018" stroke-width="1.2" opacity=".7"/>
+
+                        <g id="capG">
+                            <rect x="79" y="4" width="32" height="24" rx="5" fill="url(#cpG)"/>
+                            <ellipse cx="95" cy="4" rx="16" ry="5.5" fill="#ee2828"/>
+                            <ellipse cx="91" cy="2.5" rx="9" ry="2.8" fill="white" fill-opacity=".32"/>
+                            <line x1="82" y1="5" x2="82" y2="27" stroke="#770000" stroke-width="1" opacity=".65"/>
+                            <line x1="85.5" y1="4.5" x2="85.5" y2="28" stroke="#770000" stroke-width="1" opacity=".65"/>
+                            <line x1="89" y1="4" x2="89" y2="28" stroke="#770000" stroke-width="1" opacity=".65"/>
+                            <line x1="95" y1="4" x2="95" y2="28" stroke="#770000" stroke-width="1" opacity=".65"/>
+                            <line x1="101" y1="4" x2="101" y2="28" stroke="#770000" stroke-width="1" opacity=".65"/>
+                            <line x1="104.5" y1="4.5" x2="104.5" y2="28" stroke="#770000" stroke-width="1" opacity=".65"/>
+                            <line x1="108" y1="5" x2="108" y2="27" stroke="#770000" stroke-width="1" opacity=".65"/>
+                            <ellipse cx="95" cy="27" rx="16" ry="3" fill="#aa0000" fill-opacity=".8"/>
+                            <ellipse cx="95" cy="27" rx="16" ry="3" fill="none" stroke="#660000" stroke-width=".8"/>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let exploded = false;
+        const scene = document.getElementById('scene');
+        const bw = document.getElementById('bw');
+        const stream = document.getElementById('stream');
+        const puddle = document.getElementById('puddle');
+        const capGroup = document.getElementById('capG');
+        const canvas = document.getElementById('fx');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width = innerWidth;
+            canvas.height = innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        scene.addEventListener('click', () => {
+            if (exploded) return;
+            exploded = true;
+            scene.classList.add('exploded');
+            bw.classList.add('shake');
+            setTimeout(() => {
+                capGroup.style.display = 'none';
+                stream.classList.add('gush');
+                puddle.classList.add('spread');
+                boom();
+            }, 430);
+        });
+
+        let pts = [];
+        let rafId = null;
+        const rand = (a, b) => a + Math.random() * (b - a);
+
+        function getOrigin() {
+            const r = bw.getBoundingClientRect();
+            return { x: r.left + r.width * 0.5, y: r.top + r.height * 0.045 };
+        }
+
+        function boom() {
+            const o = getOrigin();
+            for (let i = 0; i < 70; i++) setTimeout(() => mkDrop(o), i * 16);
+            for (let i = 0; i < 40; i++) setTimeout(() => mkBub(o), i * 20 + 25);
+            for (let i = 0; i < 22; i++) setTimeout(() => mkDrop(o), 300 + i * 28);
+            if (!rafId) rafId = requestAnimationFrame(loop);
+        }
+
+        function mkDrop(o) {
+            const core = Math.random() < 0.68;
+            const deg = core ? rand(-158, -22) : rand(-175, -5);
+            const rad = deg * Math.PI / 180;
+            const spd = rand(170, 460);
+            const r = rand(2.5, 9.5);
+            const br = rand(0, 1);
+            pts.push({
+                t: 'd',
+                x: o.x + rand(-6, 6),
+                y: o.y + rand(-3, 3),
+                vx: Math.cos(rad) * spd,
+                vy: Math.sin(rad) * spd,
+                ay: rand(270, 370),
+                drag: 0.87,
+                r,
+                cr: (60 + br * 75) | 0,
+                cg: (2 + br * 10) | 0,
+                cb: (2 + br * 8) | 0,
+                op: rand(0.78, 1),
+                life: 1,
+                decay: rand(0.5, 0.88),
+                stretch: rand(1, 2.1)
+            });
+        }
+
+        function mkBub(o) {
+            const deg = rand(-162, -18);
+            const rad = deg * Math.PI / 180;
+            const spd = rand(80, 300);
+            pts.push({
+                t: 'b',
+                x: o.x + rand(-5, 5),
+                y: o.y + rand(-3, 3),
+                vx: Math.cos(rad) * spd,
+                vy: Math.sin(rad) * spd,
+                ay: rand(90, 190),
+                drag: 0.91,
+                r: rand(2, 8.5),
+                op: rand(0.55, 0.95),
+                life: 1,
+                decay: rand(0.33, 0.65)
+            });
+        }
+
+        let last = null;
+        function loop(ts) {
+            if (!last) last = ts;
+            const dt = Math.min((ts - last) / 1000, 0.05);
+            last = ts;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            pts = pts.filter(p => p.life > 0.012);
+            for (const p of pts) {
+                p.vx *= Math.pow(p.drag, dt * 60);
+                p.vy += p.ay * dt;
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.life -= p.decay * dt;
+                const a = Math.max(0, p.life) * p.op;
+                p.t === 'd' ? drawDrop(p, a) : drawBub(p, a);
+            }
+            rafId = pts.length ? requestAnimationFrame(loop) : null;
+            if (!pts.length) last = null;
+        }
+
+        function drawDrop(p, a) {
+            ctx.save();
+            ctx.globalAlpha = a;
+            const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+            const ang = Math.atan2(p.vy, p.vx);
+            const el = 1 + Math.min(spd / 270, 1.6) * (p.stretch - 1);
+            ctx.translate(p.x, p.y);
+            ctx.rotate(ang + Math.PI / 2);
+            const rx = p.r,
+                ry = p.r * el;
+            const g = ctx.createRadialGradient(-rx * 0.28, -ry * 0.26, 0, 0, 0, Math.max(rx, ry) * 1.1);
+            const hlR = Math.min(255, p.cr + 130),
+                hlG = Math.min(255, p.cg + 55),
+                hlB = Math.min(255, p.cb + 25);
+            g.addColorStop(0, `rgba(${hlR},${hlG},${hlB},.92)`);
+            g.addColorStop(0.38, `rgba(${p.cr},${p.cg},${p.cb},.95)`);
+            g.addColorStop(0.82, `rgba(${(p.cr * 0.55) | 0},${(p.cg * 0.45) | 0},0,.65)`);
+            g.addColorStop(1, `rgba(${(p.cr * 0.3) | 0},0,0,.15)`);
+            ctx.beginPath();
+            ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+            ctx.fillStyle = g;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(-rx * 0.22, -ry * 0.28, rx * 0.33, ry * 0.18, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,.52)';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(-rx * 0.08, -ry * 0.1, rx * 0.11, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,.28)';
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawBub(p, a) {
+            ctx.save();
+            ctx.globalAlpha = a;
+            ctx.translate(p.x, p.y);
+            const r = p.r;
+            const rim = ctx.createRadialGradient(0, 0, r * 0.5, 0, 0, r);
+            rim.addColorStop(0, 'rgba(140,185,255,0)');
+            rim.addColorStop(0.7, 'rgba(170,210,255,.08)');
+            rim.addColorStop(0.87, 'rgba(205,232,255,.48)');
+            rim.addColorStop(1, 'rgba(255,255,255,.82)');
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            ctx.fillStyle = rim;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.78, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(55,4,2,.1)';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(-r * 0.26, -r * 0.30, r * 0.42, r * 0.23, -0.42, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,.82)';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(r * 0.18, r * 0.36, r * 0.18, r * 0.1, 0.38, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,.28)';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(155,115,255,.2)';
+            ctx.lineWidth = r * 0.22;
+            ctx.stroke();
+            ctx.restore();
+        }
+    </script>
+</body>
+</html>
