@@ -66,9 +66,10 @@ body {
 
 .form-section {
     width: 60vh;
-    background: #36312C;
+    background: rgba(80, 54, 29, 0.78); 
     padding: 40px;
     border-radius: 20px;
+    border: 2px solid #4b3e31;
     backdrop-filter: blur(10px);
     z-index: 2;
 }
@@ -123,22 +124,86 @@ input:focus {
     border-color: rgba(255, 180, 100, 0.5);
 }
 
+.field {
+    position: relative;
+}
+
+.has-eye input {
+    padding-right: 54px;
+}
+
+.eye-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 48px;
+    height: 100%;
+    border: none;
+    border-radius: 0 8px 8px 0;
+    background: rgba(255, 231, 204, 0.18);
+    color: #22170f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.eye-btn:hover {
+    background: rgba(255, 231, 204, 0.32);
+    color: #ff9862;
+}
+
+.eye-btn svg {
+    width: 22px;
+    height: 22px;
+    pointer-events: none;
+}
+
+.eye-btn .slash {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.eye-btn.revealed .slash {
+    opacity: 1;
+}
+
 .btn {
     width: 100%;
     padding: 12px;
-    background: #ffb366;
+    background: #FF9862;
     border: none;
     border-radius: 8px;
-    color: #1a0800;
+    color: #FFE7CC;
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     margin-top: 10px;
-    transition: background 0.3s;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.25s ease, color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
 }
 
 .btn:hover {
-    background: #ffc980;
+    background: #FFE7CC;
+    color: #FF9862;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22), 0 4px 8px rgba(255, 152, 98, 0.35);
+}
+
+.btn::after {
+    content: '';
+    position: absolute;
+    inset: -40%;
+    background: radial-gradient(120% 120% at 10% 50%, rgba(255, 231, 204, 0.32), rgba(255, 152, 98, 0.0) 60%);
+    transform: translateX(-120%);
+    transition: transform 0.35s ease;
+    pointer-events: none;
+}
+
+.btn:hover::after {
+    transform: translateX(120%);
 }
 
 .footer-text {

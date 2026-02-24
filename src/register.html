@@ -29,11 +29,29 @@
                     </div>
                     <div class="form-group">
                         <label>Пароль</label>
-                        <input type="password" placeholder="Начните вводить" required>
+                        <div class="field has-eye">
+                            <input id="password" type="password" placeholder="Начните вводить" required>
+                            <button class="eye-btn" type="button" aria-label="Показать пароль" data-target="password">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                    <path d="M2.5 12C4.4 8.6 7.7 6.2 12 6.2C16.3 6.2 19.6 8.6 21.5 12C19.6 15.4 16.3 17.8 12 17.8C7.7 17.8 4.4 15.4 2.5 12Z" stroke="currentColor" stroke-width="1.8"/>
+                                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>
+                                    <path class="slash" d="M5 19L19 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Повтор пароля</label>
-                        <input type="password" placeholder="Начните вводить" required>
+                        <div class="field has-eye">
+                            <input id="password-repeat" type="password" placeholder="Начните вводить" required>
+                            <button class="eye-btn" type="button" aria-label="Показать пароль" data-target="password-repeat">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                    <path d="M2.5 12C4.4 8.6 7.7 6.2 12 6.2C16.3 6.2 19.6 8.6 21.5 12C19.6 15.4 16.3 17.8 12 17.8C7.7 17.8 4.4 15.4 2.5 12Z" stroke="currentColor" stroke-width="1.8"/>
+                                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>
+                                    <path class="slash" d="M5 19L19 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <button type="submit" class="btn">Зарегистрироваться</button>
                 </form>
@@ -54,21 +72,21 @@
                          style="filter:drop-shadow(0 28px 55px rgba(0,0,0,.9)) drop-shadow(0 0 35px rgba(200,0,0,.12))">
                         <defs>
                             <linearGradient id="body" x1="0" y1="0" x2="1" y2="0">
-                                <stop offset="0%" stop-color="#030308"/>
-                                <stop offset="9%" stop-color="#12121f"/>
-                                <stop offset="22%" stop-color="#0b0b16"/>
-                                <stop offset="42%" stop-color="#1e1e35"/>
-                                <stop offset="58%" stop-color="#1b1b30"/>
-                                <stop offset="78%" stop-color="#0b0b16"/>
-                                <stop offset="91%" stop-color="#12121f"/>
-                                <stop offset="100%" stop-color="#030308"/>
+                                <stop offset="0%" stop-color="#0b0705"/>
+                                <stop offset="10%" stop-color="#17100c"/>
+                                <stop offset="25%" stop-color="#1f1510"/>
+                                <stop offset="45%" stop-color="#291c15"/>
+                                <stop offset="60%" stop-color="#241810"/>
+                                <stop offset="78%" stop-color="#180f0b"/>
+                                <stop offset="92%" stop-color="#120b08"/>
+                                <stop offset="100%" stop-color="#090604"/>
                             </linearGradient>
 
                             <linearGradient id="neckG" x1="0" y1="0" x2="1" y2="0">
-                                <stop offset="0%" stop-color="#06060e"/>
-                                <stop offset="35%" stop-color="#22223a"/>
-                                <stop offset="65%" stop-color="#1a1a2e"/>
-                                <stop offset="100%" stop-color="#06060e"/>
+                                <stop offset="0%" stop-color="#120b09"/>
+                                <stop offset="35%" stop-color="#22140f"/>
+                                <stop offset="65%" stop-color="#2c1a12"/>
+                                <stop offset="100%" stop-color="#120b09"/>
                             </linearGradient>
 
                             <linearGradient id="lblG" x1="0" y1="0" x2="1" y2="0">
@@ -90,14 +108,14 @@
                             </linearGradient>
 
                             <linearGradient id="cpG" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#ff4040"/>
-                                <stop offset="60%" stop-color="#cc0000"/>
-                                <stop offset="100%" stop-color="#880000"/>
+                                <stop offset="0%" stop-color="#ff5a38"/>
+                                <stop offset="60%" stop-color="#d62a12"/>
+                                <stop offset="100%" stop-color="#8d1406"/>
                             </linearGradient>
 
                             <linearGradient id="lqG" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#180000" stop-opacity=".96"/>
-                                <stop offset="100%" stop-color="#040001" stop-opacity=".99"/>
+                                <stop offset="0%" stop-color="#211008" stop-opacity=".96"/>
+                                <stop offset="100%" stop-color="#0a0402" stop-opacity=".99"/>
                             </linearGradient>
 
                             <linearGradient id="shL" x1="0" y1="0" x2="1" y2="0">
@@ -141,7 +159,7 @@
                             <clipPath id="bc"><use href="#bp"/></clipPath>
                         </defs>
 
-                        <use href="#bp" fill="url(#body)" stroke="#18182a" stroke-width="1.3"/>
+                        <use href="#bp" fill="url(#body)" stroke="#2a1c15" stroke-width="1.3"/>
 
                         <g clip-path="url(#bc)">
                             <rect x="26" y="165" width="138" height="325" fill="url(#lqG)"/>
@@ -436,11 +454,21 @@
             ctx.fill();
             ctx.beginPath();
             ctx.arc(0, 0, r, 0, Math.PI * 2);
-            ctx.strokeStyle = 'rgba(155,115,255,.2)';
-            ctx.lineWidth = r * 0.22;
-            ctx.stroke();
-            ctx.restore();
-        }
+        ctx.strokeStyle = 'rgba(155,115,255,.2)';
+        ctx.lineWidth = r * 0.22;
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    document.querySelectorAll('.eye-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const input = document.getElementById(btn.dataset.target);
+            if (!input) return;
+            const visible = input.type === 'password';
+            input.type = visible ? 'text' : 'password';
+            btn.classList.toggle('revealed', visible);
+        });
+    });
     </script>
 </body>
 </html>
