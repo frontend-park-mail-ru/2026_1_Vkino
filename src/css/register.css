@@ -28,17 +28,6 @@ body {
     background-image: radial-gradient(ellipse at 20% 50%, #3d1a00 0%, transparent 50%), radial-gradient(ellipse at 80% 30%, #2d0f00 0%, transparent 50%);
 }
 
-.container-form {
-    display: flex;
-    flex: 50%;
-    height: 100%;
-    background-color: transparent;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-}
-
 .bg-dot {
     position: absolute;
     border-radius: 50%;
@@ -55,23 +44,35 @@ body {
     background: #f3d88a;
 }
 
-.container-bottle {
-    display: flex;
-    flex: 50%;
-    height: 100%;
-    width: 100%;
-    align-items: center;
-    justify-content: center;
-}
-
 .form-section {
-    width: 60vh;
+    width: min(840px, 92vw);
     background: rgba(80, 54, 29, 0.78); 
-    padding: 40px;
+    padding: 10px 30px;
     border-radius: 20px;
     border: 2px solid #4b3e31;
     backdrop-filter: blur(10px);
     z-index: 2;
+    display: flex;
+    gap: 48px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.form-wrap {
+    flex: 1 1 30%;
+    min-width: 250px;
+    max-width: 400px;
+}
+
+.bottle-wrap {
+    flex: 1 1 54%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-width: 250px;
+    max-width: 270px;
+    max-height: 500px;
 }
 
 .logo {
@@ -209,7 +210,7 @@ input:focus {
 .footer-text {
     text-align: center;
     color: rgba(255, 255, 255, 0.6);
-    font-size: 13px;
+    font-size: 16px;
     margin-top: 20px;
 }
 
@@ -221,21 +222,31 @@ input:focus {
 @media (max-width: 900px) {
     .container-main {
         flex-direction: column;
-        gap: 40px;
+        gap: 24px;
+        justify-content: flex-start;
+        padding: 24px 0;
     }
 
-    .container-bottle {
-        display: none;
+    .form-section {
+        flex-direction: column;
+        gap: 28px;
+        width: min(96vw, 640px);
+    }
+
+    .bottle-wrap {
+        width: 100%;
     }
 }
 
 /* Bottle animation styles */
 #scene {
     position: relative;
-    width: 200px;
-    height: 560px;
+    height: min(70vh, 600px);
+    aspect-ratio: 190 / 540;
     cursor: pointer;
     z-index: 2;
+    transform: translateX(-98px) translateY(-50px) rotate(30deg) scale(0.78);
+    transform-origin: center bottom;
 }
 
 #bw {
@@ -243,8 +254,8 @@ input:focus {
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 190px;
-    height: 540px;
+    width: 100%;
+    height: 100%;
 }
 
 #scene:not(.exploded):hover #bw {
@@ -298,7 +309,7 @@ input:focus {
 #stream {
     position: absolute;
     left: 50%;
-    top: 26px;
+    top: 5%;
     transform: translateX(-50%);
     width: 10px;
     border-radius: 5px;
@@ -346,7 +357,7 @@ input:focus {
     bottom: -6px;
     left: 50%;
     transform: translateX(-50%) scaleX(0);
-    width: 155px;
+    width: 78%;
     height: 14px;
     background: radial-gradient(ellipse, rgba(145, 18, 18, 0.6) 0%, transparent 75%);
     border-radius: 50%;

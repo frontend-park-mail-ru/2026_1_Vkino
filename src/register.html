@@ -10,15 +10,18 @@
 <body>
     <canvas id="fx"></canvas>
 
-    <div class="container-main">
+<div class="container-main">
         <span class="bg-dot yellow" style="width:180px;height:180px;left:50px;top:60px;"></span>
         <span class="bg-dot light" style="width:150px;height:150px;left:300px;top:-30px;"></span>
-        <span class="bg-dot yellow" style="width:180px;height:180px;right:10px;top:230px;"></span>
-        <span class="bg-dot yellow" style="width:180px;height:180px;top:230px;"></span>
-        <span class="bg-dot light" style="width:150px;height:150px;left:30px;bottom:140px;"></span>
-        <span class="bg-dot light" style="width:190px;height:190px;right:60px;bottom:30px;"></span>
-        <div class="container-form">
-            <div class="form-section">
+        <span class="bg-dot yellow" style="width:200px;height:200px;right:260px;top:220px;"></span>
+        <span class="bg-dot light" style="width:160px;height:160px;left:20px;bottom:120px;"></span>
+        <span class="bg-dot light" style="width:210px;height:210px;right:60px;bottom:30px;"></span>
+        <span class="bg-dot yellow" style="width:170px;height:170px;right:20px;top:40px;"></span>
+        <span class="bg-dot yellow" style="width:140px;height:140px;left:160px;bottom:-60px;"></span>
+        <span class="bg-dot light" style="width:190px;height:190px;right:-40px;top:120px;"></span>
+
+        <div class="form-section">
+            <div class="form-wrap">
                 <div class="logo">
                     <img src="img/logo.png" alt="VKino логотип">Vkino
                 </div>
@@ -59,17 +62,16 @@
                     Уже есть аккаунт? <a href="#">Войти</a>
                 </div>
             </div>
-        </div>
 
-        <div class="container-bottle">
-            <div id="scene">
-                <div id="puddle"></div>
-                <div id="stream"></div>
+            <div class="bottle-wrap">
+                <div id="scene">
+                    <div id="puddle"></div>
+                    <div id="stream"></div>
 
-                <div id="bw">
-                    <svg viewBox="0 0 190 540" fill="none" xmlns="http://www.w3.org/2000/svg"
-                         width="190" height="540"
-                         style="filter:drop-shadow(0 28px 55px rgba(0,0,0,.9)) drop-shadow(0 0 35px rgba(200,0,0,.12))">
+                    <div id="bw">
+                        <svg viewBox="0 0 190 540" fill="none" xmlns="http://www.w3.org/2000/svg"
+                             width="100%" height="100%"
+                             style="filter:drop-shadow(0 28px 55px rgba(0,0,0,.9)) drop-shadow(0 0 35px rgba(200,0,0,.12))">
                         <defs>
                             <linearGradient id="body" x1="0" y1="0" x2="1" y2="0">
                                 <stop offset="0%" stop-color="#0b0705"/>
@@ -246,20 +248,6 @@
                             M40 152 L40 445
                             L46 445 L46 154 Z
                         " fill="url(#shL2)" opacity=".6"/>
-
-                        <path d="
-                            M26 440 C26 480 50 488 95 490
-                            C140 488 164 480 164 440 Z
-                        " fill="url(#body)" stroke="#111120" stroke-width="1"/>
-
-                        <ellipse cx="95" cy="486" rx="69" ry="8" fill="#020206" fill-opacity=".95"/>
-
-                        <ellipse cx="95" cy="484" rx="20" ry="5" fill="none" stroke="#0e0e1c" stroke-width="2"/>
-                        <line x1="95" y1="460" x2="60" y2="485" stroke="#101018" stroke-width="1.2" opacity=".7"/>
-                        <line x1="95" y1="460" x2="73" y2="488" stroke="#101018" stroke-width="1.2" opacity=".7"/>
-                        <line x1="95" y1="460" x2="95" y2="490" stroke="#101018" stroke-width="1.2" opacity=".7"/>
-                        <line x1="95" y1="460" x2="117" y2="488" stroke="#101018" stroke-width="1.2" opacity=".7"/>
-                        <line x1="95" y1="460" x2="130" y2="485" stroke="#101018" stroke-width="1.2" opacity=".7"/>
 
                         <g id="capG">
                             <rect x="79" y="4" width="32" height="24" rx="5" fill="url(#cpG)"/>
