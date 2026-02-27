@@ -7,45 +7,45 @@
     /* -------------------------------------------------------- */
     /*  1. ПАЛИТРА                                  */
     /* -------------------------------------------------------- */
-    --c-coffee:    #120603;  /* Coffee Bean    — самый тёмный фон    */
-    --c-mahogany:  #060301;  /* Rich Mahogany  — фон панелей/хедера  */
-    --c-tiger:     #FF571F;  /* Tiger Flame    — яркий акцент        */
-    --c-spicy:     #D64518;  /* Spicy Orange   — тёмный акцент/ховер */
-    --c-pale:      #E6CCAB;  /* Pale Oak       — вторичный текст     */
-    --c-champagne: #F5E8D0;  /* Champagne Mist — основной текст      */
+    --bgc-color:    #120603;  /* Coffee Bean    — самый тёмный фон    */
+    --bgc-color-2:  #060301;  /* Rich Mahogany  — фон панелей/хедера  */
+    --accent-color-2:     #FF571F;  /* Tiger Flame    — яркий акцент        */
+    --accent-color:     #D64518;  /* Spicy Orange   — тёмный акцент/ховер */
+    --text-color-2:      #E6CCAB;  /* Pale Oak       — вторичный текст     */
+    --text-color: #F5E8D0;  /* Champagne Mist — основной текст      */
 
     /* -------------------------------------------------------- */
     /*  2. ФУНКЦИОНАЛЬНЫЕ ПЕРЕМЕННЫЕ                             */
     /* -------------------------------------------------------- */
 
     /* Фоны */
-    --bg-page:         var(--c-coffee);
-    --bg-surface:      var(--c-mahogany);   /* карточки, хедер, сайдбар     */
+    --bg-page:         var(--bgc-color);
+    --bg-surface:      var(--bgc-color-2);   /* карточки, хедер, сайдбар     */
     --bg-overlay:      rgba(6, 3, 1, 0.85); /* модалки, дропдауны           */
 
     /* Текст */
-    --text-primary:    var(--c-champagne);
-    --text-secondary:  var(--c-pale);
-    --text-on-accent:  var(--c-champagne);  /* текст поверх кнопок-акцентов */
+    --text-primary:    var(--text-color);
+    --text-secondary:  var(--text-color-2);
+    --text-on-accent:  var(--text-color);  /* текст поверх кнопок-акцентов */
     --text-disabled:   rgba(230, 204, 171, 0.4);
 
     /* Акценты */
-    --accent:          var(--c-tiger);
-    --accent-hover:    var(--c-spicy);
+    --accent:          var(--accent-color-2);
+    --accent-hover:    var(--accent-color);
     --accent-subtle:   rgba(255, 87, 31, 0.12); /* лёгкая подсветка */
 
     /* Границы и разделители */
     --border-color:    rgba(230, 204, 171, 0.18);
-    --border-focus:    var(--c-tiger);
+    --border-focus:    var(--accent-color-2);
 
     /* Поля ввода, поиск */
-    --input-bg:        rgba(230, 204, 171, 0.07);
+    --input-bg:        #1d0e07;
     --input-bg-focus:  rgba(230, 204, 171, 0.12);
 
     /* Скроллбар */
-    --scrollbar-track: var(--c-mahogany);
+    --scrollbar-track: var(--bgc-color-2);
     --scrollbar-thumb: rgba(230, 204, 171, 0.25);
-    --scrollbar-thumb-hover: var(--c-spicy);
+    --scrollbar-thumb-hover: var(--accent-color);
 
     /* -------------------------------------------------------- */
     /*  3. ТИПОГРАФИКА                                           */
@@ -73,6 +73,7 @@
     --weight-medium:   500;
     --weight-semibold: 600;
     --weight-bold:     700;
+    --weight-extrabold:  900;
 
     --leading-tight:  1.2;
     --leading-normal: 1.5;

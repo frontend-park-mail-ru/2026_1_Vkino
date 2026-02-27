@@ -1,14 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Jaini&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
 
 body {
-    background: radial-gradient(ellipse at 55% 40%, #1a0800 0%, #080004 55%, #000 100%);
+    background:
+        radial-gradient(ellipse at 30% 60%, rgba(255, 87, 31, 0.16) 0%, transparent 55%),
+        radial-gradient(ellipse at 75% 25%, rgba(214, 69, 24, 0.15) 0%, transparent 50%),
+        var(--bg-page);
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -16,54 +12,218 @@ body {
     overflow: hidden;
 }
 
+/* ---- Фоновые пятна ---- */
 .container-main {
     display: flex;
-    gap: 0;
     width: 100vw;
     height: 100vh;
     align-items: center;
     justify-content: center;
     position: relative;
-    background: #1a0a00;
-    background-image: radial-gradient(ellipse at 20% 50%, #3d1a00 0%, transparent 50%), radial-gradient(ellipse at 80% 30%, #2d0f00 0%, transparent 50%);
 }
 
 .bg-dot {
     position: absolute;
     border-radius: 50%;
     pointer-events: none;
-    filter: drop-shadow(0 0 16px rgba(0, 0, 0, 0.16)) blur(12px);
+    filter: blur(50px);
+    opacity: 0.12;
     z-index: 1;
 }
 
 .bg-dot.yellow {
-    background: #f8c400;
+    background: var(--c-tiger);
 }
 
 .bg-dot.light {
-    background: #f3d88a;
+    background: var(--c-pale);
 }
 
+/* ---- Карточка формы ---- */
 .form-section {
     width: min(840px, 92vw);
-    background: rgba(80, 54, 29, 0.78); 
-    padding: calc(var(--main-padding, 20px) * 1.2) calc(var(--main-padding, 20px) * 1.6);
-    border-radius: calc(var(--border-radius, 4px) * 5);
-    border: 2px solid #4b3e31;
-    backdrop-filter: blur(10px);
+    
+    background: radial-gradient(ellipse at 70% 30%, rgba(255, 151, 31, 0.08) 0%, transparent 55%),
+        radial-gradient(ellipse at 20% 60%, rgba(255, 151, 31, 0.06) 0%, transparent 55%), var(--bg-overlay);
+    padding: var(--space-10) var(--space-12);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-color);
+    backdrop-filter: blur(20px);
     z-index: 2;
     display: flex;
-    gap: 48px;
+    gap: var(--space-12);
     align-items: center;
     justify-content: space-between;
+    box-shadow: var(--shadow-lg), 0 0 80px rgba(255, 87, 31, 0.07);
 }
 
+/* ---- Колонка с формой ---- */
 .form-wrap {
     flex: 1 1 30%;
     min-width: 250px;
-    max-width: 400px;
+    max-width: 380px;
 }
 
+/* ---- Логотип ---- */
+.logo {
+    font-family: var(--font-headers);
+    font-size: 44px;
+    font-weight: 600;
+    color: var(--accent);
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-6);
+    text-shadow: 0 0 28px rgba(255, 87, 31, 0.4);
+}
+
+.logo img {
+    height: 38px;
+    width: auto;
+    display: block;
+}
+
+/* ---- Заголовок формы ---- */
+.form-heading {
+    font-family: var(--font-headers);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-6);
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-tight);
+}
+
+/* ---- Группы полей ---- */
+.form-group {
+    margin-bottom: var(--space-5);
+}
+
+label {
+    display: block;
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-2);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+}
+
+/* ---- Поля ввода ---- */
+input {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    font-family: var(--font-sans);
+    transition:
+        background var(--duration-fast) var(--ease-default),
+        border-color var(--duration-fast) var(--ease-default),
+        box-shadow var(--duration-fast) var(--ease-default);
+}
+
+input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.9;
+}
+
+input:focus {
+    outline: none;
+    background: var(--input-bg-focus);
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+/* ---- Поле с кнопкой глаза ---- */
+.field {
+    position: relative;
+}
+
+.has-eye input {
+    padding-right: 52px;
+}
+
+.eye-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 48px;
+    height: 100%;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color var(--duration-fast) var(--ease-default);
+}
+
+.eye-btn:hover {
+    color: var(--accent);
+}
+
+.eye-btn svg {
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+}
+
+.eye-btn .slash {
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-default);
+}
+
+.eye-btn.revealed .slash {
+    opacity: 1;
+}
+
+/* ---- Кнопка отправки ---- */
+.btn {
+    width: 100%;
+    padding: 13px var(--space-4);
+    background: var(--accent);
+    border-radius: var(--radius-md);
+    color: var(--text-on-accent);
+    font-size: var(--text-base);
+    font-weight: var(--weight-extrabold);
+    font-family: var(--font-sans);
+    cursor: pointer;
+    margin-top: var(--space-4);
+    position: relative;
+    overflow: hidden;
+    transition: background var(--duration-fast) var(--ease-default);
+}
+
+.btn:hover {
+    background: var(--accent-hover);
+    color: var(--text-color);
+}
+
+/* ---- Ссылка "уже есть аккаунт" ---- */
+.footer-text {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    margin-top: var(--space-5);
+}
+
+.footer-text a {
+    color: var(--accent);
+    font-weight: var(--weight-medium);
+    transition: color var(--duration-fast) var(--ease-default);
+}
+
+.footer-text a:hover {
+    color: var(--accent-hover);
+}
+
+/* ---- Колонка с бутылкой ---- */
 .bottle-wrap {
     flex: 1 1 54%;
     display: flex;
@@ -75,170 +235,10 @@ body {
     max-height: 500px;
 }
 
-.bottle-tilt {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    transform: translateX(-78px) translateY(-40px) rotate(30deg) scale(0.78);
-    transform-origin: center bottom;
-}
-
-.logo {
-    font-family: 'Jaini', regular;
-    font-size: 48px;
-    color: var(--primary-color, #ffb366);
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.logo img {
-    height: 40px;
-    width: auto;
-    display: block;
-}
-
-.form-group {
-    margin-bottom: 25px;
-}
-
-label {
-    display: block;
-    color: var(--text-light, #FFE7CC);
-    font-family: 'Inter', bold;
-    font-size: 16px;
-    margin-bottom: 4px;
-    font-weight: 500;
-}
-
-input {
-    width: 100%;
-    padding: 12px 15px;
-    background: rgba(180, 160, 140, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: calc(var(--border-radius, 4px) * 3);
-    color: var(--text-light, #fff);
-    font-size: 14px;
-    font-family: inherit;
-}
-
-input::placeholder {
-    color: rgba(200, 180, 160, 0.6);
-}
-
-input:focus {
-    outline: none;
-    background: rgba(180, 160, 140, 0.7);
-    border-color: rgba(255, 180, 100, 0.5);
-}
-
-.field {
-    position: relative;
-}
-
-.has-eye input {
-    padding-right: 54px;
-}
-
-.eye-btn {
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 48px;
-    height: 100%;
-    border: none;
-    border-radius: 0 calc(var(--border-radius, 4px) * 3) calc(var(--border-radius, 4px) * 3) 0;
-    background: rgba(255, 231, 204, 0.18);
-    color: var(--text-dark, #22170f);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background 0.2s ease, color 0.2s ease;
-}
-
-.eye-btn:hover {
-    background: rgba(255, 231, 204, 0.32);
-    color: var(--primary-color, #ff9862);
-}
-
-.eye-btn svg {
-    width: 22px;
-    height: 22px;
-    pointer-events: none;
-}
-
-.eye-btn .slash {
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.eye-btn.revealed .slash {
-    opacity: 1;
-}
-
-.btn {
-    width: 100%;
-    padding: 12px;
-    background: var(--primary-color, #FF9862);
-    border: none;
-    border-radius: calc(var(--border-radius, 4px) * 3);
-    color: var(--text-light, #FFE7CC);
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 10px;
-    position: relative;
-    overflow: hidden;
-    transition: background 0.25s ease, color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
-}
-
-.btn:hover {
-    background: var(--text-light, #FFE7CC);
-    color: var(--primary-color, #FF9862);
-    transform: translateY(-2px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22), 0 4px 8px rgba(255, 152, 98, 0.35);
-}
-
-.btn::after {
-    content: '';
-    position: absolute;
-    inset: -40%;
-    background: radial-gradient(120% 120% at 10% 50%, rgba(255, 231, 204, 0.32), rgba(255, 152, 98, 0.0) 60%);
-    transform: translateX(-120%);
-    transition: transform 0.35s ease;
-    pointer-events: none;
-}
-
-.btn:hover::after {
-    transform: translateX(120%);
-}
-
-.footer-text {
-    text-align: center;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 16px;
-    margin-top: 20px;
-}
-
-.footer-text a {
-    color: var(--primary-color, #ffb366);
-    text-decoration: none;
-}
-
 @media (max-width: 900px) {
-    .container-main {
-        flex-direction: column;
-        gap: 24px;
-        justify-content: flex-start;
-        padding: 24px 0;
-    }
 
-    .form-section {
-        flex-direction: column;
-        gap: 28px;
-        width: min(96vw, 640px);
+    .bottle-wrap {
+        visibility: hidden;
     }
 
     .bottle-wrap {
@@ -246,7 +246,6 @@ input:focus {
     }
 }
 
-/* Bottle animation styles */
 #scene {
     position: relative;
     height: min(70vh, 600px);
@@ -270,12 +269,8 @@ input:focus {
 }
 
 @keyframes bob {
-    0%, 100% {
-        transform: translateX(-50%) translateY(0);
-    }
-    45% {
-        transform: translateX(-50%) translateY(-11px);
-    }
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    45%       { transform: translateX(-50%) translateY(-11px); }
 }
 
 #bw.shake {
@@ -283,32 +278,18 @@ input:focus {
 }
 
 @keyframes shk {
-    0% {
-        transform: translateX(-50%) rotate(0);
-    }
-    20% {
-        transform: translateX(calc(-50% - 10px)) rotate(-4deg);
-    }
-    40% {
-        transform: translateX(calc(-50% + 10px)) rotate(4deg);
-    }
-    60% {
-        transform: translateX(calc(-50% - 6px)) rotate(-2.5deg);
-    }
-    80% {
-        transform: translateX(calc(-50% + 6px)) rotate(2deg);
-    }
-    100% {
-        transform: translateX(-50%) rotate(0);
-    }
+    0%   { transform: translateX(-50%) rotate(0); }
+    20%  { transform: translateX(calc(-50% - 10px)) rotate(-4deg); }
+    40%  { transform: translateX(calc(-50% + 10px)) rotate(4deg); }
+    60%  { transform: translateX(calc(-50% - 6px)) rotate(-2.5deg); }
+    80%  { transform: translateX(calc(-50% + 6px)) rotate(2deg); }
+    100% { transform: translateX(-50%) rotate(0); }
 }
 
 #fx {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
     pointer-events: none;
     z-index: 100;
 }
@@ -320,43 +301,24 @@ input:focus {
     transform: translateX(-50%);
     width: 10px;
     border-radius: 5px;
-    background: linear-gradient(to bottom, rgba(90, 5, 5, 0) 0%, rgba(140, 10, 10, 0.93) 25%, rgba(80, 4, 4, 0.65) 100%);
+    background: linear-gradient(to bottom,
+        rgba(90, 5, 5, 0) 0%,
+        rgba(140, 10, 10, 0.93) 25%,
+        rgba(80, 4, 4, 0.65) 100%);
     height: 0;
     opacity: 0;
     z-index: 5;
     pointer-events: none;
 }
 
-#stream.gush {
-    animation: gsh 1.9s ease-out forwards;
-}
+#stream.gush { animation: gsh 1.9s ease-out forwards; }
 
 @keyframes gsh {
-    0% {
-        height: 0;
-        top: 26px;
-        opacity: 0;
-    }
-    8% {
-        height: 45px;
-        top: 16px;
-        opacity: 1;
-    }
-    28% {
-        height: 150px;
-        top: -115px;
-        opacity: 1;
-    }
-    65% {
-        height: 90px;
-        top: -25px;
-        opacity: 0.5;
-    }
-    100% {
-        height: 0;
-        top: 26px;
-        opacity: 0;
-    }
+    0%   { height: 0;     top: 26px;   opacity: 0; }
+    8%   { height: 45px;  top: 16px;   opacity: 1; }
+    28%  { height: 150px; top: -115px; opacity: 1; }
+    65%  { height: 90px;  top: -25px;  opacity: 0.5; }
+    100% { height: 0;     top: 26px;   opacity: 0; }
 }
 
 #puddle {
@@ -371,21 +333,10 @@ input:focus {
     pointer-events: none;
 }
 
-#puddle.spread {
-    animation: pud 2.6s ease-out forwards;
-}
+#puddle.spread { animation: pud 2.6s ease-out forwards; }
 
 @keyframes pud {
-    0% {
-        transform: translateX(-50%) scaleX(0);
-        opacity: 0;
-    }
-    18% {
-        transform: translateX(-50%) scaleX(1);
-        opacity: 1;
-    }
-    100% {
-        transform: translateX(-50%) scaleX(1.6);
-        opacity: 0.22;
-    }
+    0%   { transform: translateX(-50%) scaleX(0);   opacity: 0; }
+    18%  { transform: translateX(-50%) scaleX(1);   opacity: 1; }
+    100% { transform: translateX(-50%) scaleX(1.6); opacity: 0.22; }
 }
