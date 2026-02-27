@@ -1,5 +1,5 @@
- @import url('https://fonts.googleapis.com/css2?family=Jaini&display=swap');
- @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Jaini&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 * {
     margin: 0;
@@ -47,8 +47,8 @@ body {
 .form-section {
     width: min(840px, 92vw);
     background: rgba(80, 54, 29, 0.78); 
-    padding: 10px 30px;
-    border-radius: 20px;
+    padding: calc(var(--main-padding, 20px) * 1.2) calc(var(--main-padding, 20px) * 1.6);
+    border-radius: calc(var(--border-radius, 4px) * 5);
     border: 2px solid #4b3e31;
     backdrop-filter: blur(10px);
     z-index: 2;
@@ -75,10 +75,18 @@ body {
     max-height: 500px;
 }
 
+.bottle-tilt {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform: translateX(-78px) translateY(-40px) rotate(30deg) scale(0.78);
+    transform-origin: center bottom;
+}
+
 .logo {
     font-family: 'Jaini', regular;
     font-size: 48px;
-    color: #ffb366;
+    color: var(--primary-color, #ffb366);
     text-align: center;
     display: flex;
     align-items: center;
@@ -97,7 +105,7 @@ body {
 
 label {
     display: block;
-    color: #FFE7CC;
+    color: var(--text-light, #FFE7CC);
     font-family: 'Inter', bold;
     font-size: 16px;
     margin-bottom: 4px;
@@ -109,8 +117,8 @@ input {
     padding: 12px 15px;
     background: rgba(180, 160, 140, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    color: #fff;
+    border-radius: calc(var(--border-radius, 4px) * 3);
+    color: var(--text-light, #fff);
     font-size: 14px;
     font-family: inherit;
 }
@@ -140,9 +148,9 @@ input:focus {
     width: 48px;
     height: 100%;
     border: none;
-    border-radius: 0 8px 8px 0;
+    border-radius: 0 calc(var(--border-radius, 4px) * 3) calc(var(--border-radius, 4px) * 3) 0;
     background: rgba(255, 231, 204, 0.18);
-    color: #22170f;
+    color: var(--text-dark, #22170f);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -152,7 +160,7 @@ input:focus {
 
 .eye-btn:hover {
     background: rgba(255, 231, 204, 0.32);
-    color: #ff9862;
+    color: var(--primary-color, #ff9862);
 }
 
 .eye-btn svg {
@@ -173,10 +181,10 @@ input:focus {
 .btn {
     width: 100%;
     padding: 12px;
-    background: #FF9862;
+    background: var(--primary-color, #FF9862);
     border: none;
-    border-radius: 8px;
-    color: #FFE7CC;
+    border-radius: calc(var(--border-radius, 4px) * 3);
+    color: var(--text-light, #FFE7CC);
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
@@ -187,8 +195,8 @@ input:focus {
 }
 
 .btn:hover {
-    background: #FFE7CC;
-    color: #FF9862;
+    background: var(--text-light, #FFE7CC);
+    color: var(--primary-color, #FF9862);
     transform: translateY(-2px);
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22), 0 4px 8px rgba(255, 152, 98, 0.35);
 }
@@ -215,7 +223,7 @@ input:focus {
 }
 
 .footer-text a {
-    color: #ffb366;
+    color: var(--primary-color, #ffb366);
     text-decoration: none;
 }
 
@@ -245,8 +253,7 @@ input:focus {
     aspect-ratio: 190 / 540;
     cursor: pointer;
     z-index: 2;
-    transform: translateX(-98px) translateY(-50px) rotate(30deg) scale(0.78);
-    transform-origin: center bottom;
+    transform: translateX(-20px) rotate(30deg);
 }
 
 #bw {

@@ -304,8 +304,15 @@
         const rand = (a, b) => a + Math.random() * (b - a);
 
         function getOrigin() {
+            const ANGLE = 30 * Math.PI / 180;
+            const H = scene.offsetHeight;
             const r = bw.getBoundingClientRect();
-            return { x: r.left + r.width * 0.5, y: r.top + r.height * 0.045 };
+            const cx = r.left + r.width * 0.5;
+            const cy = r.top + r.height * 0.5;
+            return {
+                x: cx + H * 0.455 * Math.sin(ANGLE),
+                y: cy - H * 0.455 * Math.cos(ANGLE)
+            };
         }
 
         function boom() {
@@ -318,7 +325,7 @@
 
         function mkDrop(o) {
             const core = Math.random() < 0.68;
-            const deg = core ? rand(-158, -22) : rand(-175, -5);
+            const deg = core ? rand(-128, 8) : rand(-145, 25);
             const rad = deg * Math.PI / 180;
             const spd = rand(170, 460);
             const r = rand(2.5, 9.5);
@@ -343,7 +350,7 @@
         }
 
         function mkBub(o) {
-            const deg = rand(-162, -18);
+            const deg = rand(-132, 12);
             const rad = deg * Math.PI / 180;
             const spd = rand(80, 300);
             pts.push({
