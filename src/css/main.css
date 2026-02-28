@@ -70,7 +70,7 @@
     --text-4xl:  3rem;       /*  48px */
 
     --weight-light:    300;
-    --weight-normal:   400;
+    --weight-normal:   400; /* Regular */
     --weight-medium:   500;
     --weight-semibold: 600;
     --weight-bold:     700;
