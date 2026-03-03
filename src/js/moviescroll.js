@@ -5,8 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     moviePosters.forEach(moviePoster => {
         moviePoster.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
             console.log("нажали на постер")
             /* логика перехода на другую страницу и удаления listener-ов*/
         })
@@ -18,18 +16,25 @@ document.addEventListener('DOMContentLoaded', () => {
         let startScrollLeft;
 
         container.addEventListener('mousedown', (e) => {
-            e.preventDefault(); // спросить, что за стандартное поведение, из-за которого не работает
+            e.preventDefault();
             
             isDragging = true;
             startX = e.pageX;
             startScrollLeft = container.scrollLeft;
+
+            moviePosters.forEach(poster => { // я понимаю, что это плохо, но больше никак не получилось починить(
+                // не переопределяется cursor pointer при наведении на постер
+                // как будто можно и просто с cursor pointer перемещать)
+                poster.style.cursor = 'grabbing';
+            });
+
             container.style.cursor = 'grabbing';
             container.style.userSelect = 'none';
         });
 
         document.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
-            e.preventDefault();
+
             const dx = e.pageX - startX;
             container.scrollLeft = startScrollLeft - dx;
         });
@@ -37,15 +42,19 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('mouseup', () => {
             if (isDragging) {
                 isDragging = false;
-                container.style.cursor = 'pointer';
+                container.style.cursor = 'default';
                 container.style.userSelect = 'auto';
+
+                moviePosters.forEach(poster => { // ну и тут тоже плохо соответственно, но я не придумала, как еще(
+                    poster.style.cursor = 'pointer';
+            });
             }
         });
 
         document.addEventListener('mouseleave', () => {
             if (isDragging) {
                 isDragging = false;
-                container.style.cursor = 'pointer';
+                container.style.cursor = 'default';
                 container.style.userSelect = 'auto';
             }
         });

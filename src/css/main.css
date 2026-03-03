@@ -14,7 +14,6 @@
     --accent-color:     #D64518;  /* Spicy Orange   — тёмный акцент/ховер */
     --text-color-2:      #E6CCAB;  /* Pale Oak       — вторичный текст     */
     --text-color: #F5E8D0;  /* Champagne Mist — основной текст      */
-
     /* -------------------------------------------------------- */
     /*  2. ФУНКЦИОНАЛЬНЫЕ ПЕРЕМЕННЫЕ                             */
     /* -------------------------------------------------------- */
@@ -36,12 +35,14 @@
     --accent-subtle:   rgba(255, 87, 31, 0.12); /* лёгкая подсветка */
 
     /* Границы и разделители */
-    --border-color:    rgba(230, 204, 171, 0.18);
+  
+    --border-color:    rgba(230, 204, 171, 0.18); 
     --border-focus:    var(--accent-color-2);
 
     /* Поля ввода, поиск */
-    --input-bg:        #1d0e07;
-    --input-bg-focus:  rgba(230, 204, 171, 0.12);
+    --input-bg:        #1D0E07;
+    --input-bg-focus:  #322418; 
+    /* --input-bg-focus:  rgba(230, 204, 171, 0.12);  вариант Тима, я оставила как на фигме*/
 
     /* Скроллбар */
     --scrollbar-track: var(--bgc-color-2);
@@ -124,7 +125,7 @@
     /* -------------------------------------------------------- */
 
     --duration-fast:   150ms;
-    --duration-base:   250ms;
+    --duration-base:   300ms;
     --duration-slow:   400ms;
     --ease-default:    ease;
     --ease-in-out:     cubic-bezier(0.4, 0, 0.2, 1);
@@ -134,8 +135,8 @@
     /* -------------------------------------------------------- */
 
     --container-max:   1280px;
-    --header-height:   64px;
-    --sidebar-width:   240px;
+    --header-height:   75px;
+    --sidebar-width:   15%;
     --sidebar-collapsed: 64px;
 }
 
