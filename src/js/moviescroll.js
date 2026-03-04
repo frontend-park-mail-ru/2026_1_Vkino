@@ -22,14 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
             startX = e.pageX;
             startScrollLeft = container.scrollLeft;
 
-            moviePosters.forEach(poster => { // я понимаю, что это плохо, но больше никак не получилось починить(
-                // не переопределяется cursor pointer при наведении на постер
-                // как будто можно и просто с cursor pointer перемещать)
-                poster.style.cursor = 'grabbing';
-            });
-
-            container.style.cursor = 'grabbing';
-            container.style.userSelect = 'none';
+            container.classList.add('is-dragging');
         });
 
         document.addEventListener('mousemove', (e) => {
@@ -42,20 +35,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('mouseup', () => {
             if (isDragging) {
                 isDragging = false;
-                container.style.cursor = 'default';
-                container.style.userSelect = 'auto';
-
-                moviePosters.forEach(poster => { // ну и тут тоже плохо соответственно, но я не придумала, как еще(
-                    poster.style.cursor = 'pointer';
-            });
+                container.classList.remove('is-dragging');
             }
         });
 
         document.addEventListener('mouseleave', () => {
             if (isDragging) {
                 isDragging = false;
-                container.style.cursor = 'default';
-                container.style.userSelect = 'auto';
             }
         });
     });

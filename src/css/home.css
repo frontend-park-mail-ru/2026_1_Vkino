@@ -309,6 +309,15 @@
     -ms-overflow-style: none;
 }
 
+.scroll-container.is-dragging {
+    cursor: grabbing;
+}
+
+.scroll-container.is-dragging * {
+    cursor: grabbing;
+    pointer-events: none;
+}
+
 .scroll-container::-webkit-scrollbar {
     display: none;
 }
@@ -342,10 +351,6 @@
     -ms-user-select: none;
     */
     cursor: pointer;
-}
-
-.scroll-container.dragging * {
-    cursor: grabbing !important;
 }
 
 .movie-poster:hover {
