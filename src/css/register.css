@@ -139,6 +139,22 @@ input:focus {
     box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
+.is-error {
+    border: 1px solid transparent;
+    background:
+        linear-gradient(var(--input-bg), var(--input-bg)),
+        linear-gradient(180deg, #FF0000D9 0%, #9E0000FF 51%, #FF0000D9 97%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+}
+
+.error-message {
+  color: #ff0000;
+  font-size: 12px;
+  margin-top: 4px;
+  min-height: 16px; /* Чтобы не прыгала верстка */
+}
+
 /* ---- Поле с кнопкой глаза ---- */
 .field {
     position: relative;
