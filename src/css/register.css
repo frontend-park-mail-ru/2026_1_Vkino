@@ -2,22 +2,6 @@
     justify-content: space-between;
 }
 
-.is-error {
-    border: 1px solid transparent;
-    background:
-        linear-gradient(var(--input-bg), var(--input-bg)),
-        linear-gradient(180deg, #FF0000D9 0%, #9E0000FF 51%, #FF0000D9 97%);
-    background-origin: border-box;
-    background-clip: padding-box, border-box;
-}
-
-.error-message {
-  color: #ff0000;
-  font-size: 12px;
-  margin-top: 4px;
-  min-height: 16px; /* Чтобы не прыгала верстка */
-}
-
 /* ---- Колонка с бутылкой ---- */
 .bottle-wrap {
     flex: 1 1 54%;

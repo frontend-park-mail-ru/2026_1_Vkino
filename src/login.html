@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="css/auth.css">
     <link rel="stylesheet" href="css/login.css">
     <script src="js/eye-btn.js" defer></script>
+    <script src="js/validation.js" defer></script>
 </head>
 <body>
 
@@ -26,10 +27,11 @@
                 <div class="logo">
                     <img src="img/logo.png" alt="VKino логотип">Vkino
                 </div>
-                <form>
+                <form data-auth-form="login" novalidate>
                     <div class="form-group">
                         <label>Email</label>
                         <input type="email" placeholder="Email" required>
+                        <div class="error-message" id="email-error"></div>
                     </div>
                     <div class="form-group">
                         <label>Пароль</label>
@@ -43,6 +45,7 @@
                                 </svg>
                             </button>
                         </div>
+                        <div class="error-message" id="password-error"></div>
                     </div>
                     <button type="submit" class="btn">Войти</button>
                 </form>

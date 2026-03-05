@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/auth.css">
     <link rel="stylesheet" href="css/register.css">
+    <script src="js/validation.js" defer></script>
     <script src="js/register.js" defer></script>
     <script src="js/eye-btn.js" defer></script>
 </head>
@@ -28,7 +29,7 @@
                 <div class="logo">
                     <img src="img/logo.png" alt="VKino логотип">Vkino
                 </div>
-                <form>
+                <form data-auth-form="register" novalidate>
                     <div class="form-group">
                         <label>Email</label>
                         <input type="email" placeholder="Начните вводить" required>
