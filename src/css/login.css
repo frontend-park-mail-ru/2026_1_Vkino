@@ -1,0 +1,342 @@
+@import url('https://fonts.googleapis.com/css2?family=Jaini&display=swap');
+
+body {
+    background:
+        radial-gradient(ellipse at 30% 60%, rgba(255, 87, 31, 0.16) 0%, transparent 55%),
+        radial-gradient(ellipse at 75% 25%, rgba(214, 69, 24, 0.15) 0%, transparent 50%),
+        var(--bg-page);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* ---- Фоновые пятна ---- */
+.container-main {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.bg-dot {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(50px);
+    opacity: 0.12;
+    z-index: 1;
+}
+
+.bg-dot.yellow {
+    background: var(--c-tiger);
+}
+
+.bg-dot.light {
+    background: var(--c-pale);
+}
+
+/* ---- Карточка формы ---- */
+.form-section {
+    width: min(840px, 92vw);
+    
+    background: radial-gradient(ellipse at 70% 30%, rgba(255, 151, 31, 0.08) 0%, transparent 55%),
+        radial-gradient(ellipse at 20% 60%, rgba(255, 151, 31, 0.06) 0%, transparent 55%), var(--bg-overlay);
+    padding: var(--space-10) var(--space-12);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-color);
+    backdrop-filter: blur(20px);
+    z-index: 2;
+    display: flex;
+    gap: var(--space-12);
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-lg), 0 0 80px rgba(255, 87, 31, 0.07);
+}
+
+/* ---- Колонка с формой ---- */
+.form-wrap {
+    flex: 1 1 30%;
+    min-width: 250px;
+    max-width: 380px;
+}
+
+/* ---- Логотип ---- */
+.logo {
+    font-family: var(--font-headers);
+    font-size: 44px;
+    font-weight: 600;
+    color: var(--accent);
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-6);
+    text-shadow: 0 0 28px rgba(255, 87, 31, 0.4);
+}
+
+.logo img {
+    height: 38px;
+    width: auto;
+    display: block;
+}
+
+/* ---- Заголовок формы ---- */
+.form-heading {
+    font-family: var(--font-headers);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-6);
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-tight);
+}
+
+/* ---- Группы полей ---- */
+.form-group {
+    margin-bottom: var(--space-5);
+}
+
+label {
+    display: block;
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-2);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+}
+
+/* ---- Поля ввода ---- */
+input {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    font-family: var(--font-sans);
+    transition:
+        background var(--duration-fast) var(--ease-default),
+        border-color var(--duration-fast) var(--ease-default),
+        box-shadow var(--duration-fast) var(--ease-default);
+}
+
+input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.9;
+}
+
+input:focus {
+    outline: none;
+    background: var(--input-bg-focus);
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.popcorn-wrap {
+    flex: 1 1 54%;
+    flex-direction: column;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 250px;
+    max-width: 270px;
+    max-height: 500px;
+}
+
+/* ---- Поле с кнопкой глаза ---- */
+.field {
+    position: relative;
+}
+
+.has-eye input {
+    padding-right: 52px;
+}
+
+.eye-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 48px;
+    height: 100%;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color var(--duration-fast) var(--ease-default);
+}
+
+.eye-btn:hover {
+    color: var(--accent);
+}
+
+.eye-btn svg {
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+}
+
+.eye-btn .slash {
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-default);
+}
+
+.eye-btn.revealed .slash {
+    opacity: 1;
+}
+
+/* ---- Кнопка отправки ---- */
+.btn {
+    width: 100%;
+    padding: 13px var(--space-4);
+    background: var(--accent);
+    border-radius: var(--radius-md);
+    border: 1px solid #D64518;
+    color: var(--text-on-accent);
+    font-size: var(--text-base);
+    font-weight: var(--weight-extrabold);
+    font-family: var(--font-sans);
+    cursor: pointer;
+    margin-top: var(--space-4);
+    position: relative;
+    overflow: hidden;
+    transition: background var(--duration-fast) var(--ease-default);
+}
+
+.btn:hover {
+    background: var(--accent-hover);
+    color: var(--text-color);
+}
+
+/* ---- Ссылка "уже есть аккаунт" ---- */
+.footer-text {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    margin-top: var(--space-5);
+}
+
+.footer-text a {
+    color: var(--accent);
+    font-weight: var(--weight-medium);
+    transition: color var(--duration-fast) var(--ease-default);
+}
+
+.footer-text a:hover {
+    color: var(--accent-hover);
+}
+
+.hint {
+    margin-top: 50px;
+    color: #ff8c0088;
+    font-size: 1rem;
+    letter-spacing: 1px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  /* === BUCKET SCENE === */
+  .scene {
+    position: relative;
+    width: 200px;
+    height: 300px;
+    cursor: pointer;
+  }
+
+  /* === BUCKET SVG === */
+  .bucket-wrap {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 160px;
+    transition: transform 0.2s;
+  }
+
+  .scene:hover .bucket-wrap {
+    transform: translateX(-50%) scale(1.05);
+  }
+
+  /* === POPCORN KERNELS === */
+  .kernel {
+    position: absolute;
+    pointer-events: none;
+    opacity: 0;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    filter: drop-shadow(0 2px 10px #ffcc0099);
+  }
+
+  .scene:hover .kernel {
+    animation: explode var(--dur, 0.8s) ease-out var(--delay, 0s) infinite;
+  }
+
+  @keyframes explode {
+    0% {
+      opacity: 1;
+      transform: translate(-50%, 0) rotate(0deg) scale(0.5);
+    }
+    60% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translate(calc(-50% + var(--tx, 0px)), var(--ty, -120px)) rotate(var(--rot, 180deg)) scale(1.2);
+    }
+  }
+
+  /* === STEAM / GLOW === */
+  .glow {
+    position: absolute;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ffcf4b44, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+
+  .scene:hover .glow {
+    opacity: 1;
+    animation: glowPulse 0.5s ease-in-out infinite alternate;
+  }
+
+  @keyframes glowPulse {
+    from { transform: translateX(-50%) scale(1); opacity: 0.5; }
+    to   { transform: translateX(-50%) scale(1.4); opacity: 1; }
+  }
+
+  /* Wiggle bucket on hover */
+  .scene:hover .bucket-svg {
+    animation: wiggle 0.4s ease-in-out infinite alternate;
+  }
+
+  @keyframes wiggle {
+    from { transform: rotate(-3deg); }
+    to   { transform: rotate(3deg); }
+  }
+
+@media (max-width: 900px) {
+
+.bottle-wrap {
+    visibility: hidden;
+}
+}
