@@ -1,0 +1,18 @@
+<div class="header-container"> 
+    <div class="name">
+        <h1 class="name-text">Vkino</h1>
+    </div>           
+    <div class="search-bar">
+        <input type="text" placeholder="Поиск" class="search-input">
+    </div>
+    
+    <div class="user-profile">
+        {{#if isAuthorized}}
+            <span class="username">{{userName}}</span>
+            <img src="img/user-avatar.png" alt="User avatar" class="avatar">
+        {{else}}
+            <button class="btn" data-action="sign-in" type="button">Войти</button>
+            <button class="btn" data-action="sign-up" type="button">Зарегистрироваться</button>
+        {{/if}}
+    </div>
+</div>
