@@ -1,31 +1,26 @@
-// написать frontend-router, который по url -> Page
-// пока базовый вид
+import { Router } from './router/BaseRouter.js';
+import MainPage from './pages/Main/Main.js';
+import SignInPage from './pages/SignIn/SignIn.js';
+import SignUpPage from './pages/SignUp/SignUp.js';
 
-// import MainPage from './pages/Main/Main.js';
+const rootEl = document.getElementById('root');
+if (!rootEl) {
+    throw new Error('main.js: Не найден #root');
+}
 
-// document.addEventListener('DOMContentLoaded', () => {
-//     const rootEl = document.getElementById('root');
+// Нужно дёргать данные из api.js / client.js
+const router = new Router(rootEl);
+router
+    .addRoute('/', (root) => new MainPage(
+        {
+            isAuthorized: false,
+            userName: 'Олег Константинович',
+        },
+        null,
+        root
+    ))
+    .addRoute('/sign-in', (root) => new SignInPage({}, null, root))
+    .addRoute('/sign-up', (root) => new SignUpPage({}, null, root))
+    // .addRoute('/404', (root) => new NotFoundPage({}, null, root));
 
-//     if (!rootEl) {
-//         throw new Error('Не найден контейнер #root');
-//     }
-
-//     const page = new MainPage(
-//         {
-//             isAuthorized: true,
-//             userName: 'Олег Константинович',
-//             onSignIn: () => {
-//                 console.log('Открыть вход');
-//                 window.location.href = '/login';
-//             },
-//             onSignUp: () => {
-//                 console.log('Открыть регистрацию');
-//                 window.location.href = '/register';
-//             },
-//         },
-//         null,
-//         rootEl
-//     );
-
-//     page.init();
-// });
+router.start();

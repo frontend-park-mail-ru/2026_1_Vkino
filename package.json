@@ -1,18 +1,12 @@
 {
   "name": "vkino-front",
   "version": "1.0.0",
-  "description": "Добро пожаловать в репозиторий **Vkino**, вашего нового любимого сервиса для онлайн-просмотра фильмов и сериалов!",
-  "source": "src/index.html",
+  "description": "Добро пожаловать в репозиторий Vkino, вашего нового любимого сервиса для онлайн-просмотра фильмов и сериалов!",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": ""
+    "hbs_compile": "./hbs_compile.sh",
+    "dev": "./hbs_compile.sh && node ./server/server"
   },
   "author": "Vkino",
-  "license": "ISC",
-  "devDependencies": {
-    "sass": "^1.97.3"
-  },
-  "dependencies": {
-    "handlebars": "^4.7.8"
-  }
+  "license": "ISC"
 }

@@ -84,12 +84,7 @@ export class BaseComponent {
             ...this.context,
             ...newContext
         };
-        this.render();
-
-        this.setupChildren();
-        this.initChildren();
-
-        this.addEventListeners();
+        this.init();
         return this;
     }
 

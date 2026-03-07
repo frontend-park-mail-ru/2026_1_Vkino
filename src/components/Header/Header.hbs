@@ -11,8 +11,10 @@
             <span class="username">{{userName}}</span>
             <img src="img/user-avatar.png" alt="User avatar" class="avatar">
         {{else}}
-            <button class="btn" data-action="sign-in" type="button">Войти</button>
-            <button class="btn" data-action="sign-up" type="button">Зарегистрироваться</button>
+            {{!-- <button class="btn" data-action="sign-in" type="button" data-link>Войти</button>
+            <button class="btn" data-action="sign-up" type="button" data-link>Зарегистрироваться</button> --}}
+            <a class="btn" href="/sign-in" data-link>Войти</a>
+            <a class="btn" href="/sign-up" data-link>Зарегистрироваться</a>
         {{/if}}
     </div>
 </div>
