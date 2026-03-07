@@ -16,6 +16,8 @@ export class Router {
 
         // Делегирование кликов по ссылкам внутри документа
         document.addEventListener('click', this._processLinkClick);
+        // Назад/вперед в браузере
+        window.addEventListener('popstate', this._syncRoute);
     }
 
     // Регистрация маршрута
@@ -49,7 +51,7 @@ export class Router {
     // Уничтожение роутера
     destroy() {
         document.removeEventListener('click', this._processLinkClick);
-
+        window.removeEventListener('popstate', this._syncRoute);
         if (this.activePage?.destroy) {
             this.activePage.destroy();
         }
@@ -59,13 +61,10 @@ export class Router {
     // Обработка кликов по ссылкам с router-link
     _processLinkClick(event) {
         const link = event.target.closest('[router-link]');
-
         if (!link) {
             return;
         }
-
-        if (
-            event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
             return;
         }
 
@@ -82,7 +81,6 @@ export class Router {
     _syncRoute() {
         const path = this._formatPath(window.location.pathname);
         console.log('route path =', path);
-
         const pageBuilder = this.routeTable.get(path) || this.routeTable.get('/404');
         console.log('pageBuilder =', pageBuilder);
 
@@ -95,9 +93,7 @@ export class Router {
         }
 
         this.root.innerHTML = '';
-
         const page = pageBuilder(this.root);
-
         if (!page || typeof page.init !== 'function') {
             throw new Error(`Router: builder для пути "${path}" должен возвращать страницу с методом init()`);
         }
@@ -112,7 +108,6 @@ export class Router {
         if (!path || path === '/') {
             return '/';
         }
-
         return path.endsWith('/') ? path.slice(0, -1) : path;
     }
 }

@@ -30,9 +30,6 @@ export class BaseComponent {
         const html = this.template({
             //распаковка
             ...this.context,
-            // служебные данные
-            _componentId: this._id,
-            _timestamp: Date.now()
         });
         // подставляем компонент
         this.el.innerHTML = html;
@@ -81,7 +78,6 @@ export class BaseComponent {
         this.removeEventListeners();
         this.destroyChildren();
         this.context = {
-            ...this.context,
             ...newContext
         };
         this.init();

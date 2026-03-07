@@ -15,10 +15,12 @@ const mapMime = {
 };
 
 http.createServer((req, res) => {
-    let p = (req.url === '/') ? '../src/index.html' : req.url; // дефолтный путь
-    if (!path.extname(p)) { p += '.html'; } // + расширение файла
-    
-    const filePath = path.join(pub, p);
+    // срезаем query
+    const requestPath = decodeURIComponent(req.url.split('?')[0]);
+
+    // есть расширение — отдаем файл, иначе отдаем index.html.
+    const filePath = path.extname(requestPath) ? path.join(pub, requestPath) : path.join(pub, 'index.html');
+
     if (!filePath.startsWith(pub)) { // от дурака на ../
         res.writeHead(403); 
         return res.end('403'); 

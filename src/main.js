@@ -1,4 +1,4 @@
-import { Router } from './router/BaseRouter.js';
+import { Router } from './router/Router.js';
 import MainPage from './pages/Main/Main.js';
 import SignInPage from './pages/SignIn/SignIn.js';
 import SignUpPage from './pages/SignUp/SignUp.js';

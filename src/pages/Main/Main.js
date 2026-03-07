@@ -1,22 +1,3 @@
-// Делаем класс MainPage
-// метод render
-// импорт предкомпилированный шаблон из precompiled.hbs
-// Вызываем handlebars.templates["index.hbs"](data from api)
-// go to innerHtml of root element
-// импорт предкомпилированный шаблон header из precompiled.hbs
-// Вызываем handlebars.templates["header.hbs"](data from api)
-// go to innerHtml of current element
-
-// Было
-// import './Main.precompiled.js'
-// const rootEl = document.getElementById('root');
-// rootEl.innerHTML = Handlebars.templates['Main.hbs']();
-
-// import '../../components/Header/Header.precompiled.js'
-// const header = document.getElementById('header');
-// header.innerHTML = Handlebars.templates['Header.hbs']();
-
-
 import BasePage from '../BasePage.js';
 import './Main.precompiled.js';
 
