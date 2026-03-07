@@ -1,3 +1,5 @@
+import { signupUser } from "./js/api.js";
+
 let exploded = false;
 const scene = document.getElementById('scene');
 const bw = document.getElementById('bw');
@@ -12,7 +14,23 @@ function resize() {
     canvas.height = innerHeight;
 }
 resize();
-window.addEventListener('resize', resize);
+
+
+document.querySelector('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const email = document.querySelector('input[type="email"]').value;
+    const password = document.getElementById('password').value;
+    const password_repeat = document.getElementById('password-repeat').value;
+
+    console.log(email, password, {email, password})
+    if (password != password_repeat) {
+        alert("не совпадают пароли");
+        return;
+    }
+
+    await signupUser({email, password})
+});
 
 scene.addEventListener('click', () => {
     if (exploded) return;
