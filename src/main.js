@@ -4,14 +4,15 @@ import SignInPage from './pages/SignIn/SignIn.js';
 import SignUpPage from './pages/SignUp/SignUp.js';
 
 const rootEl = document.getElementById('root');
+
 if (!rootEl) {
     throw new Error('main.js: Не найден #root');
 }
 
-// Нужно дёргать данные из api.js / client.js
 const router = new Router(rootEl);
+
 router
-    .addRoute('/', (root) => new MainPage(
+    .registerRoute('/', (root) => new MainPage(
         {
             isAuthorized: false,
             userName: 'Олег Константинович',
@@ -19,8 +20,7 @@ router
         null,
         root
     ))
-    .addRoute('/sign-in', (root) => new SignInPage({}, null, root))
-    .addRoute('/sign-up', (root) => new SignUpPage({}, null, root))
-    // .addRoute('/404', (root) => new NotFoundPage({}, null, root));
+    .registerRoute('/sign-in', (root) => new SignInPage({}, null, root))
+    .registerRoute('/sign-up', (root) => new SignUpPage({}, null, root));
 
-router.start();
+router.init();

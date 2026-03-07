@@ -4,117 +4,115 @@ export class Router {
             throw new Error('Router: не передан корневой DOM-элемент');
         }
 
-        // DOM-элемент, в который будут монтироваться страницы
+        // Корневой контейнер, куда будут монтироваться страницы
         this.root = root;
-        // Хранилище маршрутов path -> factory экземпляр страницы
-        this.routes = new Map();
+        // Таблица маршрутов: path -> builder страницы
+        this.routeTable = new Map();
         // Текущая активная страница
-        this._currentPage = null;
-
+        this.activePage = null;
         // Привязка методов к экземпляру
-        this._handleRoute = this._handleRoute.bind(this);
-        this._handleLinkClick = this._handleLinkClick.bind(this);
+        this._syncRoute = this._syncRoute.bind(this);
+        this._processLinkClick = this._processLinkClick.bind(this);
 
-        // Обработка переходов назад/вперёд в браузере
-        window.addEventListener('popstate', this._handleRoute);
         // Делегирование кликов по ссылкам внутри документа
-        document.addEventListener('click', this._handleLinkClick);
+        document.addEventListener('click', this._processLinkClick);
     }
 
     // Регистрация маршрута
-    addRoute(path, pageFactory) {
+    registerRoute(path, pageBuilder) {
         if (!path) {
             throw new Error('Router: не указан path');
         }
-        if (typeof pageFactory !== 'function') {
-            throw new Error(`Router: pageFactory для пути "${path}" должен быть функцией`);
+        if (typeof pageBuilder !== 'function') {
+            throw new Error(`Router: pageBuilder для пути "${path}" должен быть функцией`);
         }
-
-        this.routes.set(this._normalizePath(path), pageFactory);
+        this.routeTable.set(this._formatPath(path), pageBuilder);
         return this;
     }
 
     // Переход на новый маршрут без перезагрузки страницы
-    navigate(path) {
-        const normalizedPath = this._normalizePath(path);
+    go(path) {
+        const normalizedPath = this._formatPath(path);
         if (window.location.pathname === normalizedPath) {
             return;
         }
         window.history.pushState({}, '', normalizedPath);
-        this._handleRoute();
+        this._syncRoute();
     }
 
     // Запуск роутера
-    start() {
-        console.log("Router started: ")
-        this._handleRoute();
+    init() {
+        console.log('Router initialized');
+        this._syncRoute();
     }
 
-    // Уничтожение текущей страницы и отвязка событий роутера
+    // Уничтожение роутера
     destroy() {
-        window.removeEventListener('popstate', this._handleRoute);
-        document.removeEventListener('click', this._handleLinkClick);
+        document.removeEventListener('click', this._processLinkClick);
 
-        if (this._currentPage?.destroy) {
-            this._currentPage.destroy();
+        if (this.activePage?.destroy) {
+            this.activePage.destroy();
         }
-
-        this._currentPage = null;
+        this.activePage = null;
     }
 
-    // Обработка кликов по ссылкам с data-link
-    _handleLinkClick(event) {
-        const link = event.target.closest('[data-link]');
+    // Обработка кликов по ссылкам с router-link
+    _processLinkClick(event) {
+        const link = event.target.closest('[router-link]');
+
         if (!link) {
             return;
         }
-        // Не мешаем открытию в новой вкладке/окне
-        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+
+        if (
+            event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
             return;
         }
-        // перенаправляем на ссылку в href
+
         const href = link.getAttribute('href');
         console.log('Router href =', href);
         if (!href) {
             return;
         }
         event.preventDefault();
-        this.navigate(href);
+        this.go(href);
     }
 
     // Основная логика выбора и запуска страницы
-    _handleRoute() {
-        const path = this._normalizePath(window.location.pathname);
+    _syncRoute() {
+        const path = this._formatPath(window.location.pathname);
         console.log('route path =', path);
-        // Ищем страницу по текущему URL, иначе fallback на /404
-        const pageFactory = this.routes.get(path) || this.routes.get('/404');
-        console.log('pageFactory =', pageFactory);
-        if (!pageFactory) {
+
+        const pageBuilder = this.routeTable.get(path) || this.routeTable.get('/404');
+        console.log('pageBuilder =', pageBuilder);
+
+        if (!pageBuilder) {
             throw new Error(`Router: маршрут "${path}" не найден и маршрут "/404" не зарегистрирован`);
         }
 
-        // Уничтожаем предыдущую страницу перед монтированием новой
-        if (this._currentPage?.destroy) {
-            this._currentPage.destroy();
+        if (this.activePage?.destroy) {
+            this.activePage.destroy();
         }
+
         this.root.innerHTML = '';
 
-        // Создаём новую страницу
-        const page = pageFactory(this.root);
+        const page = pageBuilder(this.root);
+
         if (!page || typeof page.init !== 'function') {
-            throw new Error(`Router: factory для пути "${path}" должна возвращать страницу с методом init()`);
+            throw new Error(`Router: builder для пути "${path}" должен возвращать страницу с методом init()`);
         }
-        this._currentPage = page;
-        // Монтируем страницу
+
+        this.activePage = page;
         page.init();
     }
 
     // Нормализация пути:
     // '/sign-in/' -> '/sign-in'; '' -> '/'
-    _normalizePath(path) {
+    _formatPath(path) {
         if (!path || path === '/') {
             return '/';
         }
+
         return path.endsWith('/') ? path.slice(0, -1) : path;
     }
 }
