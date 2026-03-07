@@ -3,7 +3,7 @@ const fs = require('fs'); // работа с файлами
 const path = require('path'); // обработка путей
 
 const port = 3000;
-const pub = __dirname;
+const pub = path.resolve(__dirname, '..', 'src');
 const mapMime = {
     '.html': 'text/html; charset=utf-8',
     '.css': 'text/css; charset=utf-8',
@@ -15,10 +15,12 @@ const mapMime = {
 };
 
 http.createServer((req, res) => {
-    let p = (req.url === '/') ? '/index.html' : req.url; // дефолтный путь
-    if (!path.extname(p)) { p += '.html'; } // + расширение файла
+    // срезаем query
+    const requestPath = decodeURIComponent(req.url.split('?')[0]);
 
-    const filePath = path.join(pub, p);
+    // есть расширение — отдаем файл, иначе отдаем index.html.
+    const filePath = path.extname(requestPath) ? path.join(pub, requestPath) : path.join(pub, 'index.html');
+
     if (!filePath.startsWith(pub)) { // от дурака на ../
         res.writeHead(403); 
         return res.end('403'); 
@@ -28,7 +30,7 @@ http.createServer((req, res) => {
             res.writeHead(404);
             return res.end('404');
         }
-        res.writeHead(200, { 'Content-Type': mapMime[path.extname(filePath)] });
+        res.writeHead(200, { 'Content-Type': mapMime[path.extname(filePath)] || 'application/octet-stream' });
         res.end(data);
     });
 }).listen(port, () => console.log(`Сервер работает на ${port} порту`));
