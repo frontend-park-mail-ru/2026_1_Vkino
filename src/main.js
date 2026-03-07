@@ -14,8 +14,10 @@ const router = new Router(rootEl);
 router
     .registerRoute('/', (root) => new MainPage(
         {
-            isAuthorized: false,
-            userName: 'Олег Константинович',
+            userData: {
+                isAuthorized: true,
+                userName: 'Олег Константинович',
+            },
         },
         null,
         root

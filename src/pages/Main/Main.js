@@ -30,10 +30,7 @@ export default class MainPage extends BasePage {
             new HeaderComponent(
                 // context
                 {
-                    isAuthorized: this.context.isAuthorized,
-                    userName: this.context.userName,
-                    onSignIn: this.context.onSignIn,
-                    onSignUp: this.context.onSignUp,
+                    ...this.context.userData,
                 },
                 // template - указан в конструкторе Header
                 // parent
