@@ -1,17 +1,21 @@
+import { apiService } from "./api.js"
+
 export class AuthService {
     constructor (apiService) {
-        this.api = apiService
+        this.api = apiService.withNamespace('auth')
     }
 
-    async logIn(userData) {
-        return this.api.post("sign-in", userData)
+    async signIn(authUserData) {
+        return this.api.post("/sign-in", authUserData)
     }
 
-    async signUp(userData) {
-        return this.api.post("sign-up", userData)
+    async signUp(authUserData) {
+        return this.api.post("/sign-up", authUserData)
     }
 
-    async refresh(userData) {
-        return this.api.post("refresh", userData)
+    async refresh(authUserData) {
+        return this.api.post("/refresh", authUserData)
     }
 }
+
+export const authService = new AuthService(apiService)

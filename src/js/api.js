@@ -1,12 +1,15 @@
-const BACK_URL = "http://localhost:8080/"
-
 export class ApiService {
-    constructor(baseUrl) {
+    constructor(baseUrl, namespace = '') {
         this.baseUrl = baseUrl
+        this.namespace = namespace
+    }
+
+    withNamespace(namespace) {
+        return new ApiService(this.baseUrl, namespace)
     }
 
     async asyncFetch(endpoint, method, data = null) {
-        const url = `${this.baseUrl}${endpoint}`
+        const url = `${this.baseUrl}${this.namespace}${endpoint}`
 
         const fetchParams = {
             method: method,
@@ -68,3 +71,5 @@ export class ApiService {
         return this.asyncFetch(endpoint, "DELETE");
     }
 }
+
+export const apiService = new ApiService("http://localhost:8080/")
