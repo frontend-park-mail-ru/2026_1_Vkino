@@ -57,47 +57,24 @@
                 </svg>
             </button>
         </div>
-        
-        <div class="selection-section">
-            <h2 class="selection-title">
-                <div class="selection-rectangle"></div>
-                <span></span><span>Новинки&nbsp;<span class="selection-triangle">▸</span></span>
-            </h2> 
-            <div class="scroll-container">
-                <div class="scroll-items">
-                    {{#each new}}
-                        <img class="movie-poster" data-movie-poster-id="{{this.id}}" src="{{this.img_url}}" draggable="false" alt="{{this.title}}">
-                    {{/each}}
+        {{#each selections}}
+            <div class="selection-section">
+                <h2 class="selection-title">
+                    <div class="selection-rectangle"></div>
+                    <span></span><span>{{this.title}}&nbsp;<span class="selection-triangle">▸</span></span>
+                </h2> 
+                <div class="scroll-container">
+                    <div class="scroll-items">
+                        {{#each this.movies}}
+                            <img class="movie-poster" 
+                                 data-movie-poster-id="{{this.id}}" 
+                                 src="{{this.img_url}}" 
+                                 draggable="false" 
+                                 alt="{{this.title}}">
+                        {{/each}}
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="selection-section">
-            <h2 class="selection-title">
-                <div class="selection-rectangle"></div>
-                <span></span><span>Популярные&nbsp;<span class="selection-triangle">▸</span></span>
-            </h2> 
-            <div class="scroll-container">
-                <div class="scroll-items">
-                    {{#each popular}}
-                        <img class="movie-poster" data-movie-poster-id="{{this.id}}" src="{{this.img_url}}" draggable="false" alt="{{this.title}}">
-                    {{/each}}
-                </div>
-            </div>
-        </div>
-        
-        <div class="selection-section">
-            <h2 class="selection-title">
-                <div class="selection-rectangle"></div>
-                <span></span><span>Топ-10 фильмов&nbsp;<span class="selection-triangle">▸</span></span>
-            </h2> 
-            <div class="scroll-container">
-                <div class="scroll-items">
-                    {{#each top}}
-                        <img class="movie-poster" data-movie-poster-id="{{this.id}}" src="{{this.img_url}}" draggable="false" alt="{{this.title}}">
-                    {{/each}}
-                </div>
-            </div>
-        </div>
+        {{/each}}
     </div>
 </div>

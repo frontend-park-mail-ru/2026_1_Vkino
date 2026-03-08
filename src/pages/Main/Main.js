@@ -32,23 +32,34 @@ export default class MainPage extends BasePage {
     }
 
     async loadContext() {
-        const [top, newmovies, popular] = await Promise.all([
-            movieService.getSelectionByTitle("new"),
-            movieService.getSelectionByTitle("new"),
-            movieService.getSelectionByTitle("popular")
-        ])
-
-
-        console.log(top)
-        const newContext = {
-            ...this.context,
-            top: top.resp?.movies,
-            new: newmovies.resp?.movies,
-            popular: popular.resp?.movies
-        }
+        const {ok, status, resp} = await movieService.getAllSelections()
 
         this._contextLoaded = true;
-        this.refresh(newContext)
+        
+        console.log(ok, status, resp)
+
+        if (ok) {
+            this.context = {
+                ...this.context,
+                selections: resp
+            };
+            
+            if (this.children.size > 0) {
+                this.refreshChildren({
+                    ...this.context.userData 
+                });
+            }
+
+            this.render();
+            this.addEventListeners();
+        } else {
+            this.context = {
+                ...this.context,
+                selections: []
+            };
+            console.log("фильмы не прилетели с бэка(");
+            this.render();
+        }
     }
 
     addEventListeners() {
@@ -67,6 +78,7 @@ export default class MainPage extends BasePage {
 
 
     _addScrollContainerListeners() {
+        this._removeScrollContainerListeners();
         const scrollContainers = document.querySelectorAll('.scroll-container');
 
         scrollContainers.forEach(container => {
@@ -86,7 +98,7 @@ export default class MainPage extends BasePage {
 
             const onMouseMove = (e) => {
                 if (!isDragging) return;
-
+                e.preventDefault();
                 const dx = e.pageX - startX;
                 container.scrollLeft = startScrollLeft - dx;
             }
@@ -101,13 +113,14 @@ export default class MainPage extends BasePage {
             const onMouseLeave = () => {
                 if (isDragging) {
                     isDragging = false;
+                    container.classList.remove('is-dragging');
                 }
             };
 
             container.addEventListener('mousedown', onMouseDown);
-            container.addEventListener('mousemove', onMouseMove);
-            container.addEventListener('mouseup', onMouseUp);
-            container.addEventListener('mouseleave', onMouseLeave);
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+            document.addEventListener('mouseleave', onMouseLeave);
 
             this._scrollContainerHandlers.set(container, {
                 onMouseDown,
@@ -119,11 +132,15 @@ export default class MainPage extends BasePage {
     }
 
     _addMoviePostersClickListeners() {
+        this._removeMoviePostersClickListeners(); 
+
         const moviePosters = this.el.querySelectorAll('.movie-poster');
 
         moviePosters.forEach(moviePoster => {
             const onClick = (e) => {
-                console.log("нажали на постер");
+                e.preventDefault();
+                const movieId = moviePoster.dataset.movieId;
+                console.log("нажали на постер", movieId);
             };
 
             moviePoster.addEventListener('click', onClick);
@@ -134,9 +151,9 @@ export default class MainPage extends BasePage {
     _removeScrollContainerListeners() {
         for (const [container, handlers] of this._scrollContainerHandlers) {
             container.removeEventListener('mousedown', handlers.onMouseDown);
-            container.removeEventListener('mousemove', handlers.onMouseMove);
-            container.removeEventListener('mouseup', handlers.onMouseUp);
-            container.removeEventListener('mouseleave', handlers.onMouseLeave);
+            document.removeEventListener('mousemove', handlers.onMouseMove);
+            document.removeEventListener('mouseup', handlers.onMouseUp);
+            document.removeEventListener('mouseleave', handlers.onMouseLeave);
         }
         this._scrollContainerHandlers.clear();
     }
@@ -158,14 +175,10 @@ export default class MainPage extends BasePage {
         this.addChild(
             'header',
             new HeaderComponent(
-                // context
                 {
                     ...this.context.userData,
                 },
-                // template - указан в конструкторе Header
-                // parent
                 this,
-                // el
                 header
             )
         );
