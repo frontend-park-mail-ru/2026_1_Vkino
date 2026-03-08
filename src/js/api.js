@@ -1,6 +1,6 @@
 const BACK_URL = "http://localhost:8080/"
 
-class ApiService {
+export class ApiService {
     constructor(baseUrl) {
         this.baseUrl = baseUrl
     }
@@ -10,7 +10,10 @@ class ApiService {
 
         const fetchParams = {
             method: method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+             },
             credentials: "include"
         }
 
@@ -18,9 +21,29 @@ class ApiService {
             fetchParams.body = JSON.stringify(data)
         }
 
-        const resp = await fetch(url, fetchParams)
+        let resp
 
-        const parsedBody = await resp.json();
+        try {
+            resp = await fetch(url, fetchParams)
+        } catch (error) {
+            return {
+                ok: false,
+                status: 0,
+                resp: {Error: error.message}
+            }
+        }
+
+        let parsedBody 
+
+        try {
+            parsedBody = await resp.json();            
+        } catch (error) {
+            return {
+                ok: false,
+                status: resp.status,
+                resp: {Error: error.message}
+            }
+        }
 
         return {
             ok: resp.ok,
@@ -45,48 +68,3 @@ class ApiService {
         return this.asyncFetch(endpoint, "DELETE");
     }
 }
-
-const apiService = new ApiService(BACK_URL) 
-
-export const signupUser = async (userData) => {
-    try {
-        const {ok, status, resp} = await apiService.post("sign-up", userData)
-        if (ok) {
-            //localStorage.setItem("access_token", resp.access_token)
-            console.log("Регистрация успешно завершилась")
-        } else {
-            console.log("Ошибка регистрации:", status, resp)
-        }
-    } catch (error) {
-        console.log("Ошибка fetch или resp.json() ", error)
-    }
-}
-
-export const signinUser = async (userData) => {
-    try {
-        const {ok, status, resp} = await apiService.post("sign-in", userData)
-        if (ok) {
-            //localStorage.setItem("access_token", resp.access_token)
-            console.log("Вход успешно завершился")
-        } else {
-            console.log("Ошибка входа", status, resp)
-        }
-    } catch (error) {
-        console.log("Ошибка fetch или resp.json() ", error)
-    }
-}
-
-export const refreshUser = async () => {
-    try {
-        const {ok, status, resp} = await apiService.post("refresh", {})
-        if (ok) {
-            //localStorage.setItem("access_token", resp.access_token)
-            console.log("Access токен обновили")
-        } else {
-            console.log("Ошибка при refresh", status, resp)
-        }
-    } catch (error) {
-        console.log("Ошибка fetch или resp.json() ", error)
-    }
-}
-

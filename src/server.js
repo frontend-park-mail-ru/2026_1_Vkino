@@ -15,7 +15,8 @@ const mapMime = {
 };
 
 http.createServer((req, res) => {
-    let p = (req.url === '/') ? '/index.html' : req.url; // дефолтный путь
+    const decodedUrl = decodeURIComponent(req.url);
+    let p = (decodedUrl === '/') ? '/index.html' : decodedUrl; // дефолтный путь
     if (!path.extname(p)) { p += '.html'; } // + расширение файла
 
     const filePath = path.join(pub, p);

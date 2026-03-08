@@ -1,4 +1,5 @@
-import { signupUser } from "./js/api.js";
+import { ApiService } from "./js/api.js";
+import { AuthService } from "./js/AuthService.js"
 
 let exploded = false;
 const scene = document.getElementById('scene');
@@ -29,7 +30,11 @@ document.querySelector('form').addEventListener('submit', async (e) => {
         return;
     }
 
-    await signupUser({email, password})
+    const api = new ApiService("http://localhost:8080/");
+    const authService = new AuthService(api);
+
+    const {ok, status, resp} = await authService.signUp({email, password})
+    console.log(resp)
 });
 
 scene.addEventListener('click', () => {
