@@ -1,6 +1,9 @@
 import BasePage from '../BasePage.js';
 import './Main.precompiled.js';
 
+import { ApiService } from '../../js/api.js';
+import { MovieService } from '../../js/MovieService.js';
+
 import HeaderComponent from '../../components/Header/Header.js';
 
 export default class MainPage extends BasePage {
@@ -16,6 +19,31 @@ export default class MainPage extends BasePage {
             el,
             'MainPage'
         );
+    }
+
+    init() {
+        super.init()
+        this.loadContext()
+    }
+
+    async loadContext() {
+        const apiService = new ApiService("http://localhost:3000")
+        const movieService = new MovieService(apiService)
+
+        const [top, newmovies, popular] = await Promise.all([
+            movieService.GetSelectionByTitle("new"),
+            movieService.GetSelectionByTitle("new"),
+            movieService.GetSelectionByTitle("popular")
+        ])
+        console.log(top)
+        const newContext = {
+            ...this.context,
+            top,
+            newmovies,
+            popular
+        }
+
+        this.refresh(newContext)
     }
 
     setupChildren() {
