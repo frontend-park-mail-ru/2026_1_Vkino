@@ -65,8 +65,8 @@
             </h2> 
             <div class="scroll-container">
                 <div class="scroll-items">
-                    {{#each newmovies}}
-                        <img class="movie-poster" data-movie-poster-id="{{this.id}}" "{{this.img_url}}" draggable="false" alt="{{this.title}}">
+                    {{#each new}}
+                        <img class="movie-poster" data-movie-poster-id="{{this.id}}" src="{{this.img_url}}" draggable="false" alt="{{this.title}}">
                     {{/each}}
                 </div>
             </div>
@@ -80,7 +80,7 @@
             <div class="scroll-container">
                 <div class="scroll-items">
                     {{#each popular}}
-                        <img class="movie-poster" data-movie-poster-id="{{this.id}}" "{{this.img_url}}" draggable="false" alt="{{this.title}}">
+                        <img class="movie-poster" data-movie-poster-id="{{this.id}}" src="{{this.img_url}}" draggable="false" alt="{{this.title}}">
                     {{/each}}
                 </div>
             </div>
@@ -94,7 +94,7 @@
             <div class="scroll-container">
                 <div class="scroll-items">
                     {{#each top}}
-                        <img class="movie-poster" data-movie-poster-id="{{this.id}}" "{{this.img_url}}" draggable="false" alt="{{this.title}}">
+                        <img class="movie-poster" data-movie-poster-id="{{this.id}}" src="{{this.img_url}}" draggable="false" alt="{{this.title}}">
                     {{/each}}
                 </div>
             </div>

@@ -68,3 +68,5 @@ export class ApiService {
         return this.asyncFetch(endpoint, "DELETE");
     }
 }
+
+export const apiService = new ApiService("http://localhost:8080/")

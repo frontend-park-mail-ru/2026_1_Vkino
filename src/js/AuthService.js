@@ -1,3 +1,5 @@
+import { apiService } from "./api.js"
+
 export class AuthService {
     constructor (apiService) {
         this.api = apiService
@@ -15,3 +17,5 @@ export class AuthService {
         return this.api.post("refresh", userData)
     }
 }
+
+export const authService = new AuthService(apiService)
