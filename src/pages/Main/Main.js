@@ -38,28 +38,23 @@ export default class MainPage extends BasePage {
         
         console.log(ok, status, resp)
 
+        let newContext
+
         if (ok) {
-            this.context = {
+            newContext = {
                 ...this.context,
                 selections: resp
             };
-            
-            if (this.children.size > 0) {
-                this.refreshChildren({
-                    ...this.context.userData 
-                });
-            }
-
-            this.render();
-            this.addEventListeners();
         } else {
-            this.context = {
+            newContext = {
                 ...this.context,
                 selections: []
             };
             console.log("фильмы не прилетели с бэка(");
-            this.render();
         }
+
+        this._contextLoaded = true;
+        this.refresh(newContext)
     }
 
     addEventListeners() {
@@ -78,7 +73,6 @@ export default class MainPage extends BasePage {
 
 
     _addScrollContainerListeners() {
-        this._removeScrollContainerListeners();
         const scrollContainers = document.querySelectorAll('.scroll-container');
 
         scrollContainers.forEach(container => {
@@ -98,7 +92,7 @@ export default class MainPage extends BasePage {
 
             const onMouseMove = (e) => {
                 if (!isDragging) return;
-                e.preventDefault();
+
                 const dx = e.pageX - startX;
                 container.scrollLeft = startScrollLeft - dx;
             }
@@ -113,7 +107,6 @@ export default class MainPage extends BasePage {
             const onMouseLeave = () => {
                 if (isDragging) {
                     isDragging = false;
-                    container.classList.remove('is-dragging');
                 }
             };
 
@@ -132,15 +125,11 @@ export default class MainPage extends BasePage {
     }
 
     _addMoviePostersClickListeners() {
-        this._removeMoviePostersClickListeners(); 
-
         const moviePosters = this.el.querySelectorAll('.movie-poster');
 
         moviePosters.forEach(moviePoster => {
             const onClick = (e) => {
-                e.preventDefault();
-                const movieId = moviePoster.dataset.movieId;
-                console.log("нажали на постер", movieId);
+                console.log("нажали на постер");
             };
 
             moviePoster.addEventListener('click', onClick);
@@ -175,10 +164,14 @@ export default class MainPage extends BasePage {
         this.addChild(
             'header',
             new HeaderComponent(
+                // context
                 {
                     ...this.context.userData,
                 },
+                // template - указан в конструкторе Header
+                // parent
                 this,
+                // el
                 header
             )
         );
