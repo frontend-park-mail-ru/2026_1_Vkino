@@ -14,5 +14,8 @@
     "eslint": "^9.39.4",
     "globals": "^17.4.0",
     "prettier": "3.8.1"
+  },
+  "dependencies": {
+    "handlebars": "^4.7.8"
   }
 }
