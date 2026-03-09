@@ -53,7 +53,6 @@ export default class MainPage extends BasePage {
             console.log("фильмы не прилетели с бэка(");
         }
 
-        this._contextLoaded = true;
         this.refresh(newContext)
     }
 
