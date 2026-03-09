@@ -31,12 +31,16 @@ export default class HeaderComponent extends BaseComponent {
 
     addEventListeners() {
         this._unsubscribe = authStore.subscribe((state) => {
-            this.refresh({
-                ...this.context,
-                isAuthorized: state.status === 'authenticated',
-                userName: getDisplayNameFromEmail(state.user?.email),
-            });
+            // this.refresh({
+            //     ...this.context,
+            //     isAuthorized: state.status === 'authenticated',
+            //     userName: getDisplayNameFromEmail(state.user?.email),
+            // });
         });
+        const logoutBtn = this.el.querySelector('[data-action="logout"]');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', this._onLogoutClick);
+        }
     }
 
     removeEventListeners() {
@@ -44,6 +48,17 @@ export default class HeaderComponent extends BaseComponent {
             this._unsubscribe();
             this._unsubscribe = null;
         }
+        const logoutBtn = this.el.querySelector('[data-action="logout"]');
+        if (logoutBtn) {
+            logoutBtn.removeEventListener('click', this._onLogoutClick);
+        }
+    }
+
+    _onLogoutClick = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const res = await authStore.logout();
+        console.log(res)
     }
 }
 

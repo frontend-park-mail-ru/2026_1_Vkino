@@ -54,7 +54,7 @@ export class AuthService {
     }
 
     async logout() {
-        const result = await this.api.get('/logout');
+        const result = await this.api.post('/logout');
         this._clearSessionLocal();
         return result;
     }
