@@ -8,5 +8,11 @@
     "dev": "./hbs_compile.sh && node ./server/server"
   },
   "author": "Vkino",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "eslint": "^9.39.4",
+    "globals": "^17.4.0",
+    "prettier": "3.8.1"
+  }
 }

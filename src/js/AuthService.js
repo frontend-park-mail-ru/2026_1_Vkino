@@ -1,21 +1,63 @@
-import { apiService } from "./api.js"
+import { apiService } from './api.js';
 
 export class AuthService {
-    constructor (apiService) {
-        this.api = apiService.withNamespace('auth')
+    constructor(apiService) {
+        this.apiRoot = apiService;
+        this.api = apiService.withNamespace('/auth');
+    }
+
+    _saveAccessToken(result) {
+        const accessToken = result?.resp?.access_token;
+
+        if (result?.ok && accessToken) {
+            this.apiRoot.setAccessToken(accessToken);
+        }
+    }
+
+    _clearSessionLocal() {
+        this.apiRoot.clearAccessToken();
+    }
+
+    getAccessToken() {
+        return this.apiRoot.getAccessToken();
+    }
+
+    clearAccessToken() {
+        this._clearSessionLocal();
     }
 
     async signIn(authUserData) {
-        return this.api.post("/sign-in", authUserData)
+        const result = await this.api.post('/sign-in', authUserData);
+        this._saveAccessToken(result);
+        return result;
     }
 
     async signUp(authUserData) {
-        return this.api.post("/sign-up", authUserData)
+        const result = await this.api.post('/sign-up', authUserData);
+        this._saveAccessToken(result);
+        return result;
     }
 
-    async refresh(authUserData) {
-        return this.api.post("/refresh", authUserData)
+    async refresh() {
+        const result = await this.api.post('/refresh');
+        this._saveAccessToken(result);
+
+        if (!result.ok) {
+            this._clearSessionLocal();
+        }
+
+        return result;
+    }
+
+    async me() {
+        return this.api.get('/me');
+    }
+
+    async logout() {
+        const result = await this.api.post('/logout');
+        this._clearSessionLocal();
+        return result;
     }
 }
 
-export const authService = new AuthService(apiService)
+export const authService = new AuthService(apiService);
