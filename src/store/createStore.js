@@ -13,7 +13,8 @@ export function createStore(initialState) {
                 ...patch,
             };
 
-            listeners.forEach((listener) => listener(state));
+            const listenersSnapshot = [...listeners];
+            listenersSnapshot.forEach((listener) => listener(state));
         },
 
         subscribe(listener) {
@@ -26,7 +27,9 @@ export function createStore(initialState) {
 
         reset(nextState) {
             state = structuredClone(nextState);
-            listeners.forEach((listener) => listener(state));
+
+            const listenersSnapshot = [...listeners];
+            listenersSnapshot.forEach((listener) => listener(state));
         },
     };
 }
