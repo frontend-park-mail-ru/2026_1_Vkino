@@ -115,4 +115,6 @@ function extractErrorMessage(resp) {
     return resp.Error || resp.error || resp.message || '';
 }
 
-export const apiService = new ApiService('http://localhost:8080');
+// читаем baseUrl из .env (с сервера)
+const baseUrl = window.APP_CONFIG?.BASE_URL || 'http://localhost:8080';
+export const apiService = new ApiService(baseUrl);

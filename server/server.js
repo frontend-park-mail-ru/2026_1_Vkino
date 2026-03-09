@@ -18,6 +18,22 @@ http.createServer((req, res) => {
     // срезаем query
     const requestPath = decodeURIComponent(req.url.split('?')[0]);
 
+    // Динамически отдаем конфиг для браузера
+    if (requestPath === '/config.js') {
+        const baseUrl = process.env.BASE_URL || 'http://localhost:8080';
+
+        res.writeHead(200, {
+            'Content-Type': 'application/javascript; charset=utf-8',
+            'Cache-Control': 'no-store',
+        });
+
+        return res.end(`
+            window.APP_CONFIG = Object.freeze({
+                BASE_URL: ${JSON.stringify(baseUrl)}
+            });
+        `);
+    }
+
     // есть расширение — отдаем файл, иначе отдаем index.html.
     const filePath = path.extname(requestPath) ? path.join(pub, requestPath) : path.join(pub, 'index.html');
 
