@@ -4,6 +4,8 @@ import MoviePage from './pages/Movie/Movie.js';
 import SignInPage from './pages/SignIn/SignIn.js';
 import SignUpPage from './pages/SignUp/SignUp.js';
 
+import { authStore } from './store/authStore.js';
+
 const rootEl = document.getElementById('root');
 
 if (!rootEl) {
@@ -12,25 +14,28 @@ if (!rootEl) {
 
 const router = new Router(rootEl);
 
-router
-    .registerRoute('/', (root) => new MainPage(
-        {
-            userData: {
-                isAuthorized: false,
-                userName: 'Олег Константинович',
-            },
-        },
-        null,
-        root
-    ))
-    .registerRoute('/movie', (root) => new MoviePage({}, null, root))
-    .registerRoute('/sign-in', (root) => new SignInPage({}, null, root))
-    .registerRoute('/sign-up', (root) => new SignUpPage(
-        {
-            onSuccess: () => router.go('/sign-in'),
-        },
-        null,
-        root
-    ))
+async function start() {
+    await authStore.init();
 
-router.init();
+    router
+        .registerRoute('/', (root) => new MainPage({}, null, root))
+        .registerRoute('/sign-in', (root) => new SignInPage(
+            {
+                onSuccess: () => router.go('/'),
+            },
+            null,
+            root
+        ))
+        .registerRoute('/sign-up', (root) => new SignUpPage(
+            {
+                onSuccess: () => router.go('/'),
+            },
+            null,
+            root
+        ))
+        .registerRoute('/movie', (root) => new MoviePage({}, null, root));
+
+    router.init();
+}
+
+start();

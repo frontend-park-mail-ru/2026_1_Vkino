@@ -1,75 +1,118 @@
 export class ApiService {
-    constructor(baseUrl, namespace = '') {
-        this.baseUrl = baseUrl
-        this.namespace = namespace
+    constructor(baseUrl, namespace = '', accessTokenKey = 'vkino_access_token') {
+        this.baseUrl = baseUrl.replace(/\/+$/, '');
+        this.namespace = namespace;
+        this.accessTokenKey = accessTokenKey;
     }
 
     withNamespace(namespace) {
-        return new ApiService(this.baseUrl, namespace)
+        return new ApiService(this.baseUrl, namespace, this.accessTokenKey);
     }
 
-    async asyncFetch(endpoint, method, data = null) {
-        const url = `${this.baseUrl}${this.namespace}${endpoint}`
+    getAccessToken() {
+        return localStorage.getItem(this.accessTokenKey);
+    }
+
+    setAccessToken(token) {
+        if (!token) {
+            this.clearAccessToken();
+            return;
+        }
+
+        localStorage.setItem(this.accessTokenKey, token);
+    }
+
+    clearAccessToken() {
+        localStorage.removeItem(this.accessTokenKey);
+    }
+
+    buildUrl(endpoint = '') {
+        const normalizedNamespace = this.namespace
+            ? `/${String(this.namespace).replace(/^\/+|\/+$/g, '')}`
+            : '';
+
+        const normalizedEndpoint = endpoint
+            ? `/${String(endpoint).replace(/^\/+/, '')}`
+            : '';
+
+        return `${this.baseUrl}${normalizedNamespace}${normalizedEndpoint}`;
+    }
+
+    async request(endpoint, { method = 'GET', data = null, headers = {} } = {}) {
+        const url = this.buildUrl(endpoint);
+        const accessToken = this.getAccessToken();
 
         const fetchParams = {
-            method: method,
-            headers: { 
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-             },
-            credentials: "include"
+            method,
+            credentials: 'include',
+            headers: {
+                Accept: 'application/json',
+                ...headers,
+            },
+        };
+
+        if (data !== null) {
+            fetchParams.headers['Content-Type'] = 'application/json';
+            fetchParams.body = JSON.stringify(data);
         }
 
-        if (data) {
-            fetchParams.body = JSON.stringify(data)
+        if (accessToken) {
+            fetchParams.headers.Authorization = `Bearer ${accessToken}`;
         }
 
-        let resp
+        let response;
 
         try {
-            resp = await fetch(url, fetchParams)
+            response = await fetch(url, fetchParams);
         } catch (error) {
             return {
                 ok: false,
                 status: 0,
-                resp: {Error: error.message}
-            }
+                resp: null,
+                error: error.message || 'Network error',
+            };
         }
 
-        let parsedBody 
+        const rawText = await response.text();
 
-        try {
-            parsedBody = await resp.json();            
-        } catch (error) {
-            return {
-                ok: false,
-                status: resp.status,
-                resp: {Error: error.message}
+        let parsedBody = null;
+
+        if (rawText) {
+            try {
+                parsedBody = JSON.parse(rawText);
+            } catch {
+                parsedBody = { raw: rawText };
             }
         }
 
         return {
-            ok: resp.ok,
-            status: resp.status,
-            resp: parsedBody
-        }
+            ok: response.ok,
+            status: response.status,
+            resp: parsedBody,
+            error: extractErrorMessage(parsedBody),
+        };
     }
-    
+
     get(endpoint) {
-        return this.asyncFetch(endpoint, "GET")
+        return this.request(endpoint, { method: 'GET' });
     }
 
-    post(endpoint, data) {
-        return this.asyncFetch(endpoint, "POST", data);
+    post(endpoint, data = null) {
+        return this.request(endpoint, { method: 'POST', data });
     }
 
-    put(endpoint, data) {
-        return this.asyncFetch(endpoint, "PUT", data);
+    put(endpoint, data = null) {
+        return this.request(endpoint, { method: 'PUT', data });
     }
 
     delete(endpoint) {
-        return this.asyncFetch(endpoint, "DELETE");
+        return this.request(endpoint, { method: 'DELETE' });
     }
 }
 
-export const apiService = new ApiService("http://localhost:8080/")
+function extractErrorMessage(resp) {
+    if (!resp || typeof resp !== 'object') return '';
+    return resp.Error || resp.error || resp.message || '';
+}
+
+export const apiService = new ApiService('http://localhost:8080');

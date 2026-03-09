@@ -5,7 +5,7 @@ import { attachPageStyles } from '../../utils/pageStyles.js';
 import { initPasswordToggle } from '../../js/password/eye-btn.js';
 import { initAuthValidation, setError } from '../../js/password/validation.js';
 import { initRegisterBottleEffect } from '../../js/register.js';
-import { authService } from '../../js/AuthService.js';
+import { authStore } from '../../store/authStore.js';
 
 export default class SignUpPage extends BasePage {
     constructor(context = {}, parent = null, el = null) {
@@ -69,22 +69,22 @@ export default class SignUpPage extends BasePage {
     }
 
     async handleSubmit(authUserData) {
-        try {
-            const { passwordRepeat, ...signUpData } = authUserData;
+        const result = await authStore.signUp(authUserData);
 
-            const response = await authService.signUp(signUpData);
-            console.log('SignUp success:', response);
+        if (!result.ok) {
+            const password = this.el.querySelector('#password');
+            const passwordError = this.el.querySelector('#password-error');
 
-            if (typeof this.context.onSuccess === 'function') {
-                this.context.onSuccess(response);
-            }
-        } catch (error) {
-            console.error('SignUp error:', error);
+            setError(
+                password,
+                passwordError,
+                result.resp?.Error || result.resp?.message || result.error || 'Не удалось зарегистрироваться'
+            );
+            return;
+        }
 
-            const email = this.el.querySelector('input[type="email"]');
-            const emailError = this.el.querySelector('#email-error');
-
-            setError(email, emailError, 'Не удалось выполнить регистрацию');
+        if (typeof this.context.onSuccess === 'function') {
+            this.context.onSuccess(result.resp);
         }
     }
 

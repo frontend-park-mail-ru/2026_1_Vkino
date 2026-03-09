@@ -4,7 +4,7 @@ import './SignIn.precompiled.js';
 import { attachPageStyles } from '../../utils/pageStyles.js';
 import { initPasswordToggle } from '../../js/password/eye-btn.js';
 import { initAuthValidation, setError } from '../../js/password/validation.js';
-import { authService } from '../../js/AuthService.js';
+import { authStore } from '../../store/authStore.js';
 
 export default class SignInPage extends BasePage {
     constructor(context = {}, parent = null, el = null) {
@@ -57,19 +57,22 @@ export default class SignInPage extends BasePage {
     }
 
     async handleSubmit(authUserData) {
-        try {
-            const response = await authService.signIn(authUserData);
-            console.log('SignIn success:', response);
+        const result = await authStore.signIn(authUserData);
 
-            if (typeof this.context.onSuccess === 'function') {
-                this.context.onSuccess(response);
-            }
-        } catch (error) {
-            console.error('SignIn error:', error);
-
+        if (!result.ok) {
             const password = this.el.querySelector('#password');
             const passwordError = this.el.querySelector('#password-error');
-            setError(password, passwordError, 'Не удалось выполнить вход');
+
+            setError(
+                password,
+                passwordError,
+                result.resp?.Error || result.resp?.message || result.error || 'Не удалось выполнить вход'
+            );
+            return;
+        }
+
+        if (typeof this.context.onSuccess === 'function') {
+            this.context.onSuccess(result.resp);
         }
     }
 

@@ -116,8 +116,7 @@ export const initAuthValidation = (form, options = {}) => {
             await options.onSubmit(
                 {
                     email: String(formData.get('email') || '').trim(),
-                    password: String(formData.get('password') || '').trim(),
-                    passwordRepeat: String(formData.get('passwordRepeat') || '').trim(),
+                    password: String(formData.get('password') || ''),
                 },
                 form
             );
