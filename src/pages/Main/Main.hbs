@@ -57,68 +57,24 @@
                 </svg>
             </button>
         </div>
-        
-        <div class="selection-section">
-            <h2 class="selection-title">
-                <div class="selection-rectangle"></div>
-                <span></span><span>Новинки&nbsp;<span class="selection-triangle">▸</span></span>
-            </h2> 
-            <div class="scroll-container">
-                <div class="scroll-items">
-                    <img class="movie-poster" src="img/1.jpg" data-movie-poster-id="1" draggable="false" alt="Постер 1">
-                    <img class="movie-poster" src="img/2.jpeg" data-movie-poster-id="2" draggable="false" alt="Постер 2">
-                    <img class="movie-poster" src="img/3.jpg" data-movie-poster-id="3" draggable="false" alt="Постер 3">
-                    <img class="movie-poster" src="img/4.jpg" data-movie-poster-id="4" draggable="false" alt="Постер 4">
-                    <img class="movie-poster" src="img/5.jpg" data-movie-poster-id="5" draggable="false" alt="Постер 5">
-                    <img class="movie-poster" src="img/1.jpg" draggable="false" alt="Постер 6">
-                    <img class="movie-poster" src="img/2.jpeg" draggable="false" alt="Постер 7">
-                    <img class="movie-poster" src="img/3.jpg" draggable="false" alt="Постер 8">
-                    <img class="movie-poster" src="img/4.jpg" draggable="false" alt="Постер 9">
-                    <img class="movie-poster" src="img/5.jpg" draggable="false" alt="Постер 10">
+        {{#each selections}}
+            <div class="selection-section">
+                <h2 class="selection-title">
+                    <div class="selection-rectangle"></div>
+                    <span></span><span>{{this.title}}&nbsp;<span class="selection-triangle">▸</span></span>
+                </h2> 
+                <div class="scroll-container">
+                    <div class="scroll-items">
+                        {{#each this.movies}}
+                            <img class="movie-poster" 
+                                 data-movie-poster-id="{{this.id}}" 
+                                 src="{{this.img_url}}" 
+                                 draggable="false" 
+                                 alt="{{this.title}}">
+                        {{/each}}
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="selection-section">
-            <h2 class="selection-title">
-                <div class="selection-rectangle"></div>
-                <span></span><span>Популярные&nbsp;<span class="selection-triangle">▸</span></span>
-            </h2> 
-            <div class="scroll-container">
-                <div class="scroll-items">
-                    <img class="movie-poster" src="img/1.jpg" draggable="false" alt="Постер 1">
-                    <img class="movie-poster" src="img/2.jpeg" draggable="false" alt="Постер 2">
-                    <img class="movie-poster" src="img/3.jpg" draggable="false" alt="Постер 3">
-                    <img class="movie-poster" src="img/4.jpg" draggable="false" alt="Постер 4">
-                    <img class="movie-poster" src="img/5.jpg" draggable="false" alt="Постер 5">
-                    <img class="movie-poster" src="img/1.jpg" draggable="false" alt="Постер 6">
-                    <img class="movie-poster" src="img/2.jpeg" draggable="false" alt="Постер 7">
-                    <img class="movie-poster" src="img/3.jpg" draggable="false" alt="Постер 8">
-                    <img class="movie-poster" src="img/4.jpg" draggable="false" alt="Постер 9">
-                    <img class="movie-poster" src="img/5.jpg" draggable="false" alt="Постер 10">
-                </div>
-            </div>
-        </div>
-        
-        <div class="selection-section">
-            <h2 class="selection-title">
-                <div class="selection-rectangle"></div>
-                <span></span><span>Комедии&nbsp;<span class="selection-triangle">▸</span></span>
-            </h2> 
-            <div class="scroll-container">
-                <div class="scroll-items">
-                    <img class="movie-poster" src="img/1.jpg" draggable="false" alt="Постер 1">
-                    <img class="movie-poster" src="img/2.jpeg" draggable="false" alt="Постер 2">
-                    <img class="movie-poster" src="img/3.jpg" draggable="false" alt="Постер 3">
-                    <img class="movie-poster" src="img/4.jpg" draggable="false" alt="Постер 4">
-                    <img class="movie-poster" src="img/5.jpg" draggable="false" alt="Постер 5">
-                    <img class="movie-poster" src="img/1.jpg" draggable="false" alt="Постер 6">
-                    <img class="movie-poster" src="img/2.jpeg" draggable="false" alt="Постер 7">
-                    <img class="movie-poster" src="img/3.jpg" draggable="false" alt="Постер 8">
-                    <img class="movie-poster" src="img/4.jpg" draggable="false" alt="Постер 9">
-                    <img class="movie-poster" src="img/5.jpg" draggable="false" alt="Постер 10">
-                </div>
-            </div>
-        </div>
+        {{/each}}
     </div>
 </div>
