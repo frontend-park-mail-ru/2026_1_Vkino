@@ -71,14 +71,22 @@ export default class SignUpPage extends BasePage {
     async handleSubmit(authUserData) {
         const result = await authStore.signUp(authUserData);
 
+        const MapError = {
+            "user already exists": "такой пользователь уже существует",
+            "invalid credentials": "Некорректные данные для учётной записи",
+            "internal server error": "Ошибка сервера",
+        }
+
         if (!result.ok) {
+            // const email = this.el.querySelector('input[type="email"]');
             const password = this.el.querySelector('#password');
             const passwordError = this.el.querySelector('#password-error');
 
             setError(
+                // email,
                 password,
                 passwordError,
-                result.resp?.Error || result.resp?.message || result.error || 'Не удалось зарегистрироваться'
+                MapError[result.resp?.Error] || result.resp?.message || result.error || 'Не удалось зарегистрироваться'
             );
             return;
         }
