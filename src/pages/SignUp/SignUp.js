@@ -78,12 +78,12 @@ export default class SignUpPage extends BasePage {
         }
 
         if (!result.ok) {
-            // const email = this.el.querySelector('input[type="email"]');
+            const email = this.el.querySelector('input[type="email"]');
             const password = this.el.querySelector('#password');
             const passwordError = this.el.querySelector('#password-error');
 
             setError(
-                // email,
+                email,
                 password,
                 passwordError,
                 MapError[result.resp?.Error] || result.resp?.message || result.error || 'Не удалось зарегистрироваться'
