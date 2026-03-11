@@ -6,6 +6,8 @@ export const setError = (el, errorEl, message) => {
 export const validateEmail = (email = '') => {
     const trimmed = email.trim();
     if (!trimmed) return 'Введите email';
+    if (trimmed.length > 63) return 'Слишком длинный email';
+    if (trimmed.includes('..')) return 'Email не должен содержать несколько точек подряд';
 
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)
         ? ''
@@ -16,6 +18,7 @@ export const validatePassword = (password = '') => {
     const issues = [];
 
     if (password.length < 6) issues.push('минимум 6 символов');
+    if (password.length > 255) issues.push('максимум 255 символов');
     if (/\s/.test(password)) issues.push('без пробелов');
 
     if (/^[a-zA-Z]+$/.test(password) || /^\d+$/.test(password)) {
