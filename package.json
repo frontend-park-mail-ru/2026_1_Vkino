@@ -5,7 +5,12 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "hbs_compile": "./hbs_compile.sh",
-    "dev": "./hbs_compile.sh && node --env-file=.env ./server/server"
+    "dev": "./hbs_compile.sh && node --env-file=.env ./server/server",
+
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check"
   },
   "author": "Vkino",
   "license": "ISC",
