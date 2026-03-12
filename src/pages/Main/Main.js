@@ -4,7 +4,20 @@ import "./Main.precompiled.js";
 import { movieService } from "../../js/MovieService.js";
 import HeaderComponent from "../../components/Header/Header.js";
 
+/**
+ * Главная страница приложения с подборками фильмов.
+ * @class
+ * @extends BasePage
+ */
 export default class MainPage extends BasePage {
+  /**
+   * Создает экземпляр главной страницы.
+   * @constructor
+   * @param {Object} [context={}] - Контекст данных для страницы.
+   * @param {BaseComponent|null} [parent=null] - Родительский компонент.
+   * @param {Element|null} [el=null] - Корневой DOM-элемент страницы.
+   * @throws {Error} Если не передан корневой элемент.
+   */
   constructor(context = {}, parent = null, el = null) {
     if (!el) {
       throw new Error("Main: не передан корневой элемент для MainPage");
@@ -12,22 +25,67 @@ export default class MainPage extends BasePage {
 
     super(context, Handlebars.templates["Main.hbs"], parent, el, "MainPage");
 
+    /**
+     * Флаг загрузки контекста.
+     * @private
+     * @type {boolean}
+     * @default false
+     */
     this._contextLoaded = false;
 
+    /**
+     * Мапа обработчиков для контейнеров со скроллом.
+     * @private
+     * @type {Map<Element, {onMouseDown: Function, onMouseMove: Function, onMouseUp: Function, onMouseLeave: Function}>}
+     * @default new Map()
+     */
     this._scrollContainerHandlers = new Map();
+
+    /**
+     * Мапа обработчиков кликов по постерам фильмов.
+     * @private
+     * @type {Map<Element, Function>}
+     * @default new Map()
+     */
     this._posterClickHandlers = new Map();
+
+    /**
+     * Мапа обработчиков для кнопок переключения навигации.
+     * @private
+     * @type {Map<Element, Function>}
+     * @default new Map()
+     */
     this._navToggleHandlers = new Map();
+
+    /**
+     * Мапа обработчиков для пунктов меню.
+     * @private
+     * @type {Map<Element, Function>}
+     * @default new Map()
+     */
     this._menuItemHandlers = new Map();
   }
 
+  /**
+   * Инициализирует страницу и загружает контекст при необходимости.
+   * @override
+   * @returns {this} Текущий экземпляр страницы.
+   */
   init() {
     super.init();
 
     if (!this._contextLoaded) {
       this.loadContext();
     }
+    
+    return this;
   }
 
+  /**
+   * Загружает подборки фильмов с сервера.
+   * @async
+   * @returns {Promise<void>}
+   */
   async loadContext() {
     const { ok, resp } = await movieService.getAllSelections();
 
@@ -44,6 +102,10 @@ export default class MainPage extends BasePage {
     this.refresh(newContext);
   }
 
+  /**
+   * Добавляет все обработчики событий для страницы.
+   * @override
+   */
   addEventListeners() {
     super.addEventListeners();
 
@@ -52,6 +114,10 @@ export default class MainPage extends BasePage {
     this._addMoviePostersClickListeners();
   }
 
+  /**
+   * Удаляет все обработчики событий для страницы.
+   * @override
+   */
   removeEventListeners() {
     super.removeEventListeners();
 
@@ -60,6 +126,10 @@ export default class MainPage extends BasePage {
     this._removeMoviePostersClickListeners();
   }
 
+  /**
+   * Добавляет обработчики для бокового меню.
+   * @private
+   */
   _addSidebarListeners() {
     const toggleButtons = this.el.querySelectorAll(
       '[data-action="toggle-nav"]',
@@ -86,6 +156,10 @@ export default class MainPage extends BasePage {
     });
   }
 
+  /**
+   * Удаляет обработчики бокового меню.
+   * @private
+   */
   _removeSidebarListeners() {
     for (const [button, handler] of this._navToggleHandlers) {
       button.removeEventListener("click", handler);
@@ -98,6 +172,10 @@ export default class MainPage extends BasePage {
     this._menuItemHandlers.clear();
   }
 
+  /**
+   * Переключает состояние бокового меню (открыто/закрыто).
+   * @private
+   */
   _toggleNav() {
     const sideMenu = this.el.querySelector("#side-menu");
     const mainContent = this.el.querySelector("#main-content");
@@ -108,6 +186,11 @@ export default class MainPage extends BasePage {
     openIcon?.classList.toggle("menu-active");
   }
 
+  /**
+   * Обрабатывает выбор пункта меню.
+   * @private
+   * @param {string} content - Идентификатор выбранного контента.
+   */
   _showContent(content) {
     console.log(`Выбран раздел: ${content}`);
 
@@ -118,13 +201,13 @@ export default class MainPage extends BasePage {
     sideMenu?.classList.remove("menu-active");
     mainContent?.classList.remove("menu-active");
     openIcon?.classList.remove("menu-active");
-
-    // Здесь позже можно сделать:
-    // - фильтрацию подборок
-    // - смену активной категории
-    // - роутинг
   }
 
+  /**
+   * Добавляет обработчики для горизонтального скролла контейнеров с постерами.
+   * Реализует drag-to-scroll функциональность.
+   * @private
+   */
   _addScrollContainerListeners() {
     const scrollContainers = this.el.querySelectorAll(".scroll-container");
 
@@ -178,6 +261,10 @@ export default class MainPage extends BasePage {
     });
   }
 
+  /**
+   * Удаляет обработчики горизонтального скролла.
+   * @private
+   */
   _removeScrollContainerListeners() {
     for (const [container, handlers] of this._scrollContainerHandlers) {
       container.removeEventListener("mousedown", handlers.onMouseDown);
@@ -189,6 +276,10 @@ export default class MainPage extends BasePage {
     this._scrollContainerHandlers.clear();
   }
 
+  /**
+   * Добавляет обработчики кликов по постерам фильмов.
+   * @private
+   */
   _addMoviePostersClickListeners() {
     const moviePosters = this.el.querySelectorAll(".movie-poster");
 
@@ -205,6 +296,10 @@ export default class MainPage extends BasePage {
     });
   }
 
+  /**
+   * Удаляет обработчики кликов по постерам фильмов.
+   * @private
+   */
   _removeMoviePostersClickListeners() {
     for (const [poster, handler] of this._posterClickHandlers) {
       poster.removeEventListener("click", handler);
@@ -213,6 +308,12 @@ export default class MainPage extends BasePage {
     this._posterClickHandlers.clear();
   }
 
+  /**
+   * Настраивает дочерние компоненты страницы.
+   * Создает и добавляет компонент шапки.
+   * @override
+   * @throws {Error} Если не найден элемент для компонента шапки.
+   */
   setupChildren() {
     const header = this.el.querySelector("#header");
 
