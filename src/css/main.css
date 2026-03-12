@@ -1,143 +1,142 @@
 /* ============================================================ */
 /*  main.css — Глобальные переменные и базовые стили            */
 /* ============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300..800&family=Unbounded:wght@400;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Open+Sans:wght@300..800&family=Unbounded:wght@400;600;700&display=swap");
 
 :root {
+  /* -------------------------------------------------------- */
+  /*  1. ПАЛИТРА                                  */
+  /* -------------------------------------------------------- */
+  --bgc-color: #120603; /* Coffee Bean    — самый тёмный фон    */
+  --bgc-color-2: #060301; /* Rich Mahogany  — фон панелей/хедера  */
+  --accent-color-2: #ff571f; /* Tiger Flame    — яркий акцент        */
+  --accent-color: #d64518; /* Spicy Orange   — тёмный акцент/ховер */
+  --text-color-2: #e6ccab; /* Pale Oak       — вторичный текст     */
+  --text-color: #f5e8d0; /* Champagne Mist — основной текст      */
+  /* -------------------------------------------------------- */
+  /*  2. ФУНКЦИОНАЛЬНЫЕ ПЕРЕМЕННЫЕ                             */
+  /* -------------------------------------------------------- */
 
-    /* -------------------------------------------------------- */
-    /*  1. ПАЛИТРА                                  */
-    /* -------------------------------------------------------- */
-    --bgc-color:    #120603;  /* Coffee Bean    — самый тёмный фон    */
-    --bgc-color-2:  #060301;  /* Rich Mahogany  — фон панелей/хедера  */
-    --accent-color-2:     #FF571F;  /* Tiger Flame    — яркий акцент        */
-    --accent-color:     #D64518;  /* Spicy Orange   — тёмный акцент/ховер */
-    --text-color-2:      #E6CCAB;  /* Pale Oak       — вторичный текст     */
-    --text-color: #F5E8D0;  /* Champagne Mist — основной текст      */
-    /* -------------------------------------------------------- */
-    /*  2. ФУНКЦИОНАЛЬНЫЕ ПЕРЕМЕННЫЕ                             */
-    /* -------------------------------------------------------- */
+  /* Фоны */
+  --bg-page: var(--bgc-color);
+  --bg-surface: var(--bgc-color-2); /* карточки, хедер, сайдбар     */
+  --bg-overlay: rgba(6, 3, 1, 0.85); /* модалки, дропдауны           */
 
-    /* Фоны */
-    --bg-page:         var(--bgc-color);
-    --bg-surface:      var(--bgc-color-2);   /* карточки, хедер, сайдбар     */
-    --bg-overlay:      rgba(6, 3, 1, 0.85); /* модалки, дропдауны           */
+  /* Текст */
+  --text-primary: var(--text-color);
+  --text-secondary: var(--text-color-2);
+  --text-on-accent: var(--text-color); /* текст поверх кнопок-акцентов */
+  --text-disabled: rgba(230, 204, 171, 0.4);
 
-    /* Текст */
-    --text-primary:    var(--text-color);
-    --text-secondary:  var(--text-color-2);
-    --text-on-accent:  var(--text-color);  /* текст поверх кнопок-акцентов */
-    --text-disabled:   rgba(230, 204, 171, 0.4);
+  /* Акценты */
+  --accent: var(--accent-color-2);
+  --accent-hover: var(--accent-color);
+  --accent-subtle: rgba(255, 87, 31, 0.12); /* лёгкая подсветка */
 
-    /* Акценты */
-    --accent:          var(--accent-color-2);
-    --accent-hover:    var(--accent-color);
-    --accent-subtle:   rgba(255, 87, 31, 0.12); /* лёгкая подсветка */
+  /* Границы и разделители */
 
-    /* Границы и разделители */
-  
-    --border-color:    rgba(230, 204, 171, 0.18); 
-    --border-focus:    var(--accent-color-2);
+  --border-color: rgba(230, 204, 171, 0.18);
+  --border-focus: var(--accent-color-2);
 
-    /* Поля ввода, поиск */
-    --input-bg:        #1D0E07;
-    --input-bg-focus:  #322418; 
-    /* --input-bg-focus:  rgba(230, 204, 171, 0.12);  вариант Тима, я оставила как на фигме*/
+  /* Поля ввода, поиск */
+  --input-bg: #1d0e07;
+  --input-bg-focus: #322418;
+  /* --input-bg-focus:  rgba(230, 204, 171, 0.12);  вариант Тима, я оставила как на фигме*/
 
-    /* Скроллбар */
-    --scrollbar-track: var(--bgc-color-2);
-    --scrollbar-thumb: rgba(230, 204, 171, 0.25);
-    --scrollbar-thumb-hover: var(--accent-color);
+  /* Скроллбар */
+  --scrollbar-track: var(--bgc-color-2);
+  --scrollbar-thumb: rgba(230, 204, 171, 0.25);
+  --scrollbar-thumb-hover: var(--accent-color);
 
-    /* -------------------------------------------------------- */
-    /*  3. ТИПОГРАФИКА                                           */
-    /* -------------------------------------------------------- */
+  /* -------------------------------------------------------- */
+  /*  3. ТИПОГРАФИКА                                           */
+  /* -------------------------------------------------------- */
 
-    --font-sans: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-                 Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue',
-                 sans-serif;
-    --font-headers: 'Unbounded', sans-serif;
-    --font-mono: 'SF Mono', 'Menlo', 'Monaco', 'Cascadia Code',
-                 'Consolas', monospace;
+  --font-sans:
+    "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  --font-headers: "Unbounded", sans-serif;
+  --font-mono:
+    "SF Mono", "Menlo", "Monaco", "Cascadia Code", "Consolas", monospace;
 
-    --text-xs:   0.75rem;    /*  12px */
-    --text-sm:   0.875rem;   /*  14px */
-    --text-base: 1rem;       /*  16px */
-    --text-md:   1.125rem;   /*  18px */
-    --text-lg:   1.25rem;    /*  20px */
-    --text-xl:   1.5rem;     /*  24px */
-    --text-2xl:  1.875rem;   /*  30px */
-    --text-3xl:  2.25rem;    /*  36px */
-    --text-4xl:  3rem;       /*  48px */
+  --text-xs: 0.75rem; /*  12px */
+  --text-sm: 0.875rem; /*  14px */
+  --text-base: 1rem; /*  16px */
+  --text-md: 1.125rem; /*  18px */
+  --text-lg: 1.25rem; /*  20px */
+  --text-xl: 1.5rem; /*  24px */
+  --text-2xl: 1.875rem; /*  30px */
+  --text-3xl: 2.25rem; /*  36px */
+  --text-4xl: 3rem; /*  48px */
 
-    --weight-light:    300;
-    --weight-normal:   400; /* Regular */
-    --weight-medium:   500;
-    --weight-semibold: 600;
-    --weight-bold:     700;
-    --weight-extrabold:  900;
+  --weight-light: 300;
+  --weight-normal: 400; /* Regular */
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 900;
 
-    --leading-tight:  1.2;
-    --leading-normal: 1.5;
-    --leading-loose:  1.8;
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-loose: 1.8;
 
-    --tracking-tight: -0.02em;
-    --tracking-normal: normal;
-    --tracking-wide:   0.05em;
+  --tracking-tight: -0.02em;
+  --tracking-normal: normal;
+  --tracking-wide: 0.05em;
 
-    /* -------------------------------------------------------- */
-    /*  4. ОТСТУПЫ (шаг = 4px)                                  */
-    /* -------------------------------------------------------- */
+  /* -------------------------------------------------------- */
+  /*  4. ОТСТУПЫ (шаг = 4px)                                  */
+  /* -------------------------------------------------------- */
 
-    --space-1:  0.25rem;   /*  4px */
-    --space-2:  0.5rem;    /*  8px */
-    --space-3:  0.75rem;   /* 12px */
-    --space-4:  1rem;      /* 16px */
-    --space-5:  1.25rem;   /* 20px */
-    --space-6:  1.5rem;    /* 24px */
-    --space-8:  2rem;      /* 32px */
-    --space-10: 2.5rem;    /* 40px */
-    --space-12: 3rem;      /* 48px */
-    --space-16: 4rem;      /* 64px */
-    --space-20: 5rem;      /* 80px */
+  --space-1: 0.25rem; /*  4px */
+  --space-2: 0.5rem; /*  8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /* 16px */
+  --space-5: 1.25rem; /* 20px */
+  --space-6: 1.5rem; /* 24px */
+  --space-8: 2rem; /* 32px */
+  --space-10: 2.5rem; /* 40px */
+  --space-12: 3rem; /* 48px */
+  --space-16: 4rem; /* 64px */
+  --space-20: 5rem; /* 80px */
 
-    /* -------------------------------------------------------- */
-    /*  5. СКРУГЛЕНИЯ                                            */
-    /* -------------------------------------------------------- */
+  /* -------------------------------------------------------- */
+  /*  5. СКРУГЛЕНИЯ                                            */
+  /* -------------------------------------------------------- */
 
-    --radius-sm:   4px;
-    --radius-md:   8px;
-    --radius-lg:   12px;
-    --radius-xl:   16px;
-    --radius-full: 9999px;  
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
 
-    /* -------------------------------------------------------- */
-    /*  6. ТЕНИ                                                  */
-    /* -------------------------------------------------------- */
+  /* -------------------------------------------------------- */
+  /*  6. ТЕНИ                                                  */
+  /* -------------------------------------------------------- */
 
-    --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.5);
-    --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.6);
-    --shadow-lg:  0 8px 24px rgba(0, 0, 0, 0.7);
-    --shadow-accent: 0 4px 20px rgba(255, 87, 31, 0.35);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.7);
+  --shadow-accent: 0 4px 20px rgba(255, 87, 31, 0.35);
 
-    /* -------------------------------------------------------- */
-    /*  7. АНИМАЦИИ                                              */
-    /* -------------------------------------------------------- */
+  /* -------------------------------------------------------- */
+  /*  7. АНИМАЦИИ                                              */
+  /* -------------------------------------------------------- */
 
-    --duration-fast:   150ms;
-    --duration-base:   300ms;
-    --duration-slow:   400ms;
-    --ease-default:    ease;
-    --ease-in-out:     cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-base: 300ms;
+  --duration-slow: 400ms;
+  --ease-default: ease;
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
-    /* -------------------------------------------------------- */
-    /*  8. ЛЕЙАУТ                                                */
-    /* -------------------------------------------------------- */
+  /* -------------------------------------------------------- */
+  /*  8. ЛЕЙАУТ                                                */
+  /* -------------------------------------------------------- */
 
-    --container-max:   1280px;
-    --header-height:   75px;
-    --sidebar-width:   15%;
-    --sidebar-collapsed: 64px;
+  --container-max: 1280px;
+  --header-height: 75px;
+  --sidebar-width: 15%;
+  --sidebar-collapsed: 64px;
 }
 
 /* ============================================================ */
@@ -147,61 +146,61 @@
 *,
 *::before,
 *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 html {
-    font-size: 16px;
-    scroll-behavior: smooth;
-    -webkit-text-size-adjust: 100%;
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-    font-family: var(--font-sans);
-    font-size: var(--text-base);
-    font-weight: var(--weight-normal);
-    line-height: var(--leading-normal);
-    color: var(--text-primary);
-    background-color: var(--bg-page);
-    min-height: 100dvh;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--weight-normal);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background-color: var(--bg-page);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 img,
 video {
-    display: block;
-    max-width: 100%;
+  display: block;
+  max-width: 100%;
 }
 
 a {
-    color: var(--accent);
-    text-decoration: none;
-    transition: color var(--duration-fast) var(--ease-default);
+  color: var(--accent);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-default);
 }
 
 a:hover {
-    color: var(--accent-hover);
+  color: var(--accent-hover);
 }
 
 button {
-    cursor: pointer;
-    border: none;
-    background: none;
-    font: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  font: inherit;
 }
 
 input,
 textarea,
 select {
-    font: inherit;
+  font: inherit;
 }
 
 ul,
 ol {
-    list-style: none;
+  list-style: none;
 }
 
 /* ============================================================ */
@@ -209,21 +208,21 @@ ol {
 /* ============================================================ */
 
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--scrollbar-track);
+  background: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--scrollbar-thumb);
-    border-radius: var(--radius-full);
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--scrollbar-thumb-hover);
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* Потом добавить сюда повторяющиеся кнопки и прочие переиспользуемые часто стили */

@@ -1,124 +1,139 @@
 .form-section {
-    justify-content: center;
+  justify-content: center;
 }
 
 .popcorn-wrap {
-    flex: 1 1 54%;
-    flex-direction: column;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 250px;
-    max-width: 270px;
-    max-height: 500px;
+  flex: 1 1 54%;
+  flex-direction: column;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 250px;
+  max-width: 270px;
+  max-height: 500px;
 }
 
 .btn {
-    border: 1px solid #D64518;
+  border: 1px solid #d64518;
 }
 
 .hint {
-    margin-top: 50px;
-    color: #ff8c0088;
-    font-size: 1rem;
-    letter-spacing: 1px;
-    animation: pulse 2s ease-in-out infinite;
-  }
+  margin-top: 50px;
+  color: #ff8c0088;
+  font-size: 1rem;
+  letter-spacing: 1px;
+  animation: pulse 2s ease-in-out infinite;
+}
 
-  @keyframes pulse {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 1; }
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.4;
   }
-
-  /* === BUCKET SCENE === */
-  .scene {
-    position: relative;
-    width: 200px;
-    height: 300px;
-    cursor: pointer;
-  }
-
-  /* === BUCKET SVG === */
-  .bucket-wrap {
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 160px;
-    transition: transform 0.2s;
-  }
-
-  .scene:hover .bucket-wrap {
-    transform: translateX(-50%) scale(1.05);
-  }
-
-  /* === POPCORN KERNELS === */
-  .kernel {
-    position: absolute;
-    pointer-events: none;
-    opacity: 0;
-    bottom: 120px;
-    left: 50%;
-    transform: translateX(-50%);
-    filter: drop-shadow(0 2px 10px #ffcc0099);
-  }
-
-  .scene:hover .kernel {
-    animation: explode var(--dur, 0.8s) ease-out var(--delay, 0s) infinite;
-  }
-
-  @keyframes explode {
-    0% {
-      opacity: 1;
-      transform: translate(-50%, 0) rotate(0deg) scale(0.5);
-    }
-    60% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0;
-      transform: translate(calc(-50% + var(--tx, 0px)), var(--ty, -120px)) rotate(var(--rot, 180deg)) scale(1.2);
-    }
-  }
-
-  /* === STEAM / GLOW === */
-  .glow {
-    position: absolute;
-    bottom: 100px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    background: radial-gradient(circle, #ffcf4b44, transparent 70%);
-    opacity: 0;
-    transition: opacity 0.3s;
-    pointer-events: none;
-  }
-
-  .scene:hover .glow {
+  50% {
     opacity: 1;
-    animation: glowPulse 0.5s ease-in-out infinite alternate;
   }
+}
 
-  @keyframes glowPulse {
-    from { transform: translateX(-50%) scale(1); opacity: 0.5; }
-    to   { transform: translateX(-50%) scale(1.4); opacity: 1; }
-  }
+/* === BUCKET SCENE === */
+.scene {
+  position: relative;
+  width: 200px;
+  height: 300px;
+  cursor: pointer;
+}
 
-  /* Wiggle bucket on hover */
-  .scene:hover .bucket-svg {
-    animation: wiggle 0.4s ease-in-out infinite alternate;
-  }
+/* === BUCKET SVG === */
+.bucket-wrap {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 160px;
+  transition: transform 0.2s;
+}
 
-  @keyframes wiggle {
-    from { transform: rotate(-3deg); }
-    to   { transform: rotate(3deg); }
+.scene:hover .bucket-wrap {
+  transform: translateX(-50%) scale(1.05);
+}
+
+/* === POPCORN KERNELS === */
+.kernel {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 2px 10px #ffcc0099);
+}
+
+.scene:hover .kernel {
+  animation: explode var(--dur, 0.8s) ease-out var(--delay, 0s) infinite;
+}
+
+@keyframes explode {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, 0) rotate(0deg) scale(0.5);
   }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--tx, 0px)), var(--ty, -120px))
+      rotate(var(--rot, 180deg)) scale(1.2);
+  }
+}
+
+/* === STEAM / GLOW === */
+.glow {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffcf4b44, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.scene:hover .glow {
+  opacity: 1;
+  animation: glowPulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes glowPulse {
+  from {
+    transform: translateX(-50%) scale(1);
+    opacity: 0.5;
+  }
+  to {
+    transform: translateX(-50%) scale(1.4);
+    opacity: 1;
+  }
+}
+
+/* Wiggle bucket on hover */
+.scene:hover .bucket-svg {
+  animation: wiggle 0.4s ease-in-out infinite alternate;
+}
+
+@keyframes wiggle {
+  from {
+    transform: rotate(-3deg);
+  }
+  to {
+    transform: rotate(3deg);
+  }
+}
 
 @media (max-width: 900px) {
-
-.bottle-wrap {
+  .bottle-wrap {
     visibility: hidden;
-}
+  }
 }

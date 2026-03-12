@@ -7,7 +7,15 @@ export default defineConfig([
     ignores: ["node_modules/**", "**/*.precompiled.js"],
   },
   {
+    files: ["server/**/*.js"],
+    languageOptions: {
+      globals: globals.node,
+      sourceType: "commonjs",
+    },
+  },
+  {
     files: ["**/*.{js,mjs,cjs}"],
+    ignores: ["server/**/*.js", "**/*.precompiled.js"],
     plugins: { js },
     extends: ["js/recommended"],
     languageOptions: {

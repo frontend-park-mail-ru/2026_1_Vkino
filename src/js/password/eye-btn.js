@@ -1,33 +1,33 @@
 export function initPasswordToggle(root) {
-    if (!root) {
-        return () => {};
+  if (!root) {
+    return () => {};
+  }
+
+  const handleClick = (event) => {
+    const button = event.target.closest(".eye-btn");
+
+    if (!button || !root.contains(button)) {
+      return;
     }
 
-    const handleClick = (event) => {
-        const button = event.target.closest('.eye-btn');
+    const targetId = button.dataset.target;
+    if (!targetId) {
+      return;
+    }
 
-        if (!button || !root.contains(button)) {
-            return;
-        }
+    const input = root.querySelector(`#${targetId}`);
+    if (!input) {
+      return;
+    }
 
-        const targetId = button.dataset.target;
-        if (!targetId) {
-            return;
-        }
+    const isPassword = input.type === "password";
+    input.type = isPassword ? "text" : "password";
+    button.classList.toggle("is-active", isPassword);
+  };
 
-        const input = root.querySelector(`#${targetId}`);
-        if (!input) {
-            return;
-        }
+  root.addEventListener("click", handleClick);
 
-        const isPassword = input.type === 'password';
-        input.type = isPassword ? 'text' : 'password';
-        button.classList.toggle('is-active', isPassword);
-    };
-
-    root.addEventListener('click', handleClick);
-
-    return () => {
-        root.removeEventListener('click', handleClick);
-    };
+  return () => {
+    root.removeEventListener("click", handleClick);
+  };
 }
