@@ -6,9 +6,10 @@
 
 **Vkino** — современный онлайн кинотеатр, разрабатываемый с любовью к кино и вниманием к каждой детали.
 
-🔗 **Ссылки:**  
-* [Figma](https://www.figma.com/design/jR5lArGm6QGh69Y2kPTKUZ/Vkino?node-id=0-1&p=f&m=draw)
-* [GitHub - Backend](https://github.com/go-park-mail-ru/2026_1_Vkino)
+🔗 **Ссылки:**
+
+- [Figma](https://www.figma.com/design/jR5lArGm6QGh69Y2kPTKUZ/Vkino?node-id=0-1&p=f&m=draw)
+- [GitHub - Backend](https://github.com/go-park-mail-ru/2026_1_Vkino)
 
 ## 🚀 Попробовать
 
@@ -19,18 +20,18 @@
 
 Мы — команда энтузиастов, увлеченных созданием крутого продукта:
 
-* **Архипов Артем** - [GitHub](https://github.com/Saucesamba)
-* **Оглоблина Александра** - [GitHub](https://github.com/Ahandii)
-* **Косыхин Тимофей** - [GitHub](https://github.com/Tim-arc)
-* **Мальков Олег** - [GitHub](https://github.com/Karielka)
+- **Архипов Артем** - [GitHub](https://github.com/Saucesamba)
+- **Оглоблина Александра** - [GitHub](https://github.com/Ahandii)
+- **Косыхин Тимофей** - [GitHub](https://github.com/Tim-arc)
+- **Мальков Олег** - [GitHub](https://github.com/Karielka)
 
 ## 🧙‍♂️ Наши менторы
 
 Мы благодарны за ценные советы и поддержку нашим менторам:
 
-* **Алехин Владислав** - [GitHub](https://github.com/3kybika)
-* **Зотов Алексей** - [GitHub](https://github.com/let-robots-reign)
-* **Мироненко Даниил🏅** - [GitHub](https://github.com/dmironenko)
-* **Эльвира Слободян** - [Telegram](https://t.me/im_ellie)
+- **Алехин Владислав** - [GitHub](https://github.com/3kybika)
+- **Зотов Алексей** - [GitHub](https://github.com/let-robots-reign)
+- **Мироненко Даниил🏅** - [GitHub](https://github.com/dmironenko)
+- **Эльвира Слободян** - [Telegram](https://t.me/im_ellie)
 
 ---
