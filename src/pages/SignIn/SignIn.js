@@ -6,7 +6,19 @@ import { initPasswordToggle } from "../../js/password/eye-btn.js";
 import { initAuthValidation, setError } from "../../js/password/validation.js";
 import { authStore } from "../../store/authStore.js";
 
+
+/**
+ * Класс страницы авторизации.
+ * @extends BasePage
+ */
 export default class SignInPage extends BasePage {
+  /**
+   * Создает экземпляр страницы SignIn.
+   * @param {Object} [context={}] - Контекст данных для Handlebars.
+   * @param {Element|null} [parent=null] - Родительский элемент (опционально).
+   * @param {Element} el - Корневой DOM-элемент, в который отрисовывается страница.
+   * @throws {Error} Если не передан корневой элемент `el`.
+   */
   constructor(context = {}, parent = null, el = null) {
     if (!el) {
       throw new Error("SignIn: не передан корневой элемент для SignIn");
@@ -25,6 +37,10 @@ export default class SignInPage extends BasePage {
     this._destroyValidation = null;
   }
 
+  /**
+   * Инициализирует страницу: подключает стили и вызывает базовый рендеринг.
+   * @returns {void}
+   */
   init() {
     this._detachStyles = attachPageStyles(
       ["/css/main.css", "/css/auth.css", "/css/login.css"],
@@ -34,6 +50,11 @@ export default class SignInPage extends BasePage {
     return super.init();
   }
 
+  /**
+   * Навешивает обработчики:
+   * 1. Инициализирует переключатель видимости пароля.
+   * 2. Настраивает валидацию формы и перехват события отправки (submit).
+   */
   addEventListeners() {
     this._destroyPasswordToggle = initPasswordToggle(this.el);
 
@@ -44,6 +65,10 @@ export default class SignInPage extends BasePage {
     });
   }
 
+  /**
+   * Удаляет все обработчики и производит очистку вспомогательных модулей.
+   * Вызывается автоматически роутером или родителем.
+   */
   removeEventListeners() {
     if (this._destroyPasswordToggle) {
       this._destroyPasswordToggle();
@@ -56,6 +81,12 @@ export default class SignInPage extends BasePage {
     }
   }
 
+  /**
+   * Обработчик отправки формы авторизации.
+   * Выполняет запрос к API через `authStore`. При ошибке отображает сообщение пользователю.
+   * @param {Object} authUserData - Данные пользователя из формы.
+   * @returns {Promise<void>}
+   */
   async handleSubmit(authUserData) {
     const result = await authStore.signIn(authUserData);
 
@@ -78,7 +109,10 @@ export default class SignInPage extends BasePage {
       this.context.onSuccess(result.resp);
     }
   }
-
+  /**
+   * Выполняется перед уничтожением компонента.
+   * Отключает специфичные для страницы CSS-стили.
+   */
   beforeDestroy() {
     if (this._detachStyles) {
       this._detachStyles();
