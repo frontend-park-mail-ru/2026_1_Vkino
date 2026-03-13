@@ -1,6 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Jaini&display=swap");
 
-.auth-page body {
+.auth-styles body {
   background:
     radial-gradient(
       ellipse at 30% 60%,
@@ -21,7 +21,7 @@
 }
 
 /* ---- Фоновые пятна ---- */
-.auth-page .container-main {
+.auth-styles .container-main {
   display: flex;
   width: 100vw;
   height: 100vh;
@@ -30,7 +30,7 @@
   position: relative;
 }
 
-.auth-page .bg-dot {
+.auth-styles .bg-dot {
   position: absolute;
   border-radius: 50%;
   pointer-events: none;
@@ -39,16 +39,16 @@
   z-index: 1;
 }
 
-.auth-page .bg-dot.yellow {
+.auth-styles .bg-dot.yellow {
   background: var(--c-tiger);
 }
 
-.auth-page .bg-dot.light {
+.auth-styles .bg-dot.light {
   background: var(--c-pale);
 }
 
 /* ---- Карточка формы ---- */
-.auth-page .form-section {
+.auth-styles .form-section {
   width: min(840px, 92vw);
   background:
     radial-gradient(
@@ -76,14 +76,14 @@
 }
 
 /* ---- Колонка с формой ---- */
-.auth-page .form-wrap {
+.auth-styles .form-wrap {
   flex: 1 1 30%;
   min-width: 250px;
   max-width: 380px;
 }
 
 /* ---- Логотип ---- */
-.auth-page .logo {
+.auth-styles .logo {
   font-family: var(--font-headers);
   font-size: 44px;
   font-weight: 600;
@@ -97,14 +97,14 @@
   text-shadow: 0 0 28px rgba(255, 87, 31, 0.4);
 }
 
-.auth-page .logo img {
+.auth-styles .logo img {
   height: 38px;
   width: auto;
   display: block;
 }
 
 /* ---- Заголовок формы ---- */
-.auth-page .form-heading {
+.auth-styles .form-heading {
   font-family: var(--font-headers);
   font-size: var(--text-xl);
   font-weight: var(--weight-semibold);
@@ -115,11 +115,11 @@
 }
 
 /* ---- Группы полей ---- */
-.auth-page .form-group {
+.auth-styles .form-group {
   margin-bottom: var(--space-5);
 }
 
-.auth-page label {
+.auth-styles label {
   display: block;
   color: var(--text-secondary);
   font-size: var(--text-xs);
@@ -130,7 +130,7 @@
 }
 
 /* ---- Поля ввода ---- */
-.auth-page input {
+.auth-styles input {
   width: 100%;
   padding: var(--space-3) var(--space-4);
   background: var(--input-bg);
@@ -145,19 +145,19 @@
     box-shadow var(--duration-fast) var(--ease-default);
 }
 
-.auth-page input::placeholder {
+.auth-styles input::placeholder {
   color: var(--text-secondary);
   opacity: 0.9;
 }
 
-.auth-page input:focus {
+.auth-styles input:focus {
   outline: none;
   background: var(--input-bg-focus);
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
-.auth-page .is-error {
+.auth-styles .is-error {
   border: 1px solid transparent;
   background:
     linear-gradient(var(--input-bg), var(--input-bg)),
@@ -166,7 +166,7 @@
   background-clip: padding-box, border-box;
 }
 
-.auth-page .error-message {
+.auth-styles .error-message {
   color: #ff0000;
   font-size: 12px;
   margin-top: 4px;
@@ -174,15 +174,15 @@
 }
 
 /* ---- Поле с кнопкой глаза ---- */
-.auth-page .field {
+.auth-styles .field {
   position: relative;
 }
 
-.auth-page .has-eye input {
+.auth-styles .has-eye input {
   padding-right: 52px;
 }
 
-.auth-page .eye-btn {
+.auth-styles .eye-btn {
   position: absolute;
   right: 0;
   top: 0;
@@ -198,27 +198,27 @@
   transition: color var(--duration-fast) var(--ease-default);
 }
 
-.auth-page .eye-btn:hover {
+.auth-styles .eye-btn:hover {
   color: var(--accent);
 }
 
-.auth-page .eye-btn svg {
+.auth-styles .eye-btn svg {
   width: 20px;
   height: 20px;
   pointer-events: none;
 }
 
-.auth-page .eye-btn .slash {
+.auth-styles .eye-btn .slash {
   opacity: 0;
   transition: opacity var(--duration-fast) var(--ease-default);
 }
 
-.auth-page .eye-btn.revealed .slash {
+.auth-styles .eye-btn.revealed .slash {
   opacity: 1;
 }
 
 /* ---- Кнопка отправки ---- */
-.auth-page .btn {
+.auth-styles .btn {
   width: 100%;
   padding: 13px var(--space-4);
   background: var(--accent);
@@ -234,24 +234,24 @@
   transition: background var(--duration-fast) var(--ease-default);
 }
 
-.auth-page .btn:hover {
+.auth-styles .btn:hover {
   background: var(--accent-hover);
   color: var(--text-color);
 }
 
-.auth-page .footer-text {
+.auth-styles .footer-text {
   text-align: center;
   color: var(--text-secondary);
   font-size: var(--text-sm);
   margin-top: var(--space-5);
 }
 
-.auth-page .footer-text a {
+.auth-styles .footer-text a {
   color: var(--accent);
   font-weight: var(--weight-medium);
   transition: color var(--duration-fast) var(--ease-default);
 }
 
-.auth-page .footer-text a:hover {
+.auth-styles .footer-text a:hover {
   color: var(--accent-hover);
 }
