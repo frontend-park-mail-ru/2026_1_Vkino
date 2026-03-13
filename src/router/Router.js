@@ -1,4 +1,9 @@
 export class Router {
+  /**
+   * Создает экземпляр роутера
+   * @param {Element} root
+   * @throws {Error} если не передан root
+   */
   constructor(root) {
     if (!root) {
       throw new Error("Router: не передан корневой DOM-элемент");
@@ -20,7 +25,14 @@ export class Router {
     window.addEventListener("popstate", this._syncRoute);
   }
 
-  // Регистрация маршрута
+
+  /**
+   * Регистрирует новый путь.
+   * @param {string} path - URL путь.
+   * @param {Function} component - Обработчик отрисовки страницы.
+   * @returns {Router} Текущий экземпляр для цепочки вызовов.
+   * @throws {Error} Если путь не указан или строитель не является функцией.
+   */
   registerRoute(path, pageBuilder) {
     if (!path) {
       throw new Error("Router: не указан path");
@@ -34,7 +46,11 @@ export class Router {
     return this;
   }
 
-  // Переход на новый маршрут без перезагрузки страницы
+  /**
+   * Переход на указанный маршрут.
+   * Добавляет запись в историю браузера и синхронизирует состояние.
+   * @param {string} path - Путь для перехода.
+   */
   go(path) {
     const normalizedPath = this._formatPath(path);
     if (window.location.pathname === normalizedPath) {
@@ -44,13 +60,18 @@ export class Router {
     this._syncRoute();
   }
 
-  // Запуск роутера
+  /**
+   * Инициализирует роутер
+   */
   init() {
     console.log("Router initialized");
     this._syncRoute();
   }
 
-  // Уничтожение роутера
+  /**
+   * Уничтожает экземпляр роутера.
+   * Удаляет обработчики событий и вызывает метод destroy у активной страницы.
+   */
   destroy() {
     document.removeEventListener("click", this._processLinkClick);
     window.removeEventListener("popstate", this._syncRoute);
@@ -60,7 +81,12 @@ export class Router {
     this.activePage = null;
   }
 
-  // Обработка кликов по ссылкам с router-link
+  /**
+   * Обрабатывает клики по всему документу.
+   * Если клик был по ссылке с атрибутом [router-link], отменяет стандартный переход
+   * и вызывает внутреннюю навигацию.
+   * @param {MouseEvent} event - Событие клика.
+   */
   _processLinkClick(event) {
     const link = event.target.closest("[router-link]");
     if (!link) {
@@ -85,7 +111,11 @@ export class Router {
     this.go(href);
   }
 
-  // Основная логика выбора и запуска страницы
+  /**
+   * Основная логика сопоставления текущего URL с таблицей маршрутов.
+   * Очищает контейнер, уничтожает старую страницу и запускает новую.
+   * @throws {Error} Если маршрут не найден (и нет 404) или строитель вернул некорректный объект.
+   */
   _syncRoute() {
     const path = this._formatPath(window.location.pathname);
     console.log("route path =", path);
@@ -115,8 +145,12 @@ export class Router {
     page.init();
   }
 
-  // Нормализация пути:
-  // '/sign-in/' -> '/sign-in'; '' -> '/'
+  /**
+   * Нормализует путь.
+   * Убирает лишние слэши в конце и приводит пустую строку к '/'.
+   * @param {string} path - Исходный путь.
+   * @returns {string} Нормализованный путь.
+   */
   _formatPath(path) {
     if (!path || path === "/") {
       return "/";
