@@ -1,6 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Jaini&display=swap");
 
-body {
+.auth-page body {
   background:
     radial-gradient(
       ellipse at 30% 60%,
@@ -21,7 +21,7 @@ body {
 }
 
 /* ---- Фоновые пятна ---- */
-.container-main {
+.auth-page .container-main {
   display: flex;
   width: 100vw;
   height: 100vh;
@@ -30,7 +30,7 @@ body {
   position: relative;
 }
 
-.bg-dot {
+.auth-page .bg-dot {
   position: absolute;
   border-radius: 50%;
   pointer-events: none;
@@ -39,16 +39,16 @@ body {
   z-index: 1;
 }
 
-.bg-dot.yellow {
+.auth-page .bg-dot.yellow {
   background: var(--c-tiger);
 }
 
-.bg-dot.light {
+.auth-page .bg-dot.light {
   background: var(--c-pale);
 }
 
 /* ---- Карточка формы ---- */
-.form-section {
+.auth-page .form-section {
   width: min(840px, 92vw);
   background:
     radial-gradient(
@@ -76,14 +76,14 @@ body {
 }
 
 /* ---- Колонка с формой ---- */
-.form-wrap {
+.auth-page .form-wrap {
   flex: 1 1 30%;
   min-width: 250px;
   max-width: 380px;
 }
 
 /* ---- Логотип ---- */
-.logo {
+.auth-page .logo {
   font-family: var(--font-headers);
   font-size: 44px;
   font-weight: 600;
@@ -97,14 +97,14 @@ body {
   text-shadow: 0 0 28px rgba(255, 87, 31, 0.4);
 }
 
-.logo img {
+.auth-page .logo img {
   height: 38px;
   width: auto;
   display: block;
 }
 
 /* ---- Заголовок формы ---- */
-.form-heading {
+.auth-page .form-heading {
   font-family: var(--font-headers);
   font-size: var(--text-xl);
   font-weight: var(--weight-semibold);
@@ -115,11 +115,11 @@ body {
 }
 
 /* ---- Группы полей ---- */
-.form-group {
+.auth-page .form-group {
   margin-bottom: var(--space-5);
 }
 
-label {
+.auth-page label {
   display: block;
   color: var(--text-secondary);
   font-size: var(--text-xs);
@@ -130,7 +130,7 @@ label {
 }
 
 /* ---- Поля ввода ---- */
-input {
+.auth-page input {
   width: 100%;
   padding: var(--space-3) var(--space-4);
   background: var(--input-bg);
@@ -145,19 +145,19 @@ input {
     box-shadow var(--duration-fast) var(--ease-default);
 }
 
-input::placeholder {
+.auth-page input::placeholder {
   color: var(--text-secondary);
   opacity: 0.9;
 }
 
-input:focus {
+.auth-page input:focus {
   outline: none;
   background: var(--input-bg-focus);
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
-.is-error {
+.auth-page .is-error {
   border: 1px solid transparent;
   background:
     linear-gradient(var(--input-bg), var(--input-bg)),
@@ -166,7 +166,7 @@ input:focus {
   background-clip: padding-box, border-box;
 }
 
-.error-message {
+.auth-page .error-message {
   color: #ff0000;
   font-size: 12px;
   margin-top: 4px;
@@ -174,15 +174,15 @@ input:focus {
 }
 
 /* ---- Поле с кнопкой глаза ---- */
-.field {
+.auth-page .field {
   position: relative;
 }
 
-.has-eye input {
+.auth-page .has-eye input {
   padding-right: 52px;
 }
 
-.eye-btn {
+.auth-page .eye-btn {
   position: absolute;
   right: 0;
   top: 0;
@@ -198,27 +198,27 @@ input:focus {
   transition: color var(--duration-fast) var(--ease-default);
 }
 
-.eye-btn:hover {
+.auth-page .eye-btn:hover {
   color: var(--accent);
 }
 
-.eye-btn svg {
+.auth-page .eye-btn svg {
   width: 20px;
   height: 20px;
   pointer-events: none;
 }
 
-.eye-btn .slash {
+.auth-page .eye-btn .slash {
   opacity: 0;
   transition: opacity var(--duration-fast) var(--ease-default);
 }
 
-.eye-btn.revealed .slash {
+.auth-page .eye-btn.revealed .slash {
   opacity: 1;
 }
 
 /* ---- Кнопка отправки ---- */
-.btn {
+.auth-page .btn {
   width: 100%;
   padding: 13px var(--space-4);
   background: var(--accent);
@@ -234,24 +234,24 @@ input:focus {
   transition: background var(--duration-fast) var(--ease-default);
 }
 
-.btn:hover {
+.auth-page .btn:hover {
   background: var(--accent-hover);
   color: var(--text-color);
 }
 
-.footer-text {
+.auth-page .footer-text {
   text-align: center;
   color: var(--text-secondary);
   font-size: var(--text-sm);
   margin-top: var(--space-5);
 }
 
-.footer-text a {
+.auth-page .footer-text a {
   color: var(--accent);
   font-weight: var(--weight-medium);
   transition: color var(--duration-fast) var(--ease-default);
 }
 
-.footer-text a:hover {
+.auth-page .footer-text a:hover {
   color: var(--accent-hover);
 }
