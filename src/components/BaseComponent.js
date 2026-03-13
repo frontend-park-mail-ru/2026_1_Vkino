@@ -10,7 +10,7 @@ export class BaseComponent {
    * Создает экземпляр базового компонента.
    * @constructor
    * @param {Object} [context={}] - Контекст данных для рендеринга шаблона.
-   * @param {Function} template - Прекомпилированная функция шаблона Handlebars. 
+   * @param {Function} template - Прекомпилированная функция шаблона Handlebars.
    * @param {BaseComponent|null} [parent=null] - Родительский компонент.
    * @param {Element|null} [el=null] - Корневой DOM-элемент компонента.
    * @throws {Error} Если не задан шаблон компонента.
@@ -31,31 +31,31 @@ export class BaseComponent {
      * @type {string}
      */
     this._id = crypto.randomUUID?.() ?? String(Date.now());
-    
+
     /**
      * Корневой DOM-элемент компонента.
      * @type {Element}
      */
     this.el = el;
-    
+
     /**
      * Прекомпилированная функция шаблона Handlebars.
      * @type {Function}
      */
     this.template = template;
-    
+
     /**
      * Контекст данных для рендеринга.
      * @type {Object}
      */
     this.context = context;
-    
+
     /**
      * Родительский компонент.
      * @type {BaseComponent|null}
      */
     this.parent = parent;
-    
+
     /**
      * Коллекция дочерних компонентов.
      * @type {Map<string, BaseComponent>}

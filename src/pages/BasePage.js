@@ -19,7 +19,7 @@ export default class BasePage extends BaseComponent {
    */
   constructor(context = {}, template, parent = null, el = null, title = null) {
     super(context, template, parent, el);
-    
+
     /**
      * Заголовок страницы.
      * @type {string|null}

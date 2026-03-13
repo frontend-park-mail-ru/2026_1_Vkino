@@ -77,7 +77,7 @@ export default class MainPage extends BasePage {
     if (!this._contextLoaded) {
       this.loadContext();
     }
-    
+
     return this;
   }
 
