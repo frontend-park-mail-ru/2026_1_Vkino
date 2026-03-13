@@ -2,7 +2,20 @@ import { BaseComponent } from "../BaseComponent.js";
 import "./Header.precompiled.js";
 import { authStore } from "../../store/authStore.js";
 
+/**
+ * Компонент header
+ * Отображает навигацию, информацию о пользователе и кнопки авторизации/выхода + войти/зарегистрироваться.
+ * Автоматически реагирует на изменения статуса авторизации через authStore.
+ */
 export default class HeaderComponent extends BaseComponent {
+  /**
+   * Конструирует header.
+   * @constructor
+   * @param {Object} context контекст отрисовки шаблона
+   * @param {Element} parent элемент, в который будет отрисован шаблон
+   * @param {Element} el корневой элемент компонента
+   * @throws {Error} если не передан parent или el
+   */
   constructor(context = {}, parent = null, el = null) {
     if (!parent) {
       throw new Error("Header: не передан parent для HeaderComponent");
@@ -17,6 +30,10 @@ export default class HeaderComponent extends BaseComponent {
     this._unsubscribe = null;
   }
 
+  /**
+   * Инициализирует компонент. Заполняет контекст данными о текущем пользователе.
+   * @returns {Promise<HeaderComponent>} текущий экземпляр компонента
+   */
   init() {
     const state = authStore.getState();
 
@@ -29,6 +46,10 @@ export default class HeaderComponent extends BaseComponent {
     return super.init();
   }
 
+  /**
+   * Добавляет обработчики событий.
+   * Подписывается на изменения в authStore и добавляет обработчик клика на кнопку выхода.
+   */
   addEventListeners() {
     this._unsubscribe = authStore.subscribe((state) => {
       this.refresh({
@@ -43,6 +64,10 @@ export default class HeaderComponent extends BaseComponent {
     }
   }
 
+  /**
+   * Удаляет обработчики событий.
+   * Отписывается от изменений в authStore и удаляет обработчик клика с кнопки выхода.
+   */
   removeEventListeners() {
     if (this._unsubscribe) {
       this._unsubscribe();
@@ -54,6 +79,11 @@ export default class HeaderComponent extends BaseComponent {
     }
   }
 
+  /**
+   * Обработчик клика по кнопке выхода.
+   * @private
+   * @param {Event} e событие клика
+   */
   _onLogoutClick = async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -62,6 +92,12 @@ export default class HeaderComponent extends BaseComponent {
   };
 }
 
+/**
+ * Извлекает отображаемое имя пользователя из email.
+ * @private
+ * @param {string} [email=""] email пользователя
+ * @returns {string} имя пользователя (часть до @) или пустая строка
+ */
 function getDisplayNameFromEmail(email = "") {
   const normalized = String(email).trim();
   if (!normalized) return "";

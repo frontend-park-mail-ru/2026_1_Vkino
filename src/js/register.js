@@ -1,3 +1,13 @@
+/**
+ * @fileoverview Эффект "взрыва" бутылки на странице регистрации.
+ */
+
+/**
+ * Инициализирует интерактивный canvas-эффект для блока регистрации.
+ *
+ * @param {ParentNode|null} root Корневой элемент страницы регистрации.
+ * @returns {() => void} Функция очистки обработчиков и состояния эффекта.
+ */
 export const initRegisterBottleEffect = (root) => {
   if (!root) {
     return () => {};
@@ -22,17 +32,28 @@ export const initRegisterBottleEffect = (root) => {
     return () => {};
   }
 
+  /** @type {EffectParticle[]} */
   let pts = [];
   let rafId = null;
   let last = null;
 
   const rand = (a, b) => a + Math.random() * (b - a);
 
+  /**
+   * Подгоняет размер canvas под окно.
+   *
+   * @returns {void}
+   */
   const resize = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
   };
 
+  /**
+   * Вычисляет точку вылета частиц из горлышка бутылки.
+   *
+   * @returns {OriginPoint}
+   */
   const getOrigin = () => {
     const ANGLE = (30 * Math.PI) / 180;
     const H = scene.offsetHeight;
@@ -46,6 +67,12 @@ export const initRegisterBottleEffect = (root) => {
     };
   };
 
+  /**
+   * Создает частицу-каплю.
+   *
+   * @param {OriginPoint} o
+   * @returns {void}
+   */
   const mkDrop = (o) => {
     const core = Math.random() < 0.68;
     const deg = core ? rand(-128, 8) : rand(-145, 25);
@@ -73,6 +100,12 @@ export const initRegisterBottleEffect = (root) => {
     });
   };
 
+  /**
+   * Создает частицу-пузырь.
+   *
+   * @param {OriginPoint} o
+   * @returns {void}
+   */
   const mkBub = (o) => {
     const deg = rand(-132, 12);
     const rad = (deg * Math.PI) / 180;
@@ -93,6 +126,13 @@ export const initRegisterBottleEffect = (root) => {
     });
   };
 
+  /**
+   * Рендерит каплю.
+   *
+   * @param {EffectParticle} p
+   * @param {number} a Текущая прозрачность.
+   * @returns {void}
+   */
   const drawDrop = (p, a) => {
     ctx.save();
     ctx.globalAlpha = a;
@@ -154,6 +194,13 @@ export const initRegisterBottleEffect = (root) => {
     ctx.restore();
   };
 
+  /**
+   * Рендерит пузырь.
+   *
+   * @param {EffectParticle} p
+   * @param {number} a Текущая прозрачность.
+   * @returns {void}
+   */
   const drawBub = (p, a) => {
     ctx.save();
     ctx.globalAlpha = a;
@@ -196,6 +243,12 @@ export const initRegisterBottleEffect = (root) => {
     ctx.restore();
   };
 
+  /**
+   * Обновляет физику частиц и перерисовывает кадр.
+   *
+   * @param {number} ts Timestamp requestAnimationFrame.
+   * @returns {void}
+   */
   const loop = (ts) => {
     if (!last) {
       last = ts;
@@ -226,6 +279,11 @@ export const initRegisterBottleEffect = (root) => {
     }
   };
 
+  /**
+   * Запускает сценарий генерации капель/пузырей.
+   *
+   * @returns {void}
+   */
   const boom = () => {
     const o = getOrigin();
 
@@ -246,6 +304,11 @@ export const initRegisterBottleEffect = (root) => {
     }
   };
 
+  /**
+   * Обрабатывает первый клик по сцене и запускает эффект.
+   *
+   * @returns {void}
+   */
   const handleSceneClick = () => {
     if (exploded) {
       return;

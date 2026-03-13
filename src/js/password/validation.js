@@ -1,8 +1,38 @@
+/**
+ * @fileoverview Валидация формы авторизации/регистрации и отображение ошибок.
+ */
+
+/**
+ * @typedef {Object} AuthUserData
+ * @property {string} email
+ * @property {string} password
+ */
+
+/**
+ * @typedef {Object} AuthValidationOptions
+ * @property {(authUserData: AuthUserData, form: HTMLFormElement) => (void|Promise<void>)} [onSubmit]
+ * Пользовательский submit-обработчик при успешной валидации.
+ */
+
+/**
+ * Устанавливает текст ошибки и визуальное состояние поля.
+ *
+ * @param {HTMLElement|null} el Поле ввода.
+ * @param {HTMLElement|null} errorEl Элемент с текстом ошибки.
+ * @param {string} message Текст ошибки.
+ * @returns {void}
+ */
 export const setError = (el, errorEl, message) => {
   if (el) el.classList.toggle("is-error", !!message);
   if (errorEl) errorEl.textContent = message || "";
 };
 
+/**
+ * Валидирует email.
+ *
+ * @param {string} [email=""] Значение поля email.
+ * @returns {string} Пустая строка, если email валиден, иначе текст ошибки.
+ */
 export const validateEmail = (email = "") => {
   const trimmed = email.trim();
   if (!trimmed) return "Введите email";
@@ -15,6 +45,12 @@ export const validateEmail = (email = "") => {
     : "Укажите корректный email";
 };
 
+/**
+ * Валидирует пароль.
+ *
+ * @param {string} [password=""] Значение поля пароля.
+ * @returns {string} Пустая строка, если пароль валиден, иначе текст ошибки.
+ */
 export const validatePassword = (password = "") => {
   const issues = [];
 
@@ -29,6 +65,13 @@ export const validatePassword = (password = "") => {
   return issues.length ? "Пароль: " + issues.join(", ") : "";
 };
 
+/**
+ * Подключает клиентскую валидацию для формы авторизации/регистрации.
+ *
+ * @param {HTMLFormElement|null} form Форма, которую нужно валидировать.
+ * @param {AuthValidationOptions} [options={}] Дополнительные обработчики.
+ * @returns {() => void} Функция очистки: снимает обработчики и флаг инициализации.
+ */
 export const initAuthValidation = (form, options = {}) => {
   if (!form || form.dataset.validationReady === "true") {
     return () => {};
@@ -50,6 +93,12 @@ export const initAuthValidation = (form, options = {}) => {
     [passRepeat, passRepeatError],
   ];
 
+  /**
+   * Валидирует конкретное поле формы.
+   *
+   * @param {HTMLElement|null} field
+   * @returns {string} Текст ошибки или пустая строка.
+   */
   const validateField = (field) => {
     if (!field) return "";
 
@@ -85,10 +134,22 @@ export const initAuthValidation = (form, options = {}) => {
     return "";
   };
 
+  /**
+   * Реактивная валидация на ввод и blur.
+   *
+   * @param {Event} event
+   * @returns {void}
+   */
   const handleInput = (event) => {
     validateField(event.target);
   };
 
+  /**
+   * Полная валидация формы перед отправкой.
+   *
+   * @param {SubmitEvent} e
+   * @returns {Promise<void>}
+   */
   const handleSubmit = async (e) => {
     let hasErrors = false;
     form.noValidate = true;

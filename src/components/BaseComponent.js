@@ -1,8 +1,22 @@
 // BaseComponent.js
+
+/**
+ * Базовый класс для создания компонентов приложения.
+ * @class
+ * @abstract
+ */
 export class BaseComponent {
-  // Конструктор базового компонента
+  /**
+   * Создает экземпляр базового компонента.
+   * @constructor
+   * @param {Object} [context={}] - Контекст данных для рендеринга шаблона.
+   * @param {Function} template - Прекомпилированная функция шаблона Handlebars.
+   * @param {BaseComponent|null} [parent=null] - Родительский компонент.
+   * @param {Element|null} [el=null] - Корневой DOM-элемент компонента.
+   * @throws {Error} Если не задан шаблон компонента.
+   * @throws {Error} Если не передан корневой DOM-элемент.
+   */
   constructor(context = {}, template, parent = null, el = null) {
-    // У наследников должен быть свой render
     if (!template) {
       throw new Error("Не задан шаблон компонента");
     }
@@ -11,52 +25,92 @@ export class BaseComponent {
       throw new Error("Не передан корневой DOM-элемент компонента");
     }
 
+    /**
+     * Уникальный идентификатор компонента.
+     * @private
+     * @type {string}
+     */
     this._id = crypto.randomUUID?.() ?? String(Date.now());
-    // Непосредственно наш компонент
+
+    /**
+     * Корневой DOM-элемент компонента.
+     * @type {Element}
+     */
     this.el = el;
-    // Шаблон .hbs
+
+    /**
+     * Прекомпилированная функция шаблона Handlebars.
+     * @type {Function}
+     */
     this.template = template;
-    // JSON
+
+    /**
+     * Контекст данных для рендеринга.
+     * @type {Object}
+     */
     this.context = context;
-    // Родительский компонент, вызвавший наше окно
+
+    /**
+     * Родительский компонент.
+     * @type {BaseComponent|null}
+     */
     this.parent = parent;
-    // Вложенные компоненты (механизм для страниц и компонентов)
+
+    /**
+     * Коллекция дочерних компонентов.
+     * @type {Map<string, BaseComponent>}
+     */
     this.children = new Map();
   }
 
-  // Универсальная функция render
+  /**
+   * Рендерит HTML компонента на основе шаблона и контекста.
+   * @returns {this} Текущий экземпляр компонента для цепочки вызовов.
+   */
   render() {
     const html = this.template({
-      //распаковка
       ...this.context,
     });
-    // подставляем компонент
     this.el.innerHTML = html;
     return this;
   }
 
-  // Метод, добавляющий обработчики событий для компонента.
+  /**
+   * Добавляет обработчики событий для компонента.
+   * Должен быть переопределен в дочерних классах.
+   * @abstract
+   */
   addEventListeners() {}
 
-  // Метод, удаляющий обработчики событий для компонента.
+  /**
+   * Удаляет обработчики событий для компонента.
+   * Должен быть переопределен в дочерних классах.
+   * @abstract
+   */
   removeEventListeners() {}
 
-  //
+  /**
+   * Метод, вызываемый перед уничтожением компонента.
+   * Может быть переопределен в дочерних классах.
+   * @abstract
+   */
   beforeDestroy() {}
 
-  // Инициализация
+  /**
+   * Инициализирует компонент: рендерит, настраивает дочерние компоненты и добавляет обработчики.
+   * @returns {this} Текущий экземпляр компонента для цепочки вызовов.
+   */
   init() {
-    // Рендер
     this.render();
-
     this.setupChildren();
     this.initChildren();
-
     this.addEventListeners();
     return this;
   }
 
-  // Деструктор
+  /**
+   * Деструктор. Уничтожает компонент и освобождает ресурсы.
+   */
   destroy() {
     this.removeEventListeners();
     this.destroyChildren();
@@ -72,7 +126,11 @@ export class BaseComponent {
     this.parent = null;
   }
 
-  // Rerender
+  /**
+   * Перерисовывает компонент с новым контекстом.
+   * @param {Object} newContext - Новый контекст данных.
+   * @returns {this} Текущий экземпляр компонента для цепочки вызовов.
+   */
   refresh(newContext) {
     this.removeEventListeners();
     this.destroyChildren();
@@ -83,23 +141,37 @@ export class BaseComponent {
     return this;
   }
 
-  // Работа с вложенным компонентами
-
-  // указываем дочерние объекты
+  /**
+   * Настраивает (добавляет) дочерние компоненты.
+   * Должен быть переопределен в дочерних классах.
+   * @abstract
+   */
   setupChildren() {}
 
+  /**
+   * Инициализирует все дочерние компоненты.
+   * @private
+   */
   initChildren() {
     for (const [, child] of this.children) {
       child.init();
     }
   }
 
+  /**
+   * Обновляет все дочерние компоненты с новым контекстом.
+   * @param {Object} [newContext={}] - Новый контекст для дочерних компонентов.
+   */
   refreshChildren(newContext = {}) {
     for (const [, child] of this.children) {
       child.refresh(newContext);
     }
   }
 
+  /**
+   * Уничтожает все дочерние компоненты.
+   * @private
+   */
   destroyChildren() {
     for (const [, child] of this.children) {
       child.destroy();
@@ -107,6 +179,14 @@ export class BaseComponent {
     this.children.clear();
   }
 
+  /**
+   * Добавляет дочерний компонент.
+   * @param {string} name - Имя дочернего компонента.
+   * @param {BaseComponent} component - Экземпляр дочернего компонента.
+   * @returns {BaseComponent} Добавленный дочерний компонент.
+   * @throws {Error} Если не указано имя компонента.
+   * @throws {Error} Если не передан компонент.
+   */
   addChild(name, component) {
     if (!name) {
       throw new Error("Не указано имя дочернего компонента");
@@ -121,10 +201,19 @@ export class BaseComponent {
     return component;
   }
 
+  /**
+   * Получает дочерний компонент по имени.
+   * @param {string} name - Имя дочернего компонента.
+   * @returns {BaseComponent|null} Найденный компонент или null.
+   */
   getChild(name) {
     return this.children.get(name) ?? null;
   }
 
+  /**
+   * Удаляет дочерний компонент по имени.
+   * @param {string} name - Имя дочернего компонента для удаления.
+   */
   removeChild(name) {
     const child = this.children.get(name);
     if (!child) {
