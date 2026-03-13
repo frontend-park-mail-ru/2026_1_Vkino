@@ -7,7 +7,26 @@ import { initAuthValidation, setError } from "../../js/password/validation.js";
 import { initRegisterBottleEffect } from "../../js/register.js";
 import { authStore } from "../../store/authStore.js";
 
+/**
+ * @typedef {Object} AuthUserData
+ * @property {string} email
+ * @property {string} password
+ */
+
+/**
+ * @typedef {Object} SignUpPageContext
+ * @property {(response: unknown) => void} [onSuccess] Колбэк успешной регистрации.
+ */
+
+/**
+ * Страница регистрации пользователя.
+ */
 export default class SignUpPage extends BasePage {
+  /**
+   * @param {SignUpPageContext} [context={}] Контекст страницы с внешними колбэками.
+   * @param {BasePage|null} [parent=null] Родительская страница.
+   * @param {HTMLElement|null} [el=null] Корневой DOM-элемент страницы.
+   */
   constructor(context = {}, parent = null, el = null) {
     if (!el) {
       throw new Error("SignUp: не передан корневой элемент для SignUp");
@@ -27,6 +46,11 @@ export default class SignUpPage extends BasePage {
     this._destroyBottleEffect = null;
   }
 
+  /**
+   * Подключает стили страницы и вызывает базовую инициализацию.
+   *
+   * @returns {*}
+   */
   init() {
     this._detachStyles = attachPageStyles(
       ["/css/main.css", "/css/auth.css", "/css/register.css"],
@@ -36,6 +60,12 @@ export default class SignUpPage extends BasePage {
     return super.init();
   }
 
+  /**
+   * Инициализирует обработчики страницы:
+   * переключение видимости пароля, валидацию формы и canvas-эффект.
+   *
+   * @returns {void}
+   */
   addEventListeners() {
     this._destroyPasswordToggle = initPasswordToggle(this.el);
 
@@ -47,6 +77,11 @@ export default class SignUpPage extends BasePage {
     this._destroyBottleEffect = initRegisterBottleEffect(this.el);
   }
 
+  /**
+   * Удаляет все обработчики, созданные в {@link addEventListeners}.
+   *
+   * @returns {void}
+   */
   removeEventListeners() {
     if (this._destroyPasswordToggle) {
       this._destroyPasswordToggle();
@@ -64,6 +99,12 @@ export default class SignUpPage extends BasePage {
     }
   }
 
+  /**
+   * Отправляет данные регистрации и показывает сообщение об ошибке при ошибке.
+   *
+   * @param {AuthUserData} authUserData Данные пользователя из формы.
+   * @returns {Promise<void>}
+   */
   async handleSubmit(authUserData) {
     const result = await authStore.signUp(authUserData);
 
@@ -95,6 +136,11 @@ export default class SignUpPage extends BasePage {
     }
   }
 
+  /**
+   * Отключает стили страницы перед удалением экземпляра.
+   *
+   * @returns {void}
+   */
   beforeDestroy() {
     if (this._detachStyles) {
       this._detachStyles();

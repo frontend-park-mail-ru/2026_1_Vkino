@@ -1,9 +1,18 @@
+/**
+ * @fileoverview Небольшой HTTP-сервер для отдачи статических файлов фронтенда
+ * и runtime-конфига (`/config.js`).
+ */
 const http = require("http"); // работа с сетью
 const fs = require("fs"); // работа с файлами
 const path = require("path"); // обработка путей
 
+/** @type {number} */
 const port = 3000;
+
+/** @type {string} */
 const pub = path.resolve(__dirname, "..", "src");
+
+/** @type {Record<string, string>} */
 const mapMime = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -15,6 +24,14 @@ const mapMime = {
 };
 
 http
+  /**
+   * Обрабатывает входящие HTTP-запросы и отдает либо статический ресурс,
+   * либо `index.html` для клиентского роутера.
+   *
+   * @param {import("http").IncomingMessage} req
+   * @param {import("http").ServerResponse} res
+   * @returns {void}
+   */
   .createServer((req, res) => {
     // срезаем query
     const requestPath = decodeURIComponent(req.url.split("?")[0]);
