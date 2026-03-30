@@ -1,5 +1,8 @@
 import { apiService } from "./api.js";
 
+const UUID_REGEXP =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 /**
  * Сервис для работы с фильмами и подборками.
  * Предоставляет методы для получения информации о фильмах и подборках.
@@ -39,6 +42,40 @@ export class MovieService {
    */
   async getSelectionByTitle(title) {
     return this.api.get(`/selection/${title}`);
+  }
+
+  /**
+   * Получает детальную информацию о фильме по id.
+   * @async
+   * @param {string|number} id id фильма
+   * @returns {Promise<Object>} результат запроса с данными фильма
+   * @returns {boolean} return.ok успешен ли запрос
+   * @returns {number} return.status HTTP статус ответа
+   * @returns {Object|null} return.resp данные фильма
+   * @returns {string} return.error сообщение об ошибке (если есть)
+   */
+  async getMovieById(id) {
+    const normalizedId = String(id ?? "").trim();
+
+    if (!normalizedId) {
+      return {
+        ok: false,
+        status: 0,
+        resp: null,
+        error: "MovieService: не передан id фильма",
+      };
+    }
+
+    if (!UUID_REGEXP.test(normalizedId)) {
+      return {
+        ok: false,
+        status: 0,
+        resp: null,
+        error: "MovieService: id фильма должен быть UUID",
+      };
+    }
+
+    return this.api.get(`/${encodeURIComponent(normalizedId)}`);
   }
 }
 

@@ -212,37 +212,46 @@ export default class MainPage extends BasePage {
     const scrollContainers = this.el.querySelectorAll(".scroll-container");
 
     scrollContainers.forEach((container) => {
+      const DRAG_THRESHOLD_PX = 6;
+      let isPointerDown = false;
       let isDragging = false;
       let startX = 0;
       let startScrollLeft = 0;
 
       const onMouseDown = (e) => {
-        e.preventDefault();
-
-        isDragging = true;
+        isPointerDown = true;
+        isDragging = false;
         startX = e.pageX;
         startScrollLeft = container.scrollLeft;
-
-        container.classList.add("is-dragging");
       };
 
       const onMouseMove = (e) => {
+        if (!isPointerDown) return;
+        const dx = e.pageX - startX;
+
+        if (!isDragging && Math.abs(dx) >= DRAG_THRESHOLD_PX) {
+          isDragging = true;
+          container.classList.add("is-dragging");
+        }
+
         if (!isDragging) return;
 
-        const dx = e.pageX - startX;
+        e.preventDefault();
         container.scrollLeft = startScrollLeft - dx;
       };
 
       const onMouseUp = () => {
-        if (!isDragging) return;
+        if (!isPointerDown) return;
 
+        isPointerDown = false;
         isDragging = false;
         container.classList.remove("is-dragging");
       };
 
       const onMouseLeave = () => {
-        if (!isDragging) return;
+        if (!isPointerDown) return;
 
+        isPointerDown = false;
         isDragging = false;
         container.classList.remove("is-dragging");
       };
@@ -285,10 +294,18 @@ export default class MainPage extends BasePage {
 
     moviePosters.forEach((moviePoster) => {
       const onClick = () => {
-        const movieId = moviePoster.dataset.moviePosterId;
-        console.log("Нажали на постер фильма:", movieId);
+        const movieId =
+          moviePoster.dataset.moviePosterId ||
+          moviePoster.dataset.movieId ||
+          moviePoster.dataset.movieUuid;
 
-        // Здесь позже будет router.go(`/movie/${movieId}`) или аналог
+        if (!movieId) {
+          console.warn("Main: не найден id фильма для перехода");
+          return;
+        }
+
+        const targetPath = `/movie?id=${encodeURIComponent(movieId)}`;
+        window.location.assign(targetPath);
       };
 
       moviePoster.addEventListener("click", onClick);
