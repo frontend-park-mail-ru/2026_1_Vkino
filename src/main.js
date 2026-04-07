@@ -3,6 +3,7 @@ import MainPage from "./pages/Main/Main.js";
 import MoviePage from "./pages/Movie/Movie.js";
 import SignInPage from "./pages/SignIn/SignIn.js";
 import SignUpPage from "./pages/SignUp/SignUp.js";
+import ActorPage from "./pages/Actor/Actor.js";
 
 import { authStore } from "./store/authStore.js";
 
@@ -41,7 +42,8 @@ async function start() {
           root,
         ),
     )
-    .registerRoute("/movie", (root) => new MoviePage({}, null, root));
+    .registerRoute("/movie", (root) => new MoviePage({}, null, root))
+    .registerRoute("/actor/:id", (root) => new ActorPage({}, null, root));
 
   router.init();
 }

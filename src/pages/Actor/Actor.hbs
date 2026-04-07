@@ -1,0 +1,65 @@
+<header id="header"></header>
+
+<main class="actor-page">
+  {{#if actor}}
+  <section class="actor-card">
+    <div class="actor-card__photo">
+      {{#if actor.picture_file_key}}
+        <img
+          src="{{actor.picture_file_key}}"
+          alt="{{actor.full_name}}"
+        />
+      {{/if}}
+    </div>
+
+    <div class="actor-card__content">
+      <h1 class="actor-card__title">{{actor.full_name}}</h1>
+      <p class="actor-card__subtitle">Об актере</p>
+
+      <dl class="actor-card__details">
+        <div class="actor-card__detail">
+          <dt>ID</dt>
+          <dd>{{actor.id}}</dd>
+        </div>
+
+        <div class="actor-card__detail">
+          <dt>Дата рождения</dt>
+          <dd>{{actor.birth_date}}</dd>
+        </div>
+
+        <div class="actor-card__detail">
+          <dt>Страна</dt>
+          <dd>{{actor.country_id}}</dd>
+        </div>
+
+        <div class="actor-card__detail">
+          <dt>Биография</dt>
+          <dd>{{actor.biography}}</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="actor-movies">
+    <h2 class="selection-title">
+      <span>Фильмы с этим актером</span>
+    </h2>
+
+    <div class="scroll-container">
+      <div class="scroll-items">
+        {{#each actor.movie_ids}}
+          <a
+            class="actor-movie-link"
+            href="/movie?id={{this}}"
+            router-link
+          >Фильм {{this}}</a>
+        {{/each}}
+      </div>
+    </div>
+  </section>
+  {{else}}
+    <section class="actor-card">
+      <h1 class="actor-card__title">Актер не найден</h1>
+    </section>
+  {{/if}}
+</main>
