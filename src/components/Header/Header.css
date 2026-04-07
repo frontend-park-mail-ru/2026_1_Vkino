@@ -2,6 +2,7 @@
   position: sticky;
   top: 0;
   z-index: 110;
+  overflow: visible;
   background:
     linear-gradient(180deg, rgba(7, 3, 1, 0.98) 0%, rgba(9, 4, 1, 0.96) 100%);
   border-bottom: 1px solid rgba(217, 104, 45, 0.25);
@@ -62,11 +63,21 @@
 .vk-header__brand {
   display: inline-flex;
   align-items: center;
+  gap: 10px;
 }
 
 .vk-header__brand-logo {
-  width: 20px;
+  width: 50px;
   max-width: none;
+}
+
+.vk-header__brand-text {
+  color: #ff6a2a;
+  font-family: var(--font-headers);
+  font-size: 2.1rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
 }
 
 .vk-header__nav {
@@ -110,7 +121,7 @@
 .vk-header__profile-menu a,
 .vk-header__profile-menu button {
   color: #e8d2b5;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 700;
   line-height: 1.2;
 }
@@ -247,7 +258,7 @@
 
 .vk-header__drawer {
   position: fixed;
-  top: 60px;
+  top: 80px;
   left: 0;
   width: 230px;
   max-width: calc(100vw - 16px);
@@ -302,7 +313,11 @@
   }
 
   .vk-header__brand-logo {
-    width: 145px;
+    width: 44px;
+  }
+
+  .vk-header__brand-text {
+    font-size: 1.8rem;
   }
 }
 
@@ -326,5 +341,13 @@
 
   .vk-header__auth-link {
     font-size: 13px;
+  }
+
+  .vk-header__brand-logo {
+    width: 40px;
+  }
+
+  .vk-header__brand-text {
+    font-size: 1.55rem;
   }
 }
