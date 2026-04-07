@@ -42,8 +42,8 @@
       </form>
     {{else}}
       <nav class="vk-header__nav" aria-label="Основная навигация">
-        <a href="/watch-party" router-link>Совместный просмотр</a>
-        <a href="/favorites" router-link>Избранное</a>
+        <a href="/">Совместный просмотр</a>
+        <a href="/">Избранное</a>
         <button
           class="vk-header__search"
           type="button"
@@ -85,9 +85,9 @@
       class="vk-header__profile-menu{{#if isProfileMenuOpen}} is-open{{/if}}"
       data-menu="profile"
     >
-      <a href="/profile" router-link>Мой профиль</a>
-      <a href="/settings" router-link>Настройки</a>
-      <a href="/coins-history" router-link>История VKino coins</a>
+      <a href="/">Мой профиль</a>
+      <a href="/">Настройки</a>
+      <a href="/">История VKino coins</a>
       <button type="button" data-action="logout">Выход</button>
     </div>
   {{/if}}
@@ -103,11 +103,11 @@
   data-menu="burger"
 >
   <nav class="vk-header__drawer-nav" aria-label="Категории">
-    <a href="/new" router-link data-action="close-all-menus">Новинки</a>
-    <a href="/movies" router-link data-action="close-all-menus">Фильмы</a>
-    <a href="/cartoons" router-link data-action="close-all-menus">Мультфильмы</a>
-    <a href="/series" router-link data-action="close-all-menus">Сериалы</a>
-    <a href="/shorts" router-link data-action="close-all-menus">Короткометражки</a>
-    <a href="/family" router-link data-action="close-all-menus">Семейное</a>
+    <a href="/" data-action="close-all-menus">Новинки</a>
+    <a href="/" data-action="close-all-menus">Фильмы</a>
+    <a href="/" data-action="close-all-menus">Мультфильмы</a>
+    <a href="/" data-action="close-all-menus">Сериалы</a>
+    <a href="/" data-action="close-all-menus">Короткометражки</a>
+    <a href="/" data-action="close-all-menus">Семейное</a>
   </nav>
 </aside>
