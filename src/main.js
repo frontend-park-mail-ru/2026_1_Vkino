@@ -18,7 +18,18 @@ async function start() {
   await authStore.init();
 
   router
-    .registerRoute("/", (root) => new MainPage({}, null, root))
+    .registerRoute(
+      "/",
+      (root) =>
+        new MainPage(
+          {
+            onMovieSelect: (movieId) =>
+              router.go(`/movie?id=${encodeURIComponent(movieId)}`),
+          },
+          null,
+          root,
+        ),
+    )
     .registerRoute(
       "/sign-in",
       (root) =>

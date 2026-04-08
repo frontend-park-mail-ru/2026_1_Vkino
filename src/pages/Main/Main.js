@@ -23,7 +23,16 @@ export default class MainPage extends BasePage {
       throw new Error("Main: не передан корневой элемент для MainPage");
     }
 
-    super(context, Handlebars.templates["Main.hbs"], parent, el, "MainPage");
+    super(
+      {
+        onMovieSelect: null,
+        ...context,
+      },
+      Handlebars.templates["Main.hbs"],
+      parent,
+      el,
+      "MainPage",
+    );
 
     /**
      * Флаг загрузки контекста.
@@ -304,8 +313,12 @@ export default class MainPage extends BasePage {
           return;
         }
 
-        const targetPath = `/movie?id=${encodeURIComponent(movieId)}`;
-        window.location.assign(targetPath);
+        if (typeof this.context.onMovieSelect !== "function") {
+          console.warn("Main: не настроен обработчик перехода к странице фильма");
+          return;
+        }
+
+        this.context.onMovieSelect(movieId);
       };
 
       moviePoster.addEventListener("click", onClick);

@@ -1,7 +1,5 @@
 import { apiService } from "./api.js";
-
-const UUID_REGEXP =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+import { UUID_REGEXP } from "../utils/regexp.js";
 
 /**
  * Сервис для работы с фильмами и подборками.

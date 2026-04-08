@@ -2,10 +2,9 @@ import BasePage from "../BasePage.js";
 import "./Movie.precompiled.js";
 import HeaderComponent from "../../components/Header/Header.js";
 import { movieService } from "../../js/MovieService.js";
+import { UUID_REGEXP } from "../../utils/regexp.js";
 
 const DEFAULT_POSTER_URL = "img/image_12.jpg";
-const UUID_REGEXP =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const COUNTRY_BY_ID = {
   1: "Россия",
