@@ -1,0 +1,75 @@
+<article
+  class="movie-poster-card movie-poster-card--{{size}} movie-poster-card--{{variant}}"
+  data-movie-id="{{id}}"
+>
+  <a class="movie-poster-card__link" href="{{href}}" router-link>
+    <div class="movie-poster-card__media">
+      <img
+        class="movie-poster-card__image"
+        src="{{imageUrl}}"
+        alt="{{title}}"
+        draggable="false"
+      />
+      <div class="movie-poster-card__shade"></div>
+
+      {{#if showAlwaysContent}}
+        <div class="movie-poster-card__content movie-poster-card__content--always">
+          {{#if metaLine}}
+            <div class="movie-poster-card__meta">{{metaLine}}</div>
+          {{/if}}
+          <h3 class="movie-poster-card__title">{{title}}</h3>
+          {{#if genreText}}
+            <div class="movie-poster-card__genres">{{genreText}}</div>
+          {{/if}}
+          {{#if showDescription}}
+            <p class="movie-poster-card__description">{{description}}</p>
+          {{/if}}
+          <div class="movie-poster-card__footer">
+            {{#if showButton}}
+              <span class="movie-poster-card__button">{{actionText}}</span>
+            {{/if}}
+            {{#if hasRatings}}
+              <div class="movie-poster-card__ratings">
+                {{#if imdbRating}}
+                  <span class="movie-poster-card__rating">IMDb {{imdbRating}}</span>
+                {{/if}}
+                {{#if kpRating}}
+                  <span class="movie-poster-card__rating">KP {{kpRating}}</span>
+                {{/if}}
+              </div>
+            {{/if}}
+          </div>
+        </div>
+      {{/if}}
+
+      {{#if showOverlay}}
+        <div class="movie-poster-card__overlay">
+          <div class="movie-poster-card__overlay-inner">
+            <h3 class="movie-poster-card__title">{{title}}</h3>
+            {{#if genreText}}
+              <div class="movie-poster-card__genres">{{genreText}}</div>
+            {{/if}}
+            {{#if showDescription}}
+              <p class="movie-poster-card__description">{{description}}</p>
+            {{/if}}
+            <div class="movie-poster-card__footer">
+              {{#if showButton}}
+                <span class="movie-poster-card__button">{{actionText}}</span>
+              {{/if}}
+              {{#if hasRatings}}
+                <div class="movie-poster-card__ratings">
+                  {{#if imdbRating}}
+                    <span class="movie-poster-card__rating">IMDb {{imdbRating}}</span>
+                  {{/if}}
+                  {{#if kpRating}}
+                    <span class="movie-poster-card__rating">KP {{kpRating}}</span>
+                  {{/if}}
+                </div>
+              {{/if}}
+            </div>
+          </div>
+        </div>
+      {{/if}}
+    </div>
+  </a>
+</article>

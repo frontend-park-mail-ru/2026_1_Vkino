@@ -2,105 +2,17 @@
 
 <div class="main">
   <div class="main-content" id="main-content">
-    <div class="carousel-section">
-      <button
-        class="carousel-icon-button left"
-        type="button"
-        aria-label="Предыдущий слайд"
-      >
-        <svg
-          width="40"
-          height="54"
-          viewBox="0 0 40 54"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <rect
-            width="40"
-            height="54"
-            rx="7"
-            transform="matrix(-1 0 0 1 40 0)"
-            fill="#F5E8D0"
-            fill-opacity="0.24"
-          />
-          <path
-            d="M29.0807 44L33 40.9825L14.8386 27L33 13.0175L29.0807 10L7 27L29.0807 44Z"
-            fill="#FF571F"
-            fill-opacity="0.61"
-          />
-        </svg>
-      </button>
+    <section class="main-hero-slot" id="hero-carousel"></section>
 
-      <div class="carousel-container">
-        <div class="carousel-item">
-          <img
-            class="carousel-image back"
-            src="img/image_10.jpg"
-            alt="Промо 1"
-          />
-        </div>
-        <div class="carousel-item">
-          <img class="carousel-image" src="img/image_11.jpg" alt="Промо 2" />
-        </div>
-        <div class="carousel-item">
-          <img
-            class="carousel-image back"
-            src="img/image_12.jpg"
-            alt="Промо 3"
-          />
-        </div>
-      </div>
-
-      <button
-        class="carousel-icon-button right"
-        type="button"
-        aria-label="Следующий слайд"
-      >
-        <svg
-          width="40"
-          height="54"
-          viewBox="0 0 40 54"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <rect
-            width="40"
-            height="54"
-            rx="7"
-            fill="#F5E8D0"
-            fill-opacity="0.25"
-          />
-          <path
-            d="M10.9193 44L7 40.9825L25.1614 27L7 13.0175L10.9193 10L33 27L10.9193 44Z"
-            fill="#FF571F"
-            fill-opacity="0.61"
-          />
-        </svg>
-      </button>
+    <div class="selection-carousels">
+      {{#each selectionEntries}}
+        <section class="selection-carousel-slot">
+          <div
+            class="selection-carousel-slot__content"
+            data-selection-slot="{{this.slotKey}}"
+          ></div>
+        </section>
+      {{/each}}
     </div>
-
-    {{#each selections}}
-      <div class="selection-section">
-        <h2 class="selection-title">
-          <div class="selection-rectangle"></div>
-          <span></span><span>{{this.title}}&nbsp;<span
-              class="selection-triangle"
-            >▸</span></span>
-        </h2>
-        <div class="scroll-container">
-          <div class="scroll-items">
-            {{#each this.movies}}
-              <img
-                class="movie-poster"
-                data-movie-poster-id="{{this.id}}"
-                src="{{this.img_url}}"
-                draggable="false"
-                alt="{{this.title}}"
-              />
-            {{/each}}
-          </div>
-        </div>
-      </div>
-    {{/each}}
   </div>
 </div>

@@ -3,6 +3,7 @@ import "./Main.precompiled.js";
 
 import { movieService } from "../../js/MovieService.js";
 import HeaderComponent from "../../components/Header/Header.js";
+import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
 
 /**
  * Главная страница приложения с подборками фильмов.
@@ -33,22 +34,6 @@ export default class MainPage extends BasePage {
      */
     this._contextLoaded = false;
 
-    /**
-     * Мапа обработчиков для контейнеров со скроллом.
-     * @private
-     * @type {Map<Element, {onMouseDown: Function, onMouseMove: Function, onMouseUp: Function, onMouseLeave: Function}>}
-     * @default new Map()
-     */
-    this._scrollContainerHandlers = new Map();
-
-    /**
-     * Мапа обработчиков кликов по постерам фильмов.
-     * @private
-     * @type {Map<Element, Function>}
-     * @default new Map()
-     */
-    this._posterClickHandlers = new Map();
-
   }
 
   /**
@@ -73,10 +58,12 @@ export default class MainPage extends BasePage {
    */
   async loadContext() {
     const { ok, resp } = await movieService.getAllSelections();
+    const selections = ok ? buildSelectionEntries(resp) : [];
 
     const newContext = {
       ...this.context,
-      selections: ok ? resp : [],
+      selectionEntries: selections,
+      heroMovies: buildHeroMovies(selections),
     };
 
     if (!ok) {
@@ -93,9 +80,6 @@ export default class MainPage extends BasePage {
    */
   addEventListeners() {
     super.addEventListeners();
-
-    this._addScrollContainerListeners();
-    this._addMoviePostersClickListeners();
   }
 
   /**
@@ -104,114 +88,6 @@ export default class MainPage extends BasePage {
    */
   removeEventListeners() {
     super.removeEventListeners();
-
-    this._removeScrollContainerListeners();
-    this._removeMoviePostersClickListeners();
-  }
-
-  /**
-   * Добавляет обработчики для горизонтального скролла контейнеров с постерами.
-   * Реализует drag-to-scroll функциональность.
-   * @private
-   */
-  _addScrollContainerListeners() {
-    const scrollContainers = this.el.querySelectorAll(".scroll-container");
-
-    scrollContainers.forEach((container) => {
-      let isDragging = false;
-      let startX = 0;
-      let startScrollLeft = 0;
-
-      const onMouseDown = (e) => {
-        e.preventDefault();
-
-        isDragging = true;
-        startX = e.pageX;
-        startScrollLeft = container.scrollLeft;
-
-        container.classList.add("is-dragging");
-      };
-
-      const onMouseMove = (e) => {
-        if (!isDragging) return;
-
-        const dx = e.pageX - startX;
-        container.scrollLeft = startScrollLeft - dx;
-      };
-
-      const onMouseUp = () => {
-        if (!isDragging) return;
-
-        isDragging = false;
-        container.classList.remove("is-dragging");
-      };
-
-      const onMouseLeave = () => {
-        if (!isDragging) return;
-
-        isDragging = false;
-        container.classList.remove("is-dragging");
-      };
-
-      container.addEventListener("mousedown", onMouseDown);
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
-      document.addEventListener("mouseleave", onMouseLeave);
-
-      this._scrollContainerHandlers.set(container, {
-        onMouseDown,
-        onMouseMove,
-        onMouseUp,
-        onMouseLeave,
-      });
-    });
-  }
-
-  /**
-   * Удаляет обработчики горизонтального скролла.
-   * @private
-   */
-  _removeScrollContainerListeners() {
-    for (const [container, handlers] of this._scrollContainerHandlers) {
-      container.removeEventListener("mousedown", handlers.onMouseDown);
-      document.removeEventListener("mousemove", handlers.onMouseMove);
-      document.removeEventListener("mouseup", handlers.onMouseUp);
-      document.removeEventListener("mouseleave", handlers.onMouseLeave);
-    }
-
-    this._scrollContainerHandlers.clear();
-  }
-
-  /**
-   * Добавляет обработчики кликов по постерам фильмов.
-   * @private
-   */
-  _addMoviePostersClickListeners() {
-    const moviePosters = this.el.querySelectorAll(".movie-poster");
-
-    moviePosters.forEach((moviePoster) => {
-      const onClick = () => {
-        const movieId = moviePoster.dataset.moviePosterId;
-        console.log("Нажали на постер фильма:", movieId);
-
-        // Здесь позже будет router.go(`/movie/${movieId}`) или аналог
-      };
-
-      moviePoster.addEventListener("click", onClick);
-      this._posterClickHandlers.set(moviePoster, onClick);
-    });
-  }
-
-  /**
-   * Удаляет обработчики кликов по постерам фильмов.
-   * @private
-   */
-  _removeMoviePostersClickListeners() {
-    for (const [poster, handler] of this._posterClickHandlers) {
-      poster.removeEventListener("click", handler);
-    }
-
-    this._posterClickHandlers.clear();
   }
 
   /**
@@ -237,5 +113,114 @@ export default class MainPage extends BasePage {
         header,
       ),
     );
+
+    this._setupHeroCarousel();
+    this._setupSelectionCarousels();
   }
+
+  _setupHeroCarousel() {
+    const heroSlot = this.el.querySelector("#hero-carousel");
+    if (!heroSlot || !Array.isArray(this.context.heroMovies) || !this.context.heroMovies.length) {
+      return;
+    }
+
+    this.addChild(
+      "hero-carousel",
+      new PosterCarouselComponent(
+        {
+          slug: "hero",
+          movies: this.context.heroMovies,
+          posterVariant: "default",
+          posterSize: "medium",
+          centeredHero: true,
+          showArrows: true,
+        },
+        this,
+        heroSlot,
+      ),
+    );
+  }
+
+  _setupSelectionCarousels() {
+    const selections = Array.isArray(this.context.selectionEntries)
+      ? this.context.selectionEntries
+      : [];
+
+    selections.forEach((selection) => {
+      const slot = this.el.querySelector(
+        `[data-selection-slot="${selection.slotKey}"]`,
+      );
+      if (!slot) {
+        return;
+      }
+
+      this.addChild(
+        `selection-${selection.slotKey}`,
+        new PosterCarouselComponent(
+          {
+            slug: selection.slotKey,
+            title: selection.title,
+            movies: selection.movies,
+            posterVariant: "default",
+            posterSize: "medium",
+            showArrows: true,
+          },
+          this,
+          slot,
+        ),
+      );
+    });
+  }
+}
+
+function buildSelectionEntries(selections = []) {
+  return selections.map((selection, index) => ({
+    title: selection.title || `Подборка ${index + 1}`,
+    slotKey: `selection-${index}`,
+    movies: normalizeMovies(selection.movies),
+  }));
+}
+
+function buildHeroMovies(selectionEntries = []) {
+  const movies = selectionEntries.flatMap((selection) => selection.movies);
+  const heroMovies = movies.slice(0, 3);
+
+  if (heroMovies.length < 3) {
+    return buildFallbackHeroMovies();
+  }
+
+  return heroMovies.map((movie, index) => ({
+    ...movie,
+    variant: index === 1 ? "hero" : "compact",
+    size: index === 1 ? "hero" : "medium",
+  }));
+}
+
+function normalizeMovies(movies = []) {
+  return movies.map((movie, index) => normalizeMovie(movie, index));
+}
+
+function normalizeMovie(movie = {}, index = 0) {
+  return {
+    id: movie.id ?? `movie-${index}`,
+    title: movie.title || movie.name || "Фильм",
+    posterUrl: movie.posterUrl || movie.poster_url || movie.img_url || "img/image_10.jpg",
+    backdropUrl:
+      movie.backdropUrl || movie.backdrop_url || movie.img_url || "img/image_11.jpg",
+    ageRating: movie.ageRating || movie.age_rating || "18+",
+    genres: movie.genres || movie.genre || [],
+    description:
+      movie.description ||
+      movie.summary ||
+      "Погрузитесь в атмосферу кино с подборкой фильмов, собранной специально для VKino.",
+    imdbRating: movie.imdbRating || movie.imdb_rating || "",
+    kpRating: movie.kpRating || movie.kp_rating || "",
+    actionText: "Смотреть",
+    href: "/movie",
+  };
+}
+
+//TODO тут надо реализовать заглушки если ничего не загрузилось
+function buildFallbackHeroMovies() {
+  return []
 }

@@ -1,0 +1,218 @@
+.poster-carousel {
+  position: relative;
+  color: var(--text-primary);
+}
+
+.poster-carousel__header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.poster-carousel__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.poster-carousel__title::before {
+  content: "";
+  width: 8px;
+  height: 42px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ff7b33 0%, #ff5a1e 100%);
+}
+
+.poster-carousel__viewport-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.poster-carousel__viewport {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  cursor: grab;
+}
+
+.poster-carousel__viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.poster-carousel__viewport.is-dragging {
+  cursor: grabbing;
+}
+
+.poster-carousel__viewport.is-dragging * {
+  cursor: grabbing;
+}
+
+.poster-carousel__track {
+  display: flex;
+  gap: 22px;
+  width: max-content;
+  min-width: 100%;
+  padding: 12px 48px;
+}
+
+.poster-carousel__slide {
+  flex: 0 0 auto;
+  transition: transform 0.28s ease, opacity 0.28s ease;
+}
+
+.poster-carousel__slide--small {
+  width: 220px;
+  height: 310px;
+}
+
+.poster-carousel__slide--medium {
+  width: 250px;
+  height: 340px;
+}
+
+.poster-carousel__slide--large {
+  width: 292px;
+  height: 380px;
+}
+
+.poster-carousel__slide--hero {
+  width: 690px;
+  height: 360px;
+}
+
+.poster-carousel--centered-hero .poster-carousel__track {
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: 100%;
+}
+
+.poster-carousel--centered-hero .poster-carousel__slide--compact {
+  width: clamp(180px, 15vw, 260px);
+  height: clamp(280px, 24vw, 360px);
+  flex: 0 0 auto;
+  opacity: 0.82;
+}
+
+.poster-carousel--centered-hero .poster-carousel__slide--hero {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: clamp(420px, 48vw, 760px);
+  height: clamp(300px, 28vw, 400px);
+}
+
+.poster-carousel--centered-hero .poster-carousel__slide--compact:hover {
+  opacity: 1;
+  transform: translateY(-4px);
+}
+
+.poster-carousel__slot {
+  width: 100%;
+  height: 100%;
+}
+
+.poster-carousel__arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 58px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: rgba(245, 232, 208, 0.18);
+  color: #ff6a2a;
+  box-shadow: inset 0 0 0 1px rgba(245, 232, 208, 0.06);
+  z-index: 2;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.poster-carousel__arrow:hover {
+  background: rgba(245, 232, 208, 0.28);
+  transform: translateY(-50%) scale(1.03);
+}
+
+.poster-carousel__arrow span {
+  font-size: 34px;
+  line-height: 1;
+}
+
+.poster-carousel__arrow--prev {
+  left: 0;
+}
+
+.poster-carousel__arrow--next {
+  right: 0;
+}
+
+@media (max-width: 1100px) {
+  .poster-carousel__slide--hero {
+    width: 560px;
+    height: 320px;
+  }
+
+  .poster-carousel__slide--medium {
+    width: 224px;
+    height: 320px;
+  }
+
+  .poster-carousel--centered-hero .poster-carousel__slide--compact {
+    width: clamp(160px, 20vw, 220px);
+    height: clamp(250px, 30vw, 320px);
+  }
+
+  .poster-carousel--centered-hero .poster-carousel__slide--hero {
+    min-width: clamp(340px, 46vw, 560px);
+    height: clamp(280px, 30vw, 340px);
+  }
+}
+
+@media (max-width: 760px) {
+  .poster-carousel__track {
+    padding-inline: 24px;
+    gap: 16px;
+  }
+
+  .poster-carousel__slide--small,
+  .poster-carousel__slide--medium {
+    width: 200px;
+    height: 292px;
+  }
+
+  .poster-carousel__slide--hero {
+    width: 82vw;
+    max-width: 520px;
+    height: 280px;
+  }
+
+  .poster-carousel--centered-hero .poster-carousel__track {
+    width: max-content;
+    justify-content: flex-start;
+  }
+
+  .poster-carousel--centered-hero .poster-carousel__slide--compact {
+    width: 180px;
+    height: 260px;
+  }
+
+  .poster-carousel--centered-hero .poster-carousel__slide--hero {
+    width: 82vw;
+    min-width: 82vw;
+    max-width: 520px;
+    height: 280px;
+    flex: 0 0 auto;
+  }
+
+  .poster-carousel__arrow {
+    width: 38px;
+    height: 50px;
+  }
+}
