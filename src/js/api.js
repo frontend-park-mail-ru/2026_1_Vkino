@@ -90,7 +90,7 @@ export class ApiService {
 
     const fetchParams = {
       method,
-      // credentials: "include",
+      credentials: "include",
       headers: {
         Accept: "application/json",
         ...headers,
