@@ -31,6 +31,11 @@
     filter 0.45s ease;
 }
 
+.movie-poster-card__image--contained {
+  object-fit: contain;
+  object-position: center;
+}
+
 .movie-poster-card__shade,
 .movie-poster-card__overlay {
   position: absolute;
@@ -88,6 +93,18 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
   overflow: hidden;
+}
+
+.movie-poster-card__meta--hero {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.movie-poster-card__meta-pill {
+  display: inline-flex;
+  align-items: center;
 }
 
 .movie-poster-card__footer {

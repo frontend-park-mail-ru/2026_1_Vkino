@@ -5,7 +5,7 @@
   <a class="movie-poster-card__link" href="{{href}}" router-link>
     <div class="movie-poster-card__media">
       <img
-        class="movie-poster-card__image"
+        class="movie-poster-card__image{{#if useContainedImage}} movie-poster-card__image--contained{{/if}}"
         src="{{imageUrl}}"
         alt="{{title}}"
         draggable="false"
@@ -14,12 +14,19 @@
 
       {{#if showAlwaysContent}}
         <div class="movie-poster-card__content movie-poster-card__content--always">
-          {{#if metaLine}}
-            <div class="movie-poster-card__meta">{{metaLine}}</div>
-          {{/if}}
           <h3 class="movie-poster-card__title">{{title}}</h3>
-          {{#if genreText}}
-            <div class="movie-poster-card__genres">{{genreText}}</div>
+          {{#if isHero}}
+            {{#if heroFacts.length}}
+              <div class="movie-poster-card__meta movie-poster-card__meta--hero">
+                {{#each heroFacts}}
+                  <span class="movie-poster-card__meta-pill">{{this}}</span>
+                {{/each}}
+              </div>
+            {{/if}}
+          {{else}}
+            {{#if genreText}}
+              <div class="movie-poster-card__genres">{{genreText}}</div>
+            {{/if}}
           {{/if}}
           {{#if showDescription}}
             <p class="movie-poster-card__description">{{description}}</p>

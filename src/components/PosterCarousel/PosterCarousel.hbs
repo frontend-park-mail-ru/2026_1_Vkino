@@ -24,6 +24,7 @@
         {{#each posterItems}}
           <div
             class="poster-carousel__slide poster-carousel__slide--{{this.size}} poster-carousel__slide--{{this.variant}}"
+            data-index="{{this.slideIndex}}"
           >
             <div data-poster-slot="{{this.slotKey}}" class="poster-carousel__slot"></div>
           </div>

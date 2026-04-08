@@ -29,12 +29,12 @@ function buildPosterContext(context = {}) {
   const size = context.size || DEFAULT_SIZE;
   const genres = normalizeGenres(context.genres);
   const description = normalizeDescription(context.description);
-  const ageRating = context.ageRating || context.age_rating || "";
-  const metaParts = [ageRating, genres[0]].filter(Boolean);
+  const ageRating = normalizeAgeRating(context.ageRating || context.age_rating || context.ageLimit);
   const imdbRating = normalizeRating(context.imdbRating || context.imdb_rating);
   const kpRating = normalizeRating(context.kpRating || context.kp_rating);
+  const hasHeroBackdrop = variant === "hero" && Boolean(context.backdropUrl);
   const imageUrl =
-    (variant === "hero" ? context.backdropUrl : null) ||
+    (hasHeroBackdrop ? context.backdropUrl : null) ||
     context.posterUrl ||
     context.backdropUrl ||
     "img/image_11.jpg";
@@ -50,10 +50,12 @@ function buildPosterContext(context = {}) {
     actionText: context.actionText || DEFAULT_ACTION_TEXT,
     description,
     genreText: genres.join(" • "),
-    metaLine: metaParts.join(" • "),
+    heroFacts: buildHeroFacts(ageRating, genres),
     imdbRating,
     kpRating,
-    hasRatings: Boolean(imdbRating || kpRating),
+    hasRatings: variant !== "hero" && Boolean(imdbRating || kpRating),
+    isHero: variant === "hero",
+    useContainedImage: variant === "hero" && !hasHeroBackdrop,
     showAlwaysContent: variantConfig.showAlwaysContent,
     showOverlay: variantConfig.showOverlay,
     showDescription: variantConfig.showDescription && Boolean(description),
@@ -88,6 +90,10 @@ function getVariantConfig(variant) {
   };
 }
 
+function buildHeroFacts(ageRating, genres = []) {
+  return [ageRating, ...genres].filter(Boolean);
+}
+
 function normalizeGenres(genres) {
   if (Array.isArray(genres)) {
     return genres.filter(Boolean).map((genre) => String(genre).trim());
@@ -101,6 +107,19 @@ function normalizeGenres(genres) {
   }
 
   return [];
+}
+
+function normalizeAgeRating(value) {
+  if (value === null || value === undefined || value === "") {
+    return "";
+  }
+
+  const normalized = String(value).trim();
+  if (!normalized) {
+    return "";
+  }
+
+  return normalized.endsWith("+") ? normalized : `${normalized}+`;
 }
 
 function normalizeDescription(description) {

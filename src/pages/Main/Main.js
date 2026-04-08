@@ -163,7 +163,7 @@ export default class MainPage extends BasePage {
             movies: selection.movies,
             posterVariant: "default",
             posterSize: "medium",
-            showArrows: true,
+            showArrows: false,
           },
           this,
           slot,
@@ -205,9 +205,8 @@ function normalizeMovie(movie = {}, index = 0) {
     id: movie.id ?? `movie-${index}`,
     title: movie.title || movie.name || "Фильм",
     posterUrl: movie.posterUrl || movie.poster_url || movie.img_url || "img/image_10.jpg",
-    backdropUrl:
-      movie.backdropUrl || movie.backdrop_url || movie.img_url || "img/image_11.jpg",
-    ageRating: movie.ageRating || movie.age_rating || "18+",
+    backdropUrl: movie.backdropUrl || movie.backdrop_url || "",
+    ageRating: movie.ageRating || movie.age_rating || movie.ageLimit || movie.age_limit || "18+",
     genres: movie.genres || movie.genre || [],
     description:
       movie.description ||
