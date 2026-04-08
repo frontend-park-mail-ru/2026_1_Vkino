@@ -1,4 +1,5 @@
 @import "./main.css";
+@import "../components/Header/Header.css";
 @import "./home.css";
 @import "./auth.css";
 @import "./carousel.css";
