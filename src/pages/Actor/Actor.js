@@ -4,6 +4,7 @@ import "./Actor.precompiled.js";
 import { movieService } from "../../js/MovieService.js";
 import HeaderComponent from "../../components/Header/Header.js";
 
+//TODO тут надо будет юзать карусельки из компонентов потом а не просто захардкожено
 /**
  * Старница актера
  * @class
@@ -78,20 +79,21 @@ export default class ActorPage extends BasePage {
       this._contextLoaded = true;
       this.refresh({
         ...this.context,
-        actor: null,
+        actor: this._mapActor(this._createActorStub()),
       });
       return;
     }
 
     const { ok, resp } = await movieService.getActorById(actorId);
+    const actorSource = ok ? resp : this._createActorStub(actorId);
 
     const newContext = {
       ...this.context,
-      actor: ok ? this._mapActor(resp) : null,
+      actor: this._mapActor(actorSource),
     };
 
     if (!ok) {
-      console.log("Актер не прилетел с бэка");
+      console.log("Актер не прилетел с бэка, используется заглушка");
     }
 
     this._contextLoaded = true;
@@ -254,11 +256,48 @@ export default class ActorPage extends BasePage {
       return null;
     }
 
+    const movieIds = actor.movie_ids ?? actor.MovieIDs;
+    const birthDate = actor.birth_date ?? actor.BirthDate;
+    const biography = actor.biography ?? actor.Biography;
+    const createdAt = actor.created_at ?? actor.CreatedAt;
+    const updatedAt = actor.updated_at ?? actor.UpdatedAt;
+    const normalizedMovieIds = Array.isArray(movieIds) ? movieIds : [];
+
     return {
-      ...actor,
-      birth_date: actor.birth_date ? this._formatDate(actor.birth_date) : "Не указана",
-      biography: actor.biography || "Нет описания",
-      movie_ids: Array.isArray(actor.movie_ids) ? actor.movie_ids : [],
+      id: actor.id ?? actor.ID ?? null,
+      full_name: actor.full_name ?? actor.FullName ?? "Имя актера не указано",
+      country_id: actor.country_id ?? actor.CountryID ?? null,
+      country_label: this._formatCountry(actor.country_id ?? actor.CountryID),
+      picture_file_key: actor.picture_file_key ?? actor.PictureFileKey ?? "",
+      picture_src: actor.picture_file_key ?? actor.PictureFileKey ?? "img/user-avatar.png",
+      birth_date: birthDate ? this._formatDate(birthDate) : "Не указана",
+      biography: biography || "Нет описания",
+      created_at: createdAt ? this._formatDate(createdAt) : "Не указано",
+      updated_at: updatedAt ? this._formatDate(updatedAt) : "Не указано",
+      movie_ids: normalizedMovieIds,
+      movies_count: normalizedMovieIds.length,
+      movies: this._buildMovieCards(normalizedMovieIds),
+    };
+  }
+
+  /**
+   * Временная заглушка актера, пока с бэка нет стабильного ответа.
+   * Поля соответствуют структуре API.
+   * @private
+   * @param {string|number|null} [actorId=null]
+   * @returns {Object}
+   */
+  _createActorStub(actorId = null) {
+    return {
+      id: Number(actorId) || 0,
+      full_name: "Кристиан Бейл",
+      birth_date: "1974-01-30T00:00:00Z",
+      biography: "Актер с широким диапазоном ролей: от психологических драм до масштабных приключенческих фильмов.",
+      country_id: 826,
+      picture_file_key: "",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      movie_ids: [101, 205, 309, 412, 518, 624],
     };
   }
 
@@ -276,6 +315,45 @@ export default class ActorPage extends BasePage {
     }
 
     return date.toLocaleDateString("ru-RU");
+  }
+
+  /**
+   * Возвращает подпись страны по идентификатору.
+   * @private
+   * @param {number|string|null} countryId
+   * @returns {string}
+   */
+  _formatCountry(countryId) {
+    if (countryId === null || countryId === undefined || countryId === "") {
+      return "Не указана";
+    }
+
+    return `Country #${countryId}`;
+  }
+
+  /**
+   * Создает карточки-заглушки фильмов по списку id.
+   * @private
+   * @param {number[]} movieIds
+   * @returns {Object[]}
+   */
+  _buildMovieCards(movieIds) {
+    const posterPool = [
+      "img/1.jpg",
+      "img/2.jpeg",
+      "img/3.jpg",
+      "img/4.jpg",
+      "img/5.jpg",
+      "img/image_10.jpg",
+      "img/image_11.jpg",
+      "img/image_12.jpg",
+    ];
+
+    return movieIds.map((movieId, index) => ({
+      id: movieId,
+      title: `Фильм ${movieId}`,
+      poster_src: posterPool[index % posterPool.length],
+    }));
   }
 
   /**
