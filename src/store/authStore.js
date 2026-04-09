@@ -187,6 +187,24 @@ class AuthStore {
     await authService.logout();
     this._setGuest();
   }
+
+  /**
+   * Обновляет данные текущего пользователя в store без сброса сессии.
+   * @param {Object} profile
+   */
+  updateUserProfile(profile) {
+    const state = this.getState();
+    if (state.status !== "authenticated" || !state.user) {
+      return;
+    }
+
+    this._setState({
+      user: {
+        ...state.user,
+        ...profile,
+      },
+    });
+  }
 }
 
 /** 

@@ -10,7 +10,9 @@
     <div class="user-profile">
       {{#if isAuthorized}}
         <span class="username">{{userName}}</span>
-        <img src="img/user-avatar.png" alt="User avatar" class="avatar" />
+        <a href="/settings" router-link aria-label="Открыть настройки">
+          <img src="{{#if avatarUrl}}{{avatarUrl}}{{else}}img/user-avatar.png{{/if}}" alt="User avatar" class="avatar" data-action="go-to-settings" />
+        </a>
         <a
           class="btn btn-logout"
           href="/"
@@ -18,8 +20,6 @@
           router-link
         >Выйти</a>
       {{else}}
-        {{! <button class="btn" data-action="sign-in" type="button" data-link>Войти</button>
-                <button class="btn" data-action="sign-up" type="button" data-link>Зарегистрироваться</button> }}
         <a class="btn" href="/sign-in" router-link>Войти</a>
         <a class="btn" href="/sign-up" router-link>Зарегистрироваться</a>
       {{/if}}

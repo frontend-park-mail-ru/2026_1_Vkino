@@ -98,8 +98,12 @@ export class ApiService {
     };
 
     if (data !== null) {
-      fetchParams.headers["Content-Type"] = "application/json";
-      fetchParams.body = JSON.stringify(data);
+      if (data instanceof FormData) {
+        fetchParams.body = data;
+      } else {
+        fetchParams.headers["Content-Type"] = "application/json";
+        fetchParams.body = JSON.stringify(data);
+      }
     }
 
     if (accessToken) {
@@ -191,10 +195,11 @@ function extractErrorMessage(resp) {
 }
 
 // читаем baseUrl из .env (с сервера) или ставим дефолтный для dev
-const baseUrl = window.APP_CONFIG?.BASE_URL || "http://localhost:8080";
+const baseUrl = window.APP_CONFIG?.BASE_URL || "http://localhost:8080/api";
 
 /**
  * Экземпляр ApiService, сконфигурированный на основе .env
  * @type {ApiService}
  */
 export const apiService = new ApiService(baseUrl);
+console.log(baseUrl)

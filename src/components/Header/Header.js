@@ -40,7 +40,8 @@ export default class HeaderComponent extends BaseComponent {
     this.context = {
       ...this.context,
       isAuthorized: state.status === "authenticated",
-      userName: getDisplayNameFromEmail(state.user?.email),
+      userName: getTruncatedEmail(state.user?.email),
+      avatarUrl: state.user?.avatar_url || "",
     };
 
     return super.init();
@@ -55,7 +56,8 @@ export default class HeaderComponent extends BaseComponent {
       this.refresh({
         ...this.context,
         isAuthorized: state.status === "authenticated",
-        userName: getDisplayNameFromEmail(state.user?.email),
+        userName: getTruncatedEmail(state.user?.email),
+        avatarUrl: state.user?.avatar_url || "",
       });
     });
     const logoutBtn = this.el.querySelector('[data-action="logout"]');
@@ -93,17 +95,18 @@ export default class HeaderComponent extends BaseComponent {
 }
 
 /**
- * Извлекает отображаемое имя пользователя из email.
+ * Возвращает email в коротком формате для отображения в header.
  * @private
  * @param {string} [email=""] email пользователя
- * @returns {string} имя пользователя (часть до @) или пустая строка
+ * @returns {string} обрезанный email или пустая строка
  */
-function getDisplayNameFromEmail(email = "") {
+function getTruncatedEmail(email = "") {
   const normalized = String(email).trim();
   if (!normalized) return "";
 
-  const atIndex = normalized.indexOf("@");
-  if (atIndex === -1) return normalized;
+  if (normalized.length <= 22) {
+    return normalized;
+  }
 
-  return normalized.slice(0, atIndex);
+  return `${normalized.slice(0, 19)}...`;
 }

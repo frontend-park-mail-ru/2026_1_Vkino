@@ -1,0 +1,290 @@
+.page_settings {
+  background-color: var(--bg-page);
+  min-height: 100vh;
+}
+
+.main-content_settings {
+  padding: var(--space-6) var(--space-4);
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.settings-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: var(--space-6);
+}
+
+.settings-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.settings__section,
+.settings__coins-history {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.settings__title,
+.settings__coins-history-title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  margin-bottom: var(--space-4);
+  color: var(--text-primary);
+}
+
+.settings__form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.settings__avatar-block {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.settings__avatar-preview-wrap {
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.settings__avatar-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.settings__avatar-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.settings__avatar-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.settings__avatar-hint {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.settings__btn-avatar {
+  cursor: pointer;
+}
+
+.settings__field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.settings__label {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.settings__input {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--input-bg);
+  color: var(--text-primary);
+  padding: 0.75rem 2.75rem 0.75rem 0.9rem;
+}
+
+.settings__input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  background: var(--input-bg-focus);
+}
+
+.settings__input-wrapper {
+  position: relative;
+}
+
+.settings__eye-btn {
+  position: absolute;
+  right: 0.55rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+}
+
+.settings-main .icon-button {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  transition: background-color var(--duration-fast) var(--ease-default);
+}
+
+.settings-main .icon-button:hover {
+  background-color: var(--accent-subtle);
+}
+
+.settings__eye-btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.settings__eye-btn .slash {
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-default);
+}
+
+.settings__eye-btn.is-active .slash {
+  opacity: 1;
+}
+
+.settings__error {
+  min-height: 1rem;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: #ff7b6e;
+}
+
+.settings__input.is-error {
+  border-color: #ff7b6e;
+}
+
+.settings-main .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-md);
+  padding: 0.65rem 1rem;
+  font-weight: var(--weight-medium);
+}
+
+.settings-main .btn_outline {
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.settings-main .btn_outline:hover {
+  background: rgba(230, 204, 171, 0.08);
+}
+
+.settings-main .btn_accent {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.settings-main .btn_accent:hover {
+  background: var(--accent-hover);
+}
+
+.settings__coins-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.settings__coins-history-item {
+  display: grid;
+  grid-template-columns: 1.2fr 1.4fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.5rem 0;
+}
+
+.settings__coins-history-item:last-child {
+  border-bottom: none;
+}
+
+.settings__coins-history-date {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.settings__coins-history-amount {
+  font-weight: var(--weight-bold);
+  text-align: right;
+}
+
+.settings__coins-history-amount_positive {
+  color: #4ad275;
+}
+
+.settings__coins-history-amount_negative {
+  color: #ff7b6e;
+}
+
+.settings__input_number {
+  -moz-appearance: textfield;
+  appearance: none;
+}
+
+.settings__input_number::-webkit-outer-spin-button,
+.settings__input_number::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.settings-main .settings__btn_change-password:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settings-main .settings__btn_save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settings-main .settings__btn_save:disabled:hover {
+  background: transparent;
+}
+
+@media (max-width: 768px) {
+  .settings-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .settings__coins-history {
+    order: 2;
+  }
+
+  .settings-main {
+    order: 1;
+  }
+
+  .settings__coins-history-item {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+
+  .settings__coins-history-amount {
+    text-align: left;
+  }
+
+  .settings__avatar-block {
+    align-items: flex-start;
+  }
+}
