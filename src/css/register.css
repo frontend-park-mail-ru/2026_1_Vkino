@@ -1,178 +1,171 @@
+.sign-up-page {
+  --sign-up-scene-width: 220px;
+  --sign-up-stage-width: 320px;
+  --sign-up-scene-min-height: 500px;
+  --sign-up-shadow-blur: 28px;
+  --sign-up-focus-ring: rgba(255, 244, 234, 0.96);
+  --sign-up-focus-glow: rgba(255, 162, 110, 0.26);
+  --sign-up-cap-width: 42.5%;
+  --sign-up-cap-top: 0.2%;
+  --sign-up-cap-left: 22.9%;
+}
+
 .sign-up-page .form-section {
   justify-content: space-between;
 }
 
-/* ---- Колонка с бутылкой ---- */
 .sign-up-page .bottle-wrap {
-  flex: 1 1 54%;
+  flex: 1 1 44%;
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 270px;
   position: relative;
-  min-width: 250px;
-  max-width: 270px;
-  max-height: 500px;
+}
+
+.sign-up-page .bottle-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--sign-up-stage-width);
+  height: var(--sign-up-scene-min-height);
+  padding: 28px 8px 12px;
+  isolation: isolate;
+}
+
+.sign-up-page .bottle-stage::before {
+  content: "";
+  position: absolute;
+  inset: 8% 10% 12%;
+  border-radius: 36px;
+  background:
+    radial-gradient(circle at 50% 24%, rgba(255, 166, 82, 0.26), transparent 34%),
+    radial-gradient(circle at 52% 70%, rgba(255, 98, 52, 0.18), transparent 40%);
+  filter: blur(18px);
+  z-index: 0;
+}
+
+.sign-up-page .bottle-stage__fx {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.sign-up-page .bottle {
+  position: relative;
+  width: var(--sign-up-scene-width);
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  z-index: 2;
+  border-radius: 28px;
+  transform-origin: 50% 92%;
+  will-change: transform;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sign-up-page .bottle:focus-visible {
+  outline: 2px solid var(--sign-up-focus-ring);
+  outline-offset: 10px;
+  box-shadow: 0 0 0 14px var(--sign-up-focus-glow);
+}
+
+.sign-up-page .bottle__sprite {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 538 / 1009;
+}
+
+.sign-up-page .bottle__body,
+.sign-up-page .bottle__cap {
+  display: block;
+  user-select: none;
+}
+
+.sign-up-page .bottle__body {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: auto;
+  will-change: transform;
+}
+
+.sign-up-page .bottle__shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 2.2%;
+  width: 56%;
+  height: 4.8%;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background:
+    radial-gradient(circle at center, rgba(28, 8, 4, 0.62) 0%, rgba(28, 8, 4, 0.28) 58%, transparent 100%);
+  filter: blur(var(--sign-up-shadow-blur));
+  z-index: 1;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.sign-up-page .bottle__cap {
+  position: absolute;
+  z-index: 3;
+  width: var(--sign-up-cap-width);
+  left: var(--sign-up-cap-left);
+  top: var(--sign-up-cap-top);
+  transform: translate3d(0, 0, 0) rotate(20deg);
+  transform-origin: 50% 78%;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.sign-up-page .bottle[data-ready="false"] {
+  cursor: wait;
+  opacity: 0.92;
+}
+
+.sign-up-page .bottle-stage__hint {
+  margin: 14px 0 0;
+  text-align: center;
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  z-index: 2;
 }
 
 @media (max-width: 900px) {
-  .bottle-wrap {
-    visibility: hidden;
+  .sign-up-page .form-section {
+    flex-direction: column;
+    gap: 24px;
+    padding-top: 76px;
   }
 
-  .bottle-wrap {
+  .sign-up-page .form-wrap {
+    max-width: 100%;
+  }
+
+  .sign-up-page .bottle-wrap {
+    min-width: 0;
     width: 100%;
   }
-}
 
-.sign-up-page #scene {
-  position: relative;
-  height: min(70vh, 600px);
-  aspect-ratio: 190 / 540;
-  cursor: pointer;
-  z-index: 2;
-  transform: translateX(-20px) rotate(30deg);
-}
-
-.sign-up-page #bw {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  height: 100%;
-}
-
-.sign-up-page #scene:not(.exploded):hover #bw {
-  animation: bob 0.75s ease-in-out infinite;
-}
-
-@keyframes bob {
-  0%,
-  100% {
-    transform: translateX(-50%) translateY(0);
-  }
-  45% {
-    transform: translateX(-50%) translateY(-11px);
+  .sign-up-page .bottle-stage {
+    padding-top: 6px;
   }
 }
 
-.sign-up-page #bw.shake {
-  animation: shk 0.44s ease-in-out !important;
-}
-
-@keyframes shk {
-  0% {
-    transform: translateX(-50%) rotate(0);
-  }
-  20% {
-    transform: translateX(calc(-50% - 10px)) rotate(-4deg);
-  }
-  40% {
-    transform: translateX(calc(-50% + 10px)) rotate(4deg);
-  }
-  60% {
-    transform: translateX(calc(-50% - 6px)) rotate(-2.5deg);
-  }
-  80% {
-    transform: translateX(calc(-50% + 6px)) rotate(2deg);
-  }
-  100% {
-    transform: translateX(-50%) rotate(0);
+@media (max-width: 560px) {
+  .sign-up-page .bottle-stage__hint {
+    font-size: 0.85rem;
   }
 }
 
-.sign-up-page #fx {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 100;
-}
-
-.sign-up-page #stream {
-  position: absolute;
-  left: 50%;
-  top: 5%;
-  transform: translateX(-50%);
-  width: 10px;
-  border-radius: 5px;
-  background: linear-gradient(
-    to bottom,
-    rgba(90, 5, 5, 0) 0%,
-    rgba(140, 10, 10, 0.93) 25%,
-    rgba(80, 4, 4, 0.65) 100%
-  );
-  height: 0;
-  opacity: 0;
-  z-index: 5;
-  pointer-events: none;
-}
-
-.sign-up-page #stream.gush {
-  animation: gsh 1.9s ease-out forwards;
-}
-
-@keyframes gsh {
-  0% {
-    height: 0;
-    top: 26px;
-    opacity: 0;
-  }
-  8% {
-    height: 45px;
-    top: 16px;
-    opacity: 1;
-  }
-  28% {
-    height: 150px;
-    top: -115px;
-    opacity: 1;
-  }
-  65% {
-    height: 90px;
-    top: -25px;
-    opacity: 0.5;
-  }
-  100% {
-    height: 0;
-    top: 26px;
-    opacity: 0;
-  }
-}
-
-.sign-up-page #puddle {
-  position: absolute;
-  bottom: -6px;
-  left: 50%;
-  transform: translateX(-50%) scaleX(0);
-  width: 78%;
-  height: 14px;
-  background: radial-gradient(
-    ellipse,
-    rgba(145, 18, 18, 0.6) 0%,
-    transparent 75%
-  );
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.sign-up-page #puddle.spread {
-  animation: pud 2.6s ease-out forwards;
-}
-
-@keyframes pud {
-  0% {
-    transform: translateX(-50%) scaleX(0);
-    opacity: 0;
-  }
-  18% {
-    transform: translateX(-50%) scaleX(1);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(-50%) scaleX(1.6);
-    opacity: 0.22;
+@media (prefers-reduced-motion: reduce) {
+  .sign-up-page .bottle-stage::before {
+    filter: blur(12px);
   }
 }

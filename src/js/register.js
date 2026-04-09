@@ -1,346 +1,471 @@
 /**
- * @fileoverview Эффект "взрыва" бутылки на странице регистрации.
+ * @fileoverview Плавная анимация открытия бутылки на странице регистрации.
  */
 
+const PARTICLE_POOL_SIZE = 140;
+const EMISSION_RATE = 95;
+const PRESSURE_DELAY_MS = 150;
+const OPEN_DURATION_MS = 820;
+const SPRAY_DURATION_MS = 1680;
+const TOTAL_DURATION_MS = PRESSURE_DELAY_MS + OPEN_DURATION_MS + SPRAY_DURATION_MS;
+const NOZZLE_X = 0.496;
+const NOZZLE_Y = 0.053;
+const BASE_BOTTLE_ROTATION_DEG = 45;
+
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+const mix = (from, to, progress) => from + (to - from) * progress;
+const randomBetween = (min, max) => min + Math.random() * (max - min);
+
+const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+const easeInCubic = (t) => t * t * t;
+const easeOutBack = (t) => {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+};
+const easeInOutSine = (t) => -(Math.cos(Math.PI * t) - 1) / 2;
+
+const createParticle = () => ({
+  active: false,
+  x: 0,
+  y: 0,
+  vx: 0,
+  vy: 0,
+  gravity: 0,
+  drag: 1,
+  life: 0,
+  maxLife: 0,
+  size: 0,
+  alpha: 0,
+  stretch: 1,
+  type: "spray",
+});
+
+const waitForImage = (image) => {
+  if (!image) {
+    return Promise.resolve();
+  }
+
+  if (image.complete && image.naturalWidth > 0) {
+    return typeof image.decode === "function"
+      ? image.decode().catch(() => {})
+      : Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    const cleanup = () => {
+      image.removeEventListener("load", handleLoad);
+      image.removeEventListener("error", handleLoad);
+    };
+
+    const handleLoad = () => {
+      cleanup();
+      if (typeof image.decode === "function") {
+        image.decode().catch(() => {}).finally(resolve);
+        return;
+      }
+      resolve();
+    };
+
+    image.addEventListener("load", handleLoad, { once: true });
+    image.addEventListener("error", handleLoad, { once: true });
+  });
+};
+
 /**
- * Инициализирует интерактивный canvas-эффект для блока регистрации.
+ * Инициализирует анимацию бутылки в блоке регистрации.
  *
  * @param {ParentNode|null} root Корневой элемент страницы регистрации.
- * @returns {() => void} Функция очистки обработчиков и состояния эффекта.
+ * @returns {() => void} Функция очистки обработчиков и анимации.
  */
 export const initRegisterBottleEffect = (root) => {
   if (!root) {
     return () => {};
   }
 
-  let exploded = false;
+  const scene = root.querySelector("[data-bottle-scene]");
+  const bottle = root.querySelector("[data-bottle]");
+  const bodyImage = root.querySelector("[data-bottle-body]");
+  const cap = root.querySelector("[data-bottle-cap]");
+  const canvas = root.querySelector("[data-bottle-fx]");
 
-  const scene = root.querySelector("#scene");
-  const bw = root.querySelector("#bw");
-  const stream = root.querySelector("#stream");
-  const puddle = root.querySelector("#puddle");
-  const capGroup = root.querySelector("#capG");
-  const canvas = root.querySelector("#fx");
-
-  if (!scene || !bw || !stream || !puddle || !capGroup || !canvas) {
+  if (!scene || !bottle || !bodyImage || !cap || !canvas) {
     return () => {};
   }
 
-  const ctx = canvas.getContext("2d");
-
-  if (!ctx) {
+  const context = canvas.getContext("2d");
+  if (!context) {
     return () => {};
   }
 
-  /** @type {EffectParticle[]} */
-  let pts = [];
-  let rafId = null;
-  let last = null;
-
-  const rand = (a, b) => a + Math.random() * (b - a);
-
-  /**
-   * Подгоняет размер canvas под окно.
-   *
-   * @returns {void}
-   */
-  const resize = () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const particles = Array.from({ length: PARTICLE_POOL_SIZE }, createParticle);
+  const emitter = { carry: 0 };
+  const state = {
+    ready: false,
+    phase: "idle",
+    interactionStart: 0,
+    rafId: 0,
+    lastFrameTime: 0,
+    idleTime: 0,
+    dpr: 1,
+    reducedMotion: prefersReducedMotion.matches,
   };
 
-  /**
-   * Вычисляет точку вылета частиц из горлышка бутылки.
-   *
-   * @returns {OriginPoint}
-   */
-  const getOrigin = () => {
-    const ANGLE = (30 * Math.PI) / 180;
-    const H = scene.offsetHeight;
-    const r = bw.getBoundingClientRect();
-    const cx = r.left + r.width * 0.5;
-    const cy = r.top + r.height * 0.5;
+  bottle.dataset.ready = "false";
+
+  const resizeCanvas = () => {
+    const rect = scene.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+
+    state.dpr = dpr;
+    canvas.width = Math.max(1, Math.round(rect.width * dpr));
+    canvas.height = Math.max(1, Math.round(rect.height * dpr));
+    canvas.style.width = `${rect.width}px`;
+    canvas.style.height = `${rect.height}px`;
+    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+
+  const getBottleMetrics = () => {
+    const sceneRect = scene.getBoundingClientRect();
+    const bottleRect = bottle.getBoundingClientRect();
 
     return {
-      x: cx + H * 0.455 * Math.sin(ANGLE),
-      y: cy - H * 0.455 * Math.cos(ANGLE),
+      x: bottleRect.left - sceneRect.left,
+      y: bottleRect.top - sceneRect.top,
+      width: bottleRect.width,
+      height: bottleRect.height,
     };
   };
 
-  /**
-   * Создает частицу-каплю.
-   *
-   * @param {OriginPoint} o
-   * @returns {void}
-   */
-  const mkDrop = (o) => {
-    const core = Math.random() < 0.68;
-    const deg = core ? rand(-128, 8) : rand(-145, 25);
-    const rad = (deg * Math.PI) / 180;
-    const spd = rand(170, 460);
-    const r = rand(2.5, 9.5);
-    const br = rand(0, 1);
+  const getNozzlePoint = () => {
+    const metrics = getBottleMetrics();
+    return {
+      x: metrics.x + metrics.width * NOZZLE_X,
+      y: metrics.y + metrics.height * NOZZLE_Y,
+    };
+  };
 
-    pts.push({
-      t: "d",
-      x: o.x + rand(-6, 6),
-      y: o.y + rand(-3, 3),
-      vx: Math.cos(rad) * spd,
-      vy: Math.sin(rad) * spd,
-      ay: rand(270, 370),
-      drag: 0.87,
-      r,
-      cr: (60 + br * 75) | 0,
-      cg: (2 + br * 10) | 0,
-      cb: (2 + br * 8) | 0,
-      op: rand(0.78, 1),
-      life: 1,
-      decay: rand(0.5, 0.88),
-      stretch: rand(1, 2.1),
+  const clearParticles = () => {
+    particles.forEach((particle) => {
+      particle.active = false;
     });
+    emitter.carry = 0;
   };
 
-  /**
-   * Создает частицу-пузырь.
-   *
-   * @param {OriginPoint} o
-   * @returns {void}
-   */
-  const mkBub = (o) => {
-    const deg = rand(-132, 12);
-    const rad = (deg * Math.PI) / 180;
-    const spd = rand(80, 300);
-
-    pts.push({
-      t: "b",
-      x: o.x + rand(-5, 5),
-      y: o.y + rand(-3, 3),
-      vx: Math.cos(rad) * spd,
-      vy: Math.sin(rad) * spd,
-      ay: rand(90, 190),
-      drag: 0.91,
-      r: rand(2, 8.5),
-      op: rand(0.55, 0.95),
-      life: 1,
-      decay: rand(0.33, 0.65),
-    });
+  const resetBottleStyles = () => {
+    bottle.style.transform =
+      `translate3d(0, 0, 0) rotate(${BASE_BOTTLE_ROTATION_DEG}deg) scale(1)`;
+    cap.style.transform = "translate3d(0, 0, 0) rotate(20deg) scale(1)";
+    cap.style.opacity = "1";
+    cap.style.visibility = "visible";
   };
 
-  /**
-   * Рендерит каплю.
-   *
-   * @param {EffectParticle} p
-   * @param {number} a Текущая прозрачность.
-   * @returns {void}
-   */
-  const drawDrop = (p, a) => {
-    ctx.save();
-    ctx.globalAlpha = a;
-
-    const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-    const ang = Math.atan2(p.vy, p.vx);
-    const el = 1 + Math.min(spd / 270, 1.6) * (p.stretch - 1);
-
-    ctx.translate(p.x, p.y);
-    ctx.rotate(ang + Math.PI / 2);
-
-    const rx = p.r;
-    const ry = p.r * el;
-
-    const g = ctx.createRadialGradient(
-      -rx * 0.28,
-      -ry * 0.26,
-      0,
-      0,
-      0,
-      Math.max(rx, ry) * 1.1,
-    );
-
-    const hlR = Math.min(255, p.cr + 130);
-    const hlG = Math.min(255, p.cg + 55);
-    const hlB = Math.min(255, p.cb + 25);
-
-    g.addColorStop(0, `rgba(${hlR},${hlG},${hlB},.92)`);
-    g.addColorStop(0.38, `rgba(${p.cr},${p.cg},${p.cb},.95)`);
-    g.addColorStop(
-      0.82,
-      `rgba(${(p.cr * 0.55) | 0},${(p.cg * 0.45) | 0},0,.65)`,
-    );
-    g.addColorStop(1, `rgba(${(p.cr * 0.3) | 0},0,0,.15)`);
-
-    ctx.beginPath();
-    ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
-    ctx.fillStyle = g;
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.ellipse(
-      -rx * 0.22,
-      -ry * 0.28,
-      rx * 0.33,
-      ry * 0.18,
-      0,
-      0,
-      Math.PI * 2,
-    );
-    ctx.fillStyle = "rgba(255,255,255,.52)";
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(-rx * 0.08, -ry * 0.1, rx * 0.11, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255,255,255,.28)";
-    ctx.fill();
-
-    ctx.restore();
-  };
-
-  /**
-   * Рендерит пузырь.
-   *
-   * @param {EffectParticle} p
-   * @param {number} a Текущая прозрачность.
-   * @returns {void}
-   */
-  const drawBub = (p, a) => {
-    ctx.save();
-    ctx.globalAlpha = a;
-    ctx.translate(p.x, p.y);
-
-    const r = p.r;
-    const rim = ctx.createRadialGradient(0, 0, r * 0.5, 0, 0, r);
-
-    rim.addColorStop(0, "rgba(140,185,255,0)");
-    rim.addColorStop(0.7, "rgba(170,210,255,.08)");
-    rim.addColorStop(0.87, "rgba(205,232,255,.48)");
-    rim.addColorStop(1, "rgba(255,255,255,.82)");
-
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.fillStyle = rim;
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 0.78, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(55,4,2,.1)";
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.ellipse(-r * 0.26, -r * 0.3, r * 0.42, r * 0.23, -0.42, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255,255,255,.82)";
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.ellipse(r * 0.18, r * 0.36, r * 0.18, r * 0.1, 0.38, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255,255,255,.28)";
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(155,115,255,.2)";
-    ctx.lineWidth = r * 0.22;
-    ctx.stroke();
-
-    ctx.restore();
-  };
-
-  /**
-   * Обновляет физику частиц и перерисовывает кадр.
-   *
-   * @param {number} ts Timestamp requestAnimationFrame.
-   * @returns {void}
-   */
-  const loop = (ts) => {
-    if (!last) {
-      last = ts;
-    }
-
-    const dt = Math.min((ts - last) / 1000, 0.05);
-    last = ts;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    pts = pts.filter((p) => p.life > 0.012);
-
-    for (const p of pts) {
-      p.vx *= Math.pow(p.drag, dt * 60);
-      p.vy += p.ay * dt;
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.life -= p.decay * dt;
-
-      const a = Math.max(0, p.life) * p.op;
-      p.t === "d" ? drawDrop(p, a) : drawBub(p, a);
-    }
-
-    rafId = pts.length ? requestAnimationFrame(loop) : null;
-
-    if (!pts.length) {
-      last = null;
-    }
-  };
-
-  /**
-   * Запускает сценарий генерации капель/пузырей.
-   *
-   * @returns {void}
-   */
-  const boom = () => {
-    const o = getOrigin();
-
-    for (let i = 0; i < 70; i++) {
-      setTimeout(() => mkDrop(o), i * 16);
-    }
-
-    for (let i = 0; i < 40; i++) {
-      setTimeout(() => mkBub(o), i * 20 + 25);
-    }
-
-    for (let i = 0; i < 22; i++) {
-      setTimeout(() => mkDrop(o), 300 + i * 28);
-    }
-
-    if (!rafId) {
-      rafId = requestAnimationFrame(loop);
-    }
-  };
-
-  /**
-   * Обрабатывает первый клик по сцене и запускает эффект.
-   *
-   * @returns {void}
-   */
-  const handleSceneClick = () => {
-    if (exploded) {
+  const setShadowStyle = (scaleX, scaleY, opacity) => {
+    const shadow = bottle.querySelector(".bottle__shadow");
+    if (!shadow) {
       return;
     }
 
-    exploded = true;
-    scene.classList.add("exploded");
-    bw.classList.add("shake");
-
-    setTimeout(() => {
-      capGroup.style.display = "none";
-      stream.classList.add("gush");
-      puddle.classList.add("spread");
-      boom();
-    }, 430);
+    shadow.style.transform = `translateX(-50%) scale(${scaleX}, ${scaleY})`;
+    shadow.style.opacity = String(opacity);
   };
 
-  resize();
-
-  window.addEventListener("resize", resize);
-  scene.addEventListener("click", handleSceneClick);
-
-  return () => {
-    window.removeEventListener("resize", resize);
-    scene.removeEventListener("click", handleSceneClick);
-
-    if (rafId) {
-      cancelAnimationFrame(rafId);
-      rafId = null;
+  const spawnParticle = (origin, strength, bubbleBias = 0.18) => {
+    const particle = particles.find((item) => !item.active);
+    if (!particle) {
+      return;
     }
 
-    pts = [];
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const spread = state.reducedMotion ? 0.2 : 0.33;
+    const angle = -Math.PI / 2 + randomBetween(-spread, spread);
+    const speed = randomBetween(220, 520) * strength;
+    const bubble = Math.random() < bubbleBias;
+
+    particle.active = true;
+    particle.type = bubble ? "bubble" : "spray";
+    particle.x = origin.x + randomBetween(-4, 4);
+    particle.y = origin.y + randomBetween(-2, 2);
+    particle.vx = Math.cos(angle) * speed + randomBetween(-24, 24);
+    particle.vy = Math.sin(angle) * speed - randomBetween(12, 64);
+    particle.gravity = bubble ? randomBetween(90, 180) : randomBetween(420, 620);
+    particle.drag = bubble ? 0.992 : 0.984;
+    particle.maxLife = bubble ? randomBetween(0.7, 1.15) : randomBetween(0.45, 0.92);
+    particle.life = particle.maxLife;
+    particle.size = bubble ? randomBetween(2, 5.4) : randomBetween(2.5, 6.8);
+    particle.alpha = bubble ? randomBetween(0.18, 0.34) : randomBetween(0.62, 0.9);
+    particle.stretch = bubble ? 1 : randomBetween(1.1, 1.95);
+  };
+
+  const emitParticles = (origin, dt, intensity) => {
+    const rate = EMISSION_RATE * intensity * (state.reducedMotion ? 0.48 : 1);
+    emitter.carry += rate * dt;
+
+    while (emitter.carry >= 1) {
+      emitter.carry -= 1;
+      spawnParticle(origin, mix(0.72, 1.22, intensity));
+    }
+  };
+
+  const drawParticle = (particle) => {
+    const lifeProgress = 1 - particle.life / particle.maxLife;
+    const alpha = particle.alpha * (1 - lifeProgress);
+    if (alpha <= 0) {
+      return;
+    }
+
+    context.save();
+    context.globalAlpha = alpha;
+    context.translate(particle.x, particle.y);
+
+    if (particle.type === "bubble") {
+      context.beginPath();
+      context.arc(0, 0, particle.size, 0, Math.PI * 2);
+      context.fillStyle = "rgba(255, 245, 226, 0.16)";
+      context.fill();
+      context.lineWidth = 1;
+      context.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      context.stroke();
+      context.restore();
+      return;
+    }
+
+    const angle = Math.atan2(particle.vy, particle.vx) + Math.PI / 2;
+    context.rotate(angle);
+
+    const radiusX = particle.size;
+    const radiusY = particle.size * particle.stretch;
+    const gradient = context.createRadialGradient(
+      -radiusX * 0.2,
+      -radiusY * 0.25,
+      0,
+      0,
+      0,
+      radiusY,
+    );
+
+    gradient.addColorStop(0, "rgba(255, 246, 225, 0.95)");
+    gradient.addColorStop(0.32, "rgba(255, 219, 140, 0.92)");
+    gradient.addColorStop(0.72, "rgba(255, 149, 79, 0.7)");
+    gradient.addColorStop(1, "rgba(188, 52, 24, 0.06)");
+
+    context.beginPath();
+    context.ellipse(0, 0, radiusX, radiusY, 0, 0, Math.PI * 2);
+    context.fillStyle = gradient;
+    context.fill();
+
+    context.restore();
+  };
+
+  const updateParticles = (dt) => {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    particles.forEach((particle) => {
+      if (!particle.active) {
+        return;
+      }
+
+      particle.vx *= Math.pow(particle.drag, dt * 60);
+      particle.vy += particle.gravity * dt;
+      particle.x += particle.vx * dt;
+      particle.y += particle.vy * dt;
+      particle.life -= dt;
+
+      if (particle.life <= 0) {
+        particle.active = false;
+        return;
+      }
+
+      drawParticle(particle);
+    });
+  };
+
+  const updateIdleBottle = (timeMs) => {
+    const swing = Math.sin(timeMs * 0.0014);
+    const float = Math.sin(timeMs * 0.0021 + 1.2);
+    const rotate = swing * 2.2;
+    const translateY = float * -5;
+    const scale = 1 + Math.sin(timeMs * 0.0017) * 0.004;
+
+    bottle.style.transform =
+      `translate3d(0, ${translateY}px, 0) rotate(${BASE_BOTTLE_ROTATION_DEG + rotate}deg) scale(${scale})`;
+    setShadowStyle(1 + swing * 0.045, 1 - Math.abs(swing) * 0.06, 0.84 - Math.abs(swing) * 0.1);
+    cap.style.transform = "translate3d(0, 0, 0) rotate(20deg) scale(1)";
+    cap.style.opacity = "1";
+  };
+
+  const updateOpeningBottle = (elapsed) => {
+    const pressureProgress = clamp(elapsed / PRESSURE_DELAY_MS, 0, 1);
+    const openingElapsed = Math.max(0, elapsed - PRESSURE_DELAY_MS);
+    const openingProgress = clamp(openingElapsed / OPEN_DURATION_MS, 0, 1);
+    const pressurePhase = elapsed < PRESSURE_DELAY_MS;
+
+    let rotate = 0;
+    let translateY = 0;
+    let scale = 1;
+    let shadowX = 1;
+    let shadowY = 1;
+    let shadowOpacity = 0.82;
+
+    if (pressurePhase) {
+      const jitter = Math.sin(pressureProgress * Math.PI * 5.4) * (1 - pressureProgress);
+      rotate = jitter * 2.3;
+      translateY = pressureProgress * 3;
+      scale = 1 - pressureProgress * 0.012;
+      shadowX = 1 + pressureProgress * 0.1;
+      shadowY = 1 - pressureProgress * 0.08;
+      shadowOpacity = 0.78;
+    } else {
+      const recoil = Math.sin(Math.min(openingProgress, 1) * Math.PI);
+      rotate = mix(-5.2, 0.8, easeOutCubic(openingProgress)) + Math.sin(openingProgress * 10) * 0.35 * (1 - openingProgress);
+      translateY = mix(8, -2, easeOutCubic(openingProgress)) - recoil * 4;
+      scale = 1 + Math.sin(openingProgress * Math.PI) * 0.016;
+      shadowX = mix(1.12, 1, openingProgress);
+      shadowY = mix(0.88, 1, openingProgress);
+      shadowOpacity = mix(0.7, 0.82, openingProgress);
+    }
+
+    bottle.style.transform =
+      `translate3d(0, ${translateY}px, 0) rotate(${BASE_BOTTLE_ROTATION_DEG + rotate}deg) scale(${scale})`;
+    setShadowStyle(shadowX, shadowY, shadowOpacity);
+
+    if (!pressurePhase) {
+      const capProgress = clamp(openingElapsed / (OPEN_DURATION_MS + 240), 0, 1);
+      const arcX = mix(0, 124, easeOutBack(capProgress));
+      const arcY = mix(0, -182, easeOutCubic(capProgress)) + Math.pow(capProgress, 2) * 112;
+      const rotation = mix(20, 288, capProgress);
+      const scaleCap = mix(1, 0.9, capProgress);
+      const opacity = 1 - easeInCubic(clamp((capProgress - 0.52) / 0.48, 0, 1));
+
+      cap.style.transform = `translate3d(${arcX}px, ${arcY}px, 0) rotate(${rotation}deg) scale(${scaleCap})`;
+      cap.style.opacity = String(opacity);
+      cap.style.visibility = opacity <= 0.02 ? "hidden" : "visible";
+    }
+  };
+
+  const updateOpenedBottle = (elapsed) => {
+    const settle = clamp((elapsed - (PRESSURE_DELAY_MS + OPEN_DURATION_MS)) / 420, 0, 1);
+    const wobble = Math.sin(settle * Math.PI * 2) * (1 - settle) * 0.45;
+
+    bottle.style.transform =
+      `translate3d(0, ${wobble * -1.4}px, 0) rotate(${BASE_BOTTLE_ROTATION_DEG + wobble}deg) scale(1)`;
+    setShadowStyle(1, 1, 0.82);
+    cap.style.opacity = "0";
+    cap.style.visibility = "hidden";
+  };
+
+  const resetScene = () => {
+    state.phase = "idle";
+    state.interactionStart = 0;
+    clearParticles();
+    resetBottleStyles();
+    setShadowStyle(1, 1, 0.82);
+    bottle.ariaLabel = "Открыть бутылку";
+  };
+
+  const startInteraction = (timeMs) => {
+    if (!state.ready || state.phase !== "idle") {
+      return;
+    }
+
+    state.phase = "opening";
+    state.interactionStart = timeMs;
+    emitter.carry = 0;
+    bottle.ariaLabel = "Бутылка открывается";
+  };
+
+  const updateScene = (timeMs, dt) => {
+    if (state.phase === "idle") {
+      updateIdleBottle(timeMs);
+      return;
+    }
+
+    const elapsed = timeMs - state.interactionStart;
+    const sprayStart = PRESSURE_DELAY_MS + 120;
+    const sprayElapsed = elapsed - sprayStart;
+
+    updateOpeningBottle(elapsed);
+
+    if (sprayElapsed >= 0 && elapsed <= TOTAL_DURATION_MS) {
+      const sprayProgress = clamp(sprayElapsed / SPRAY_DURATION_MS, 0, 1);
+      const burst = 1 - Math.pow(1 - clamp(sprayProgress / 0.16, 0, 1), 2);
+      const decay = 1 - easeInOutSine(sprayProgress);
+      const intensity = clamp(Math.max(burst, decay * 0.82), 0.18, 1);
+      emitParticles(getNozzlePoint(), dt, intensity);
+    }
+
+    if (elapsed >= TOTAL_DURATION_MS) {
+      state.phase = "opened";
+      bottle.ariaLabel = "Анимация завершена";
+    }
+
+    if (state.phase === "opened") {
+      updateOpenedBottle(elapsed);
+    }
+  };
+
+  const frame = (timeMs) => {
+    if (!state.lastFrameTime) {
+      state.lastFrameTime = timeMs;
+    }
+
+    const dt = Math.min((timeMs - state.lastFrameTime) / 1000, 0.032);
+    state.lastFrameTime = timeMs;
+    state.idleTime += dt;
+
+    updateScene(timeMs, dt);
+    updateParticles(dt);
+
+    state.rafId = window.requestAnimationFrame(frame);
+  };
+
+  const handleBottleClick = () => {
+    startInteraction(performance.now());
+  };
+
+  const handleResize = () => {
+    resizeCanvas();
+  };
+
+  const handleMotionPreference = () => {
+    state.reducedMotion = prefersReducedMotion.matches;
+    clearParticles();
+
+    if (state.phase !== "idle") {
+      resetScene();
+    }
+  };
+
+  Promise.all([waitForImage(bodyImage), waitForImage(cap)]).finally(() => {
+    resizeCanvas();
+    state.ready = true;
+    bottle.dataset.ready = "true";
+    resetScene();
+  });
+
+  window.addEventListener("resize", handleResize);
+  bottle.addEventListener("click", handleBottleClick);
+
+  if (typeof prefersReducedMotion.addEventListener === "function") {
+    prefersReducedMotion.addEventListener("change", handleMotionPreference);
+  }
+
+  state.rafId = window.requestAnimationFrame(frame);
+
+  return () => {
+    window.removeEventListener("resize", handleResize);
+    bottle.removeEventListener("click", handleBottleClick);
+
+    if (typeof prefersReducedMotion.removeEventListener === "function") {
+      prefersReducedMotion.removeEventListener("change", handleMotionPreference);
+    }
+
+    if (state.rafId) {
+      window.cancelAnimationFrame(state.rafId);
+      state.rafId = 0;
+    }
+
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    clearParticles();
   };
 };
