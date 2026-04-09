@@ -10,7 +10,7 @@
             <div class="settings__avatar-preview-wrap">
               <img
                 class="settings__avatar-preview"
-                src="{{#if userData.avatarUrl}}{{userData.avatarUrl}}{{else}}https://placehold.co/160x160?text=Avatar{{/if}}"
+                src="{{userData.avatarUrl}}"
                 alt="Аватар пользователя"
                 data-role="avatar-preview"
               />
@@ -46,8 +46,8 @@
 
         <div class="settings__section">
           <h2 class="settings__title">Сменить пароль</h2>
-          <div class="settings__form-grid">
-            <div class="settings__field">
+          <div class="settings__form-grid settings__form-grid_password">
+            <div class="settings__field settings__field_password">
               <label class="settings__label">Старый пароль</label>
               <div class="settings__input-wrapper settings__input-wrapper_eye">
                 <input class="settings__input settings__input_password_field" type="password" id="oldPassword" placeholder="Введите старый пароль" data-field="oldPassword" />
@@ -61,7 +61,7 @@
               </div>
               <div class="settings__error" id="old-password-error"></div>
             </div>
-            <div class="settings__field">
+            <div class="settings__field settings__field_password">
               <label class="settings__label">Новый пароль</label>
               <div class="settings__input-wrapper settings__input-wrapper_eye">
                 <input class="settings__input settings__input_password_field" type="password" id="newPassword" placeholder="Пароль" data-field="newPassword" />
@@ -75,7 +75,7 @@
               </div>
               <div class="settings__error" id="new-password-error"></div>
             </div>
-            <div class="settings__field">
+            <div class="settings__field settings__field_password">
               <label class="settings__label">Повторите пароль</label>
               <div class="settings__input-wrapper settings__input-wrapper_eye">
                 <input class="settings__input settings__input_password_field" type="password" id="confirmPassword" placeholder="Повторите пароль" data-field="confirmPassword" />

@@ -99,6 +99,10 @@
   gap: var(--space-2);
 }
 
+.settings__field_password {
+  align-content: start;
+}
+
 .settings__label {
   color: var(--text-secondary);
   font-size: var(--text-sm);
@@ -164,6 +168,10 @@
   margin-top: 0.25rem;
   font-size: 0.75rem;
   color: #ff7b6e;
+}
+
+.settings__form-grid_password .settings__error {
+  min-height: 2.5rem;
 }
 
 .settings__input.is-error {

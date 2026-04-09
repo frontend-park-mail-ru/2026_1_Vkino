@@ -1,12 +1,13 @@
 import BasePage from "../BasePage.js";
 import "./Settings.precompiled.js";
+import "../../css/settings.css";
 
-import { attachPageStyles } from "../../utils/pageStyles.js";
 import { initPasswordToggle } from "../../js/password/eye-btn.js";
 import { setError, validatePassword } from "../../js/password/validation.js";
-import { profileService } from "../../js/ProfileService.js";
+import { userService } from "../../js/UserService.js";
 import { authStore } from "../../store/authStore.js";
 import HeaderComponent from "../../components/Header/Header.js";
+import { resolveAvatarUrl } from "../../utils/avatar.js";
 
 export default class SettingsPage extends BasePage {
   constructor(context = {}, parent = null, el = null) {
@@ -14,11 +15,11 @@ export default class SettingsPage extends BasePage {
       throw new Error("SettingsPage: не передан корневой элемент для SettingsPage");
     }
 
-    // 🎯 Моки — только в JS
-    const mockUserData = {
-      email: "saucesamba@example.com",
-      birthDate: "2006-01-01", // ISO string
-      avatarUrl: "",
+    const userFromStore = authStore.getState().user || {};
+    const userData = {
+      email: userFromStore.email || "",
+      birthDate: userFromStore.birthdate || "",
+      avatarUrl: resolveAvatarUrl(userFromStore.avatar_url),
     };
 
     const mockCoinHistory = [
@@ -35,7 +36,7 @@ export default class SettingsPage extends BasePage {
     ];
 
     const finalContext = {
-      userData: mockUserData,
+      userData,
       coinHistory: mockCoinHistory,
       ...context,
     };
@@ -59,11 +60,6 @@ export default class SettingsPage extends BasePage {
   }
 
   init() {
-    this._detachStyles = attachPageStyles(
-      ["/css/main.css", "/css/settings.css"],
-      "settings",
-    );
-
     return super.init();
   }
 
@@ -142,6 +138,13 @@ export default class SettingsPage extends BasePage {
     const objectUrl = URL.createObjectURL(file);
     avatarPreview.src = objectUrl;
     avatarPreview.onload = () => URL.revokeObjectURL(objectUrl);
+  }
+
+  _renderAvatar(url) {
+    const avatarPreview = this.el.querySelector('[data-role="avatar-preview"]');
+    if (!avatarPreview) return;
+
+    avatarPreview.src = resolveAvatarUrl(url);
   }
 
   _setAvatarError(message) {
@@ -274,7 +277,6 @@ export default class SettingsPage extends BasePage {
         e.preventDefault();
         if (saveBtn.disabled) return;
 
-        console.log("Сохранение профиля:", this._getUpdatedData());
         await this._saveProfile();
       };
 
@@ -289,7 +291,6 @@ export default class SettingsPage extends BasePage {
           this._updatePasswordButtonState();
           return;
         }
-        console.log("Изменение пароля");
         await this._changePassword();
       };
 
@@ -312,7 +313,7 @@ export default class SettingsPage extends BasePage {
     const saveBtn = this.el.querySelector('[data-action="save-profile"]');
     if (saveBtn) saveBtn.disabled = true;
 
-    const profileResult = await profileService.updateProfile(
+    const profileResult = await userService.updateProfile(
       updated.birthdate,
       this._pendingAvatarFile,
     );
@@ -322,12 +323,7 @@ export default class SettingsPage extends BasePage {
       return;
     }
 
-    if (profileResult.resp?.avatar_url) {
-      const avatarPreview = this.el.querySelector('[data-role="avatar-preview"]');
-      if (avatarPreview) {
-        avatarPreview.src = profileResult.resp.avatar_url;
-      }
-    }
+    this._renderAvatar(profileResult.resp?.avatar_url);
 
     this._pendingAvatarFile = null;
     const avatarInput = this.el.querySelector("#avatarInput");
@@ -336,9 +332,17 @@ export default class SettingsPage extends BasePage {
 
     authStore.updateUserProfile(profileResult.resp || {});
 
+    if (profileResult.resp?.birthdate !== undefined) {
+      this._originalValues.birthdate = profileResult.resp.birthdate || "";
+    }
+
+    if (profileResult.resp?.avatar_url !== undefined) {
+      this.context.userData.avatarUrl = resolveAvatarUrl(profileResult.resp.avatar_url);
+    }
+
     console.log("Сохранено:", updated);
 
-    // Обновляем оригинальные значения
+    // Обновляем оригинальные значения для отслеживания изменений
     Object.entries(updated).forEach(([field, value]) => {
       this._originalValues[field] = value;
     });
@@ -362,7 +366,7 @@ export default class SettingsPage extends BasePage {
       return;
     }
 
-    const changeResult = await profileService.changePassword({
+    const changeResult = await userService.changePassword({
       old_password: old,
       new_password: newP,
     });

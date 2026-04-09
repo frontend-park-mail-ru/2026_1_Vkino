@@ -5,6 +5,8 @@ import SignInPage from "./pages/SignIn/SignIn.js";
 import SignUpPage from "./pages/SignUp/SignUp.js";
 import SettingsPage from './pages/Settings/Settings.js';
 
+import "./css/index.css";
+
 import { authStore } from "./store/authStore.js";
 
 const rootEl = document.getElementById("root");

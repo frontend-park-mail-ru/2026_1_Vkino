@@ -1,9 +1,9 @@
-.form-section {
+.sign-up-page .form-section {
   justify-content: space-between;
 }
 
 /* ---- Колонка с бутылкой ---- */
-.bottle-wrap {
+.sign-up-page .bottle-wrap {
   flex: 1 1 54%;
   display: flex;
   align-items: center;
@@ -24,7 +24,7 @@
   }
 }
 
-#scene {
+.sign-up-page #scene {
   position: relative;
   height: min(70vh, 600px);
   aspect-ratio: 190 / 540;
@@ -33,7 +33,7 @@
   transform: translateX(-20px) rotate(30deg);
 }
 
-#bw {
+.sign-up-page #bw {
   position: absolute;
   bottom: 0;
   left: 50%;
@@ -42,7 +42,7 @@
   height: 100%;
 }
 
-#scene:not(.exploded):hover #bw {
+.sign-up-page #scene:not(.exploded):hover #bw {
   animation: bob 0.75s ease-in-out infinite;
 }
 
@@ -56,7 +56,7 @@
   }
 }
 
-#bw.shake {
+.sign-up-page #bw.shake {
   animation: shk 0.44s ease-in-out !important;
 }
 
@@ -81,7 +81,7 @@
   }
 }
 
-#fx {
+.sign-up-page #fx {
   position: fixed;
   top: 0;
   left: 0;
@@ -91,7 +91,7 @@
   z-index: 100;
 }
 
-#stream {
+.sign-up-page #stream {
   position: absolute;
   left: 50%;
   top: 5%;
@@ -110,7 +110,7 @@
   pointer-events: none;
 }
 
-#stream.gush {
+.sign-up-page #stream.gush {
   animation: gsh 1.9s ease-out forwards;
 }
 
@@ -142,7 +142,7 @@
   }
 }
 
-#puddle {
+.sign-up-page #puddle {
   position: absolute;
   bottom: -6px;
   left: 50%;
@@ -158,7 +158,7 @@
   pointer-events: none;
 }
 
-#puddle.spread {
+.sign-up-page #puddle.spread {
   animation: pud 2.6s ease-out forwards;
 }
 
