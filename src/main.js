@@ -42,8 +42,8 @@ async function start() {
           root,
         ),
     )
-    .registerRoute("/movie", (root) => new MoviePage({}, null, root))
-    .registerRoute("/actor/", (root) => new ActorPage({}, null, root));
+    .registerRoute("/movie/:id", (root) => new MoviePage({}, null, root))
+    .registerRoute("/actor/:id", (root) => new ActorPage({}, null, root));
 
   router.init();
 }

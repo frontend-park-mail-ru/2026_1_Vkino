@@ -4,7 +4,6 @@ import "./Actor.precompiled.js";
 import { movieService } from "../../js/MovieService.js";
 import HeaderComponent from "../../components/Header/Header.js";
 
-//TODO тут надо будет юзать карусельки из компонентов потом а не просто захардкожено
 /**
  * Старница актера
  * @class
@@ -269,7 +268,7 @@ export default class ActorPage extends BasePage {
       country_id: actor.country_id ?? actor.CountryID ?? null,
       country_label: this._formatCountry(actor.country_id ?? actor.CountryID),
       picture_file_key: actor.picture_file_key ?? actor.PictureFileKey ?? "",
-      picture_src: actor.picture_file_key ?? actor.PictureFileKey ?? "img/user-avatar.png",
+      picture_src: actor.picture_file_key || actor.PictureFileKey || "img/user-avatar.png",
       birth_date: birthDate ? this._formatDate(birthDate) : "Не указана",
       biography: biography || "Нет описания",
       created_at: createdAt ? this._formatDate(createdAt) : "Не указано",

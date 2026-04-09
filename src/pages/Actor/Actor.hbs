@@ -1,12 +1,9 @@
 <header id="header"></header>
 
-<!--TODO тут надо будет юзать карусельки из компонентов потом а не просто захардкожено-->
-
 <main class="actor-page">
   {{#if actor}}
     <section class="actor-card">
       <div class="actor-card__photo">
-          <!--TODO тут надо откуда то брать фотку актера - надо наверн отдельный бакет на беке завести-->
           <img
           src="{{actor.picture_src}}"
           alt="{{actor.full_name}}"
