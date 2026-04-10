@@ -3,6 +3,7 @@ import "./Main.precompiled.js";
 
 import { movieService } from "../../js/MovieService.js";
 import HeaderComponent from "../../components/Header/Header.js";
+import { router } from "../../router/index.js";
 
 /**
  * Главная страница приложения с подборками фильмов.
@@ -23,16 +24,7 @@ export default class MainPage extends BasePage {
       throw new Error("Main: не передан корневой элемент для MainPage");
     }
 
-    super(
-      {
-        onMovieSelect: null,
-        ...context,
-      },
-      Handlebars.templates["Main.hbs"],
-      parent,
-      el,
-      "MainPage",
-    );
+    super(context, Handlebars.templates["Main.hbs"], parent, el, "MainPage");
 
     /**
      * Флаг загрузки контекста.
@@ -313,12 +305,7 @@ export default class MainPage extends BasePage {
           return;
         }
 
-        if (typeof this.context.onMovieSelect !== "function") {
-          console.warn("Main: не настроен обработчик перехода к странице фильма");
-          return;
-        }
-
-        this.context.onMovieSelect(movieId);
+        router.go(`/movie?id=${encodeURIComponent(movieId)}`);
       };
 
       moviePoster.addEventListener("click", onClick);
