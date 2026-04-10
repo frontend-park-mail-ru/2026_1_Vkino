@@ -1,0 +1,143 @@
+.actor-page {
+  width: min(100%, 1120px);
+  margin: 0 auto;
+  padding: 24px 32px 40px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 87, 31, 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(39, 20, 11, 0.72), rgba(18, 6, 3, 0.94));
+}
+
+.actor-card {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  padding: 12px 0 8px;
+}
+
+.actor-card__photo {
+  width: 100%;
+  max-width: 190px;
+}
+
+.actor-card__photo img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  background: linear-gradient(180deg, #2a1a12, #140804);
+}
+
+.actor-card__content {
+  min-width: 0;
+}
+
+.actor-card__title {
+  font-family: var(--font-headers);
+  font-size: clamp(1.75rem, 3vw, 2.35rem);
+  line-height: 1.1;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.actor-card__subtitle {
+  color: var(--text-primary);
+  font-size: var(--text-md);
+  margin-bottom: 18px;
+}
+
+.actor-card__details {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) minmax(220px, 1fr);
+  gap: 10px 28px;
+}
+
+.actor-card__detail {
+  display: contents;
+}
+
+.actor-card__detail dt {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.actor-card__detail dd {
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.actor-card__detail--wide dd {
+  max-width: 38rem;
+}
+
+.actor-movies {
+  margin-top: 8px;
+}
+
+.actor-movies__title {
+  margin-bottom: 12px;
+}
+
+.actor-movies__list {
+  gap: 14px;
+  padding-bottom: 6px;
+}
+
+.actor-movie-card {
+  width: 150px;
+  flex: 0 0 auto;
+  color: var(--text-primary);
+}
+
+.actor-movie-card:hover {
+  color: var(--text-primary);
+}
+
+.actor-movie-card__image {
+  width: 150px;
+  height: 225px;
+  border-radius: 12px;
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.32);
+  background: #24110b;
+}
+
+.actor-movie-card__title {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .actor-page {
+    padding: 16px 16px 32px;
+  }
+
+  .actor-card {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .actor-card__photo {
+    max-width: 220px;
+  }
+
+  .actor-card__details {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .actor-card__detail {
+    display: grid;
+    gap: 2px;
+  }
+
+  .actor-card__detail--wide dd {
+    max-width: none;
+  }
+}

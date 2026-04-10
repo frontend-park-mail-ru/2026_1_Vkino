@@ -1,0 +1,88 @@
+<header id="header"></header>
+
+<main class="actor-page">
+  {{#if actor}}
+    <section class="actor-card">
+      <div class="actor-card__photo">
+          <img
+          src="{{actor.picture_src}}"
+          alt="{{actor.full_name}}"
+        />
+      </div>
+
+      <div class="actor-card__content">
+        <h1 class="actor-card__title">{{actor.full_name}}</h1>
+        <p class="actor-card__subtitle">Об актере</p>
+
+        <dl class="actor-card__details">
+          <div class="actor-card__detail">
+            <dt>ID</dt>
+            <dd>{{actor.id}}</dd>
+          </div>
+
+          <div class="actor-card__detail">
+            <dt>Страна</dt>
+            <dd>{{actor.country_label}}</dd>
+          </div>
+
+          <div class="actor-card__detail actor-card__detail--wide">
+            <dt>Дата рождения</dt>
+            <dd>{{actor.birth_date}}</dd>
+          </div>
+
+          <div class="actor-card__detail actor-card__detail--wide">
+            <dt>Биография</dt>
+            <dd>{{actor.biography}}</dd>
+          </div>
+
+          <div class="actor-card__detail">
+            <dt>Создан</dt>
+            <dd>{{actor.created_at}}</dd>
+          </div>
+
+          <div class="actor-card__detail">
+            <dt>Обновлен</dt>
+            <dd>{{actor.updated_at}}</dd>
+          </div>
+
+          <div class="actor-card__detail">
+            <dt>Всего фильмов</dt>
+            <dd>{{actor.movies_count}}</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="actor-movies">
+      <h2 class="selection-title actor-movies__title">
+        <div class="selection-rectangle"></div>
+        <span>Фильмы с этим актером</span>
+      </h2>
+
+      <div class="scroll-container">
+        <div class="scroll-items actor-movies__list">
+          {{#each actor.movies}}
+            <a
+              class="actor-movie-card"
+              href="/movie?id={{this.id}}"
+              router-link
+            >
+              <img
+                class="actor-movie-card__image movie-poster"
+                data-movie-poster-id="{{this.id}}"
+                src="{{this.poster_src}}"
+                draggable="false"
+                alt="{{this.title}}"
+              />
+              <span class="actor-movie-card__title">{{this.title}}</span>
+            </a>
+          {{/each}}
+        </div>
+      </div>
+    </section>
+  {{else}}
+    <section class="actor-card">
+      <h1 class="actor-card__title">Актер не найден</h1>
+    </section>
+  {{/if}}
+</main>

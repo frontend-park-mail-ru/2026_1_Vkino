@@ -40,6 +40,16 @@ export class MovieService {
   async getSelectionByTitle(title) {
     return this.api.get(`/selection/${title}`);
   }
+
+  /**
+   * Получает актера по идентификатору.
+   * @async
+   * @param {number|string} actorId идентификатор актера
+   * @returns {Promise<Object>} результат запроса с данными актера
+   */
+  async getActorById(actorId) {
+    return this.api.get(`/actor/${actorId}`);
+  }
 }
 
 /**
