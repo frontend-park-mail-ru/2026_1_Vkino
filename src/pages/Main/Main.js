@@ -185,15 +185,11 @@ function buildHeroMovies(selectionEntries = []) {
   const movies = selectionEntries.flatMap((selection) => selection.movies);
   const heroMovies = movies.slice(0, 3);
 
-  if (heroMovies.length < 3) {
+  if (!heroMovies.length) {
     return buildFallbackHeroMovies();
   }
 
-  return heroMovies.map((movie, index) => ({
-    ...movie,
-    variant: index === 1 ? "hero" : "compact",
-    size: index === 1 ? "hero" : "medium",
-  }));
+  return heroMovies;
 }
 
 function normalizeMovies(movies = []) {
@@ -219,7 +215,46 @@ function normalizeMovie(movie = {}, index = 0) {
   };
 }
 
-//TODO тут надо реализовать заглушки если ничего не загрузилось
 function buildFallbackHeroMovies() {
-  return []
+  return [
+    {
+      id: "fallback-hero-1",
+      title: "Интерстеллар",
+      posterUrl: "img/image_10.jpg",
+      backdropUrl: "img/image_10.jpg",
+      ageRating: "16+",
+      genres: ["Триллер", "Драма"],
+      description: "История о случайной встрече, которая меняет планы на одну длинную ночь.",
+      imdbRating: "7.8",
+      kpRating: "7.6",
+      actionText: "Смотреть",
+      href: "/movie",
+    },
+    {
+      id: "fallback-hero-2",
+      title: "Интерстеллар",
+      posterUrl: "img/image_11.jpg",
+      backdropUrl: "img/image_11.jpg",
+      ageRating: "12+",
+      genres: ["Мелодрама", "Приключения"],
+      description: "Теплая история о выборе, свободе и людях, которые появляются в нужный момент.",
+      imdbRating: "8.1",
+      kpRating: "7.9",
+      actionText: "Смотреть",
+      href: "/movie",
+    },
+    {
+      id: "fallback-hero-3",
+      title: "Дюна",
+      posterUrl: "img/image_12.jpg",
+      backdropUrl: "img/image_12.jpg",
+      ageRating: "18+",
+      genres: ["Боевик", "Криминал"],
+      description: "Одна поездка через весь город превращается в гонку, из которой нельзя выйти раньше времени.",
+      imdbRating: "7.4",
+      kpRating: "7.3",
+      actionText: "Смотреть",
+      href: "/movie",
+    },
+  ];
 }
