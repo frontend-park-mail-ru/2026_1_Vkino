@@ -74,6 +74,13 @@ export class MovieService {
     }
 
     return this.api.get(`/${encodeURIComponent(normalizedId)}`);
+   * Получает актера по идентификатору.
+   * @async
+   * @param {number|string} actorId идентификатор актера
+   * @returns {Promise<Object>} результат запроса с данными актера
+   */
+  async getActorById(actorId) {
+    return this.api.get(`/actor/${actorId}`);
   }
 }
 

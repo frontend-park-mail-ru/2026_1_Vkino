@@ -50,21 +50,6 @@ export default class MainPage extends BasePage {
      */
     this._posterClickHandlers = new Map();
 
-    /**
-     * Мапа обработчиков для кнопок переключения навигации.
-     * @private
-     * @type {Map<Element, Function>}
-     * @default new Map()
-     */
-    this._navToggleHandlers = new Map();
-
-    /**
-     * Мапа обработчиков для пунктов меню.
-     * @private
-     * @type {Map<Element, Function>}
-     * @default new Map()
-     */
-    this._menuItemHandlers = new Map();
   }
 
   /**
@@ -110,7 +95,6 @@ export default class MainPage extends BasePage {
   addEventListeners() {
     super.addEventListeners();
 
-    this._addSidebarListeners();
     this._addScrollContainerListeners();
     this._addMoviePostersClickListeners();
   }
@@ -122,86 +106,8 @@ export default class MainPage extends BasePage {
   removeEventListeners() {
     super.removeEventListeners();
 
-    this._removeSidebarListeners();
     this._removeScrollContainerListeners();
     this._removeMoviePostersClickListeners();
-  }
-
-  /**
-   * Добавляет обработчики для бокового меню.
-   * @private
-   */
-  _addSidebarListeners() {
-    const toggleButtons = this.el.querySelectorAll(
-      '[data-action="toggle-nav"]',
-    );
-    const menuItems = this.el.querySelectorAll("[data-content]");
-
-    toggleButtons.forEach((button) => {
-      const onClick = () => {
-        this._toggleNav();
-      };
-
-      button.addEventListener("click", onClick);
-      this._navToggleHandlers.set(button, onClick);
-    });
-
-    menuItems.forEach((item) => {
-      const onClick = () => {
-        const content = item.dataset.content || "";
-        this._showContent(content);
-      };
-
-      item.addEventListener("click", onClick);
-      this._menuItemHandlers.set(item, onClick);
-    });
-  }
-
-  /**
-   * Удаляет обработчики бокового меню.
-   * @private
-   */
-  _removeSidebarListeners() {
-    for (const [button, handler] of this._navToggleHandlers) {
-      button.removeEventListener("click", handler);
-    }
-    this._navToggleHandlers.clear();
-
-    for (const [item, handler] of this._menuItemHandlers) {
-      item.removeEventListener("click", handler);
-    }
-    this._menuItemHandlers.clear();
-  }
-
-  /**
-   * Переключает состояние бокового меню (открыто/закрыто).
-   * @private
-   */
-  _toggleNav() {
-    const sideMenu = this.el.querySelector("#side-menu");
-    const mainContent = this.el.querySelector("#main-content");
-    const openIcon = this.el.querySelector("#open-icon");
-
-    sideMenu?.classList.toggle("menu-active");
-    mainContent?.classList.toggle("menu-active");
-    openIcon?.classList.toggle("menu-active");
-  }
-
-  /**
-   * Обрабатывает выбор пункта меню.
-   * @private
-   * @param {string} content - Идентификатор выбранного контента.
-   */
-  _showContent(content) {
-    console.log(`Выбран раздел: ${content}`);
-
-    const sideMenu = this.el.querySelector("#side-menu");
-    const mainContent = this.el.querySelector("#main-content");
-    const openIcon = this.el.querySelector("#open-icon");
-
-    sideMenu?.classList.remove("menu-active");
-    mainContent?.classList.remove("menu-active");
-    openIcon?.classList.remove("menu-active");
   }
 
   /**

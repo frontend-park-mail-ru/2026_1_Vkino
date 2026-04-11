@@ -1,28 +1,113 @@
-<div class="header">
-  <div class="header-container">
-    <div class="name">
-      <h1 class="name-text">Vkino</h1>
-    </div>
-    <div class="search-bar">
-      <input type="text" placeholder="Поиск" class="search-input" />
+<div class="vk-header">
+  <div class="vk-header__bar">
+    <div class="vk-header__start">
+      <button
+        class="vk-header__burger"
+        type="button"
+        data-action="toggle-burger-menu"
+        aria-label="Открыть меню"
+        aria-expanded="{{isBurgerMenuOpen}}"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <a class="vk-header__brand" href="/" router-link aria-label="VKino">
+        <img class="vk-header__brand-logo" src="img/logo.png" alt="VKino" />
+        <span class="vk-header__brand-text">VKino</span>
+      </a>
     </div>
 
-    <div class="user-profile">
+    {{#if isSearchOpen}}
+      <form class="vk-header__search-form" data-menu="search">
+        <input
+          class="vk-header__search-input"
+          type="search"
+          name="search"
+          placeholder="Введите название"
+          autocomplete="off"
+        />
+        <button
+          class="vk-header__search-submit"
+          type="button"
+          data-action="toggle-search"
+          aria-label="Скрыть поиск"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="5.5"></circle>
+            <path d="M15.5 15.5L20 20"></path>
+          </svg>
+        </button>
+      </form>
+    {{else}}
+      <nav class="vk-header__nav" aria-label="Основная навигация">
+        <a href="/">Совместный просмотр</a>
+        <a href="/">Избранное</a>
+        <button
+          class="vk-header__search"
+          type="button"
+          data-action="toggle-search"
+          aria-label="Поиск"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="5.5"></circle>
+            <path d="M15.5 15.5L20 20"></path>
+          </svg>
+        </button>
+      </nav>
+    {{/if}}
+
+    <div class="vk-header__end">
       {{#if isAuthorized}}
-        <span class="username">{{userName}}</span>
-        <img src="img/user-avatar.png" alt="User avatar" class="avatar" />
-        <a
-          class="btn btn-logout"
-          href="/"
-          data-action="logout"
-          router-link
-        >Выйти</a>
+        <button
+          class="vk-header__avatar-button"
+          type="button"
+          data-action="toggle-profile-menu"
+          aria-label="Открыть меню профиля"
+          aria-expanded="{{isProfileMenuOpen}}"
+        >
+          <img
+            class="vk-header__avatar"
+            src="img/user-avatar.png"
+            alt="Аватар пользователя"
+          />
+        </button>
       {{else}}
-        {{! <button class="btn" data-action="sign-in" type="button" data-link>Войти</button>
-                <button class="btn" data-action="sign-up" type="button" data-link>Зарегистрироваться</button> }}
-        <a class="btn" href="/sign-in" router-link>Войти</a>
-        <a class="btn" href="/sign-up" router-link>Зарегистрироваться</a>
+        <a class="vk-header__auth-link" href="/sign-in" router-link>Вход</a>
+        <a class="vk-header__auth-link" href="/sign-up" router-link>Регистрация</a>
       {{/if}}
     </div>
   </div>
+
+  {{#if isAuthorized}}
+    <div
+      class="vk-header__profile-menu{{#if isProfileMenuOpen}} is-open{{/if}}"
+      data-menu="profile"
+    >
+      <a href="/">Мой профиль</a>
+      <a href="/">Настройки</a>
+      <a href="/">История VKino coins</a>
+      <button type="button" data-action="logout">Выход</button>
+    </div>
+  {{/if}}
 </div>
+
+<div
+  class="vk-header__overlay{{#if isAnyMenuOpen}} is-visible{{/if}}"
+  data-action="close-all-menus"
+></div>
+
+<aside
+  class="vk-header__drawer{{#if isBurgerMenuOpen}} is-open{{/if}}"
+  data-menu="burger"
+>
+  <nav class="vk-header__drawer-nav" aria-label="Категории">
+    <a href="/" data-action="close-all-menus">Новинки</a>
+    <a href="/" data-action="close-all-menus">Фильмы</a>
+    <a href="/" data-action="close-all-menus">Мультфильмы</a>
+    <a href="/" data-action="close-all-menus">Сериалы</a>
+    <a href="/" data-action="close-all-menus">Короткометражки</a>
+    <a href="/" data-action="close-all-menus">Семейное</a>
+  </nav>
+</aside>
