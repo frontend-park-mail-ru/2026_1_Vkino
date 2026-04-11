@@ -58,6 +58,7 @@ export default class HeaderComponent extends BaseComponent {
       '[data-action="close-all-menus"]',
       this._onCloseAllMenusClick,
     );
+    this._bindSubmitForm('[data-menu="search"]', this._onSearchSubmit);
     document.addEventListener("click", this._onDocumentClickBound);
   }
 
@@ -82,6 +83,7 @@ export default class HeaderComponent extends BaseComponent {
       '[data-action="close-all-menus"]',
       this._onCloseAllMenusClick,
     );
+    this._unbindSubmitForm('[data-menu="search"]', this._onSearchSubmit);
     document.removeEventListener("click", this._onDocumentClickBound);
   }
 
@@ -110,6 +112,10 @@ export default class HeaderComponent extends BaseComponent {
 
   _onCloseAllMenusClick = () => {
     this.closeAllMenus();
+  };
+
+  _onSearchSubmit = (e) => {
+    e.preventDefault();
   };
 
   _onLogoutClick = async (e) => {
@@ -256,6 +262,24 @@ export default class HeaderComponent extends BaseComponent {
     nodes.forEach((node) => {
       node.removeEventListener("click", handler);
     });
+  }
+
+  _bindSubmitForm(selector, handler) {
+    const node = this.el.querySelector(selector);
+    if (!node) {
+      return;
+    }
+
+    node.addEventListener("submit", handler);
+  }
+
+  _unbindSubmitForm(selector, handler) {
+    const node = this.el.querySelector(selector);
+    if (!node) {
+      return;
+    }
+
+    node.removeEventListener("submit", handler);
   }
 }
 

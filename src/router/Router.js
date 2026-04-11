@@ -157,4 +157,37 @@ export class Router {
     }
     return path.endsWith("/") ? path.slice(0, -1) : path;
   }
+
+  /**
+   * Ищет обработчик для точного или параметризованного маршрута.
+   * @param {string} path
+   * @returns {Function|undefined}
+   */
+  _matchRoute(path) {
+    const exactMatch = this.routeTable.get(path);
+
+    if (exactMatch) {
+      return exactMatch;
+    }
+
+    const pathParts = path.split("/").filter(Boolean);
+
+    for (const [routePath, pageBuilder] of this.routeTable.entries()) {
+      const routeParts = routePath.split("/").filter(Boolean);
+
+      if (routeParts.length !== pathParts.length) {
+        continue;
+      }
+
+      const isMatch = routeParts.every((routePart, index) => {
+        return routePart.startsWith(":") || routePart === pathParts[index];
+      });
+
+      if (isMatch) {
+        return pageBuilder;
+      }
+    }
+
+    return undefined;
+  }
 }

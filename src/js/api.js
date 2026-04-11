@@ -191,7 +191,7 @@ function extractErrorMessage(resp) {
 }
 
 // читаем baseUrl из .env (с сервера) или ставим дефолтный для dev
-const baseUrl = window.APP_CONFIG?.BASE_URL || "http://localhost:8080";
+const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 /**
  * Экземпляр ApiService, сконфигурированный на основе .env
