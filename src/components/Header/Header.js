@@ -1,6 +1,7 @@
 import { BaseComponent } from "../BaseComponent.js";
 import "./Header.precompiled.js";
 import { authStore } from "../../store/authStore.js";
+import { router } from "../../router/index.js";
 import { resolveAvatarUrl } from "../../utils/avatar.js";
 
 /**
@@ -123,9 +124,8 @@ export default class HeaderComponent extends BaseComponent {
     e.preventDefault();
     e.stopPropagation();
     this.closeAllMenus();
-    const res = await authStore.logout();
-    console.log(res);
-    window.location.href = '/';
+    await authStore.logout();
+    router.go("/");
   };
 
   _onDocumentClick(e) {

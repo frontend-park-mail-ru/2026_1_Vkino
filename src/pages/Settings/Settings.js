@@ -6,6 +6,7 @@ import { initPasswordToggle } from "../../js/password/eye-btn.js";
 import { setError, validatePassword } from "../../js/password/validation.js";
 import { userService } from "../../js/UserService.js";
 import { authStore } from "../../store/authStore.js";
+import { router } from "../../router/index.js";
 import HeaderComponent from "../../components/Header/Header.js";
 import { resolveAvatarUrl } from "../../utils/avatar.js";
 
@@ -14,13 +15,6 @@ export default class SettingsPage extends BasePage {
     if (!el) {
       throw new Error("SettingsPage: не передан корневой элемент для SettingsPage");
     }
-
-    const userFromStore = authStore.getState().user || {};
-    const userData = {
-      email: userFromStore.email || "",
-      birthDate: userFromStore.birthdate || "",
-      avatarUrl: resolveAvatarUrl(userFromStore.avatar_url),
-    };
 
     const mockCoinHistory = [
       { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
@@ -36,7 +30,7 @@ export default class SettingsPage extends BasePage {
     ];
 
     const finalContext = {
-      userData,
+      userData: { email: "", birthDate: "", avatarUrl: "" }, // временно
       coinHistory: mockCoinHistory,
       ...context,
     };
@@ -57,10 +51,52 @@ export default class SettingsPage extends BasePage {
     this._buttonHandlers = new Map();
     this._avatarInputHandler = null;
     this._pendingAvatarFile = null;
+    this._authUnsubscribe = null;
+
+    this.context.userData = this._buildUserDataFromStore(authStore.getState());
   }
 
   init() {
+    const state = authStore.getState();
+
+    if (state.status === "loading") {
+      this._authUnsubscribe = authStore.subscribe((newState) => {
+        if (newState.status === "loading") return;
+        
+        if (!newState.user) {
+          router.go("/sign-in");
+          return;
+        }
+
+        this._authUnsubscribe?.();
+        this._authUnsubscribe = null;
+        
+        this.refresh({
+          ...this.context,
+          userData: this._buildUserDataFromStore(newState),
+        });
+      });
+      
+      return super.init();
+    }
+
+    if (!state.user) {
+      router.go("/sign-in");
+      return this;
+    }
+
+    this.context.userData = this._buildUserDataFromStore(state);
     return super.init();
+  }
+
+  _buildUserDataFromStore(state) {
+    const userFromStore = state?.user || {};
+
+    return {
+      email: userFromStore.email || "",
+      birthDate: userFromStore.birthdate || "",
+      avatarUrl: resolveAvatarUrl(userFromStore.avatar_url),
+    };
   }
 
   addEventListeners() {
@@ -318,7 +354,6 @@ export default class SettingsPage extends BasePage {
       this._pendingAvatarFile,
     );
     if (!profileResult.ok) {
-      console.warn("Ошибка сохранения профиля:", profileResult.error);
       if (saveBtn) saveBtn.disabled = false;
       return;
     }
@@ -340,8 +375,6 @@ export default class SettingsPage extends BasePage {
       this.context.userData.avatarUrl = resolveAvatarUrl(profileResult.resp.avatar_url);
     }
 
-    console.log("Сохранено:", updated);
-
     // Обновляем оригинальные значения для отслеживания изменений
     Object.entries(updated).forEach(([field, value]) => {
       this._originalValues[field] = value;
@@ -362,7 +395,6 @@ export default class SettingsPage extends BasePage {
     const conf = this.el.querySelector("#confirmPassword")?.value;
 
     if (newP !== conf) {
-      console.error("Пароли не совпадают");
       return;
     }
 
@@ -379,8 +411,6 @@ export default class SettingsPage extends BasePage {
       );
       return;
     }
-
-    console.log("Смена пароля:", { old, newP });
 
     const inputs = this.el.querySelectorAll(".settings__input_password_field");
     inputs.forEach((input) => (input.value = ""));
@@ -401,6 +431,11 @@ export default class SettingsPage extends BasePage {
   }
 
   removeEventListeners() {
+    if (this._authUnsubscribe) {
+      this._authUnsubscribe();
+      this._authUnsubscribe = null;
+    }
+
     for (const [input, handler] of this._editableInputHandlers) {
       input.removeEventListener("input", handler);
     }

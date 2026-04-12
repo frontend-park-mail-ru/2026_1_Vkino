@@ -37,7 +37,7 @@ async function start() {
           root,
         ),
     )
-    .registerRoute("/settings", (root) => new SettingsPage({}, null, root)); 
+    .registerRoute("/settings", (root) => new SettingsPage({}, null, root)) 
     .registerRoute("/movie/:id", (root) => new MoviePage({}, null, root))
     .registerRoute("/actor/:id", (root) => new ActorPage({}, null, root));
 
