@@ -165,7 +165,7 @@
         {{#if movie.similar}}
           <div class="movie-similar-list">
             {{#each movie.similar}}
-              <a class="movie-similar-link" href="/movie?id={{this.id}}" router-link>
+              <a class="movie-similar-link" href="/movie/{{this.id}}" router-link>
                 <img class="movie-poster" src="{{this.imgUrl}}" alt="{{this.title}}" />
               </a>
             {{/each}}

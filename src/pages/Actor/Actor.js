@@ -231,7 +231,7 @@ export default class ActorPage extends BasePage {
       description: "Фильм из фильмографии актера.",
       genres: [],
       actionText: "О фильме",
-      href: `/movie?id=${movieId}`,
+      href: `/movie/${encodeURIComponent(movieId)}`,
     }));
   }
 

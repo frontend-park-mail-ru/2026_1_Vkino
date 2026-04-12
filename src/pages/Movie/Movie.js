@@ -2,9 +2,8 @@ import BasePage from "../BasePage.js";
 import "./Movie.precompiled.js";
 import HeaderComponent from "../../components/Header/Header.js";
 import { movieService } from "../../js/MovieService.js";
-import { UUID_REGEXP } from "../../utils/regexp.js";
 
-const DEFAULT_POSTER_URL = "img/image_12.jpg";
+const DEFAULT_POSTER_URL = "img/3.jpg";
 
 const COUNTRY_BY_ID = {
   1: "Россия",
@@ -70,18 +69,6 @@ export default class MoviePage extends BasePage {
       return;
     }
 
-    if (!isUuid(movieId)) {
-      this._contextLoaded = true;
-      this.refresh({
-        ...this.context,
-        loading: false,
-        hasError: true,
-        errorText: "Некорректный формат id фильма",
-        movie: createEmptyMovieData(movieId),
-      });
-      return;
-    }
-
     const { ok, status, resp, error } = await movieService.getMovieById(movieId);
 
     if (!ok) {
@@ -134,11 +121,15 @@ function getMovieIdFromLocation() {
     return idFromQuery;
   }
 
-  return "";
-}
+  const pathParts = window.location.pathname.split("/").filter(Boolean);
+  const movieIndex = pathParts.indexOf("movie");
+  const idFromPath = movieIndex >= 0 ? String(pathParts[movieIndex + 1] || "").trim() : "";
 
-function isUuid(value) {
-  return UUID_REGEXP.test(String(value || "").trim());
+  if (idFromPath) {
+    return decodeURIComponent(idFromPath);
+  }
+
+  return "";
 }
 
 function mapMovieLoadError(status, errorText = "") {
@@ -185,8 +176,9 @@ function mapMovieDtoToViewModel(dto) {
   }
 
   const fallbackMovie = createEmptyMovieData(dto.id);
-
   const posterUrl = normalizeImageUrl(dto.img_url) || fallbackMovie.posterUrl;
+  const trailerPreviewUrl =
+    normalizeEpisodePreviewUrl(dto.episodes) || posterUrl || fallbackMovie.trailerPreviewUrl;
 
   return {
     ...fallbackMovie,
@@ -202,9 +194,25 @@ function mapMovieDtoToViewModel(dto) {
     country: mapCountry(dto.country_id),
     genres: mapGenres(dto.genres),
     posterUrl,
-    trailerPreviewUrl: posterUrl,
+    trailerPreviewUrl,
     cast: mapActors(dto.actors),
   };
+}
+
+function normalizeEpisodePreviewUrl(episodes) {
+  if (!Array.isArray(episodes) || !episodes.length) {
+    return "";
+  }
+
+  const firstEpisodeWithPreview = episodes.find(
+    (episode) => episode && typeof episode === "object" && normalizeString(episode.img_url),
+  );
+
+  if (!firstEpisodeWithPreview) {
+    return "";
+  }
+
+  return normalizeImageUrl(firstEpisodeWithPreview.img_url);
 }
 
 function mapDurationSeconds(value) {
@@ -338,7 +346,7 @@ function normalizeImageUrl(value) {
   }
 
   if (normalizedPath.startsWith("img/")) {
-    return normalizedPath;
+    return `/${normalizedPath}`;
   }
 
   const path = normalizedPath.startsWith("/")
