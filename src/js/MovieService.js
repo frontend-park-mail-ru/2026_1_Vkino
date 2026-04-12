@@ -74,6 +74,9 @@ export class MovieService {
     }
 
     return this.api.get(`/${encodeURIComponent(normalizedId)}`);
+  }
+
+  /**
    * Получает актера по идентификатору.
    * @async
    * @param {number|string} actorId идентификатор актера
