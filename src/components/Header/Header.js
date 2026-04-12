@@ -174,6 +174,18 @@ export default class HeaderComponent extends BaseComponent {
     });
   }
 
+  closeAllMenus() {
+    if (!this.context.isAnyMenuOpen && !this.context.isSearchOpen) {
+      return;
+    }
+
+    this._applyMenuState({
+      isBurgerMenuOpen: false,
+      isProfileMenuOpen: false,
+      isSearchOpen: false,
+    });
+  }
+
   _subscribeToAuth() {
     this._unsubscribe = authStore.subscribe((state) => {
       this.refresh(this._buildContext(state, this.context));

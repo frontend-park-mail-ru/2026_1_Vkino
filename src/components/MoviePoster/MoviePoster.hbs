@@ -24,28 +24,45 @@
               </div>
             {{/if}}
           {{else}}
-            {{#if genreText}}
-              <div class="movie-poster-card__genres">{{genreText}}</div>
+            {{#if isPerson}}
+              <div class="movie-poster-card__meta movie-poster-card__meta--person">Актер</div>
+            {{else}}
+              {{#if genreText}}
+                <div class="movie-poster-card__genres">{{genreText}}</div>
+              {{/if}}
             {{/if}}
           {{/if}}
           {{#if showDescription}}
             <p class="movie-poster-card__description">{{description}}</p>
           {{/if}}
-          <div class="movie-poster-card__footer">
-            {{#if showButton}}
+          {{#if showButton}}
+            <div class="movie-poster-card__footer">
               <span class="movie-poster-card__button">{{actionText}}</span>
-            {{/if}}
+              {{#if hasRatings}}
+                <div class="movie-poster-card__ratings">
+                  {{#if imdbRating}}
+                    <span class="movie-poster-card__rating">IMDb {{imdbRating}}</span>
+                  {{/if}}
+                  {{#if kpRating}}
+                    <span class="movie-poster-card__rating">KP {{kpRating}}</span>
+                  {{/if}}
+                </div>
+              {{/if}}
+            </div>
+          {{else}}
             {{#if hasRatings}}
-              <div class="movie-poster-card__ratings">
-                {{#if imdbRating}}
-                  <span class="movie-poster-card__rating">IMDb {{imdbRating}}</span>
-                {{/if}}
-                {{#if kpRating}}
-                  <span class="movie-poster-card__rating">KP {{kpRating}}</span>
-                {{/if}}
+              <div class="movie-poster-card__footer">
+                <div class="movie-poster-card__ratings">
+                  {{#if imdbRating}}
+                    <span class="movie-poster-card__rating">IMDb {{imdbRating}}</span>
+                  {{/if}}
+                  {{#if kpRating}}
+                    <span class="movie-poster-card__rating">KP {{kpRating}}</span>
+                  {{/if}}
+                </div>
               </div>
             {{/if}}
-          </div>
+          {{/if}}
         </div>
       {{/if}}
 

@@ -1,5 +1,4 @@
 import { apiService } from "./api.js";
-import { UUID_REGEXP } from "../utils/regexp.js";
 
 /**
  * Сервис для работы с фильмами и подборками.
@@ -61,15 +60,6 @@ export class MovieService {
         status: 0,
         resp: null,
         error: "MovieService: не передан id фильма",
-      };
-    }
-
-    if (!UUID_REGEXP.test(normalizedId)) {
-      return {
-        ok: false,
-        status: 0,
-        resp: null,
-        error: "MovieService: id фильма должен быть UUID",
       };
     }
 

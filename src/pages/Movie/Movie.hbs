@@ -42,72 +42,74 @@
         <div class="movie-hero-content">
           <h1 class="movie-title">{{movie.title}}</h1>
 
-          <dl class="movie-meta">
-            <div class="movie-meta-row">
-              <dt>Длительность</dt>
-              <dd>{{movie.duration}}</dd>
-            </div>
-            <div class="movie-meta-row">
-              <dt>Возраст</dt>
-              <dd>{{movie.age}}</dd>
-            </div>
-            <div class="movie-meta-row">
-              <dt>Жанр</dt>
-              <dd>{{movie.genres}}</dd>
-            </div>
-            <div class="movie-meta-row">
-              <dt>Страна</dt>
-              <dd>{{movie.country}}</dd>
-            </div>
-            <div class="movie-meta-row">
-              <dt>Режиссер</dt>
-              <dd>{{movie.director}}</dd>
-            </div>
-            <div class="movie-meta-row">
-              <dt>Тип контента</dt>
-              <dd>{{movie.contentType}}</dd>
-            </div>
-            <div class="movie-meta-row">
-              <dt>Год</dt>
-              <dd>{{movie.releaseYear}}</dd>
-            </div>
-            <div class="movie-meta-row">
-              <dt>Язык</dt>
-              <dd>{{movie.language}}</dd>
-            </div>
-          </dl>
-
-          <div class="movie-ratings">
-            {{#if movie.ratings}}
-              {{#each movie.ratings}}
-                <div class="movie-rating-card">
-                  <span class="movie-rating-source">{{this.source}}</span>
-                  <span class="movie-rating-value">{{this.value}}</span>
-                </div>
-              {{/each}}
-            {{else}}
-              <div class="movie-rating-card">
-                <span class="movie-rating-source">Рейтинг</span>
-                <span class="movie-rating-value">Недоступно</span>
+          <div class="movie-summary-panel">
+            <dl class="movie-meta">
+              <div class="movie-meta-row">
+                <dt>Длительность</dt>
+                <dd>{{movie.duration}}</dd>
               </div>
-            {{/if}}
-          </div>
+              <div class="movie-meta-row">
+                <dt>Возраст</dt>
+                <dd>{{movie.age}}</dd>
+              </div>
+              <div class="movie-meta-row">
+                <dt>Жанр</dt>
+                <dd>{{movie.genres}}</dd>
+              </div>
+              <div class="movie-meta-row">
+                <dt>Страна</dt>
+                <dd>{{movie.country}}</dd>
+              </div>
+              <div class="movie-meta-row">
+                <dt>Режиссер</dt>
+                <dd>{{movie.director}}</dd>
+              </div>
+              <div class="movie-meta-row">
+                <dt>Тип контента</dt>
+                <dd>{{movie.contentType}}</dd>
+              </div>
+              <div class="movie-meta-row">
+                <dt>Год</dt>
+                <dd>{{movie.releaseYear}}</dd>
+              </div>
+              <div class="movie-meta-row">
+                <dt>Язык</dt>
+                <dd>{{movie.language}}</dd>
+              </div>
+            </dl>
 
-          <p class="movie-description">{{movie.description}}</p>
+            <div class="movie-ratings">
+              {{#if movie.ratings}}
+                {{#each movie.ratings}}
+                  <div class="movie-rating-card">
+                    <span class="movie-rating-source">{{this.source}}</span>
+                    <span class="movie-rating-value">{{this.value}}</span>
+                  </div>
+                {{/each}}
+              {{else}}
+                <div class="movie-rating-card">
+                  <span class="movie-rating-source">Рейтинг</span>
+                  <span class="movie-rating-value">Недоступно</span>
+                </div>
+              {{/if}}
+            </div>
 
-          <div class="movie-action-row">
-            <button class="movie-btn movie-btn-primary" type="button">
-              Смотреть
-            </button>
-            <button class="movie-btn movie-btn-secondary" type="button">
-              Смотреть позже
-            </button>
-            <button class="movie-btn movie-btn-secondary" type="button">
-              Совместный просмотр
-            </button>
-            <button class="movie-btn movie-btn-primary" type="button">
-              + Создать комнату
-            </button>
+            <div class="movie-action-row">
+              <button class="movie-btn movie-btn-primary" type="button">
+                Смотреть
+              </button>
+              <button class="movie-btn movie-btn-secondary" type="button">
+                Смотреть позже
+              </button>
+              <button class="movie-btn movie-btn-secondary" type="button">
+                Совместный просмотр
+              </button>
+              <button class="movie-btn movie-btn-primary" type="button">
+                + Создать комнату
+              </button>
+            </div>
+
+            <p class="movie-description">{{movie.description}}</p>
           </div>
         </div>
       </section>
@@ -143,14 +145,7 @@
       <section class="movie-section">
         <h2 class="movie-section-title">Актерский состав</h2>
         {{#if movie.cast}}
-          <div class="movie-cast-list">
-            {{#each movie.cast}}
-              <article class="movie-cast-card">
-                <img src="{{this.imgUrl}}" alt="{{this.name}}" />
-                <p>{{this.name}}</p>
-              </article>
-            {{/each}}
-          </div>
+          <div id="movie-cast-carousel"></div>
         {{else}}
           <p class="movie-empty-text">Данные об актерах пока недоступны.</p>
         {{/if}}
@@ -165,7 +160,7 @@
         {{#if movie.similar}}
           <div class="movie-similar-list">
             {{#each movie.similar}}
-              <a class="movie-similar-link" href="/movie?id={{this.id}}" router-link>
+              <a class="movie-similar-link" href="/movie/{{this.id}}" router-link>
                 <img class="movie-poster" src="{{this.imgUrl}}" alt="{{this.title}}" />
               </a>
             {{/each}}

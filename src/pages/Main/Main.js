@@ -198,8 +198,10 @@ function normalizeMovies(movies = []) {
 }
 
 function normalizeMovie(movie = {}, index = 0) {
+  const movieId = String(movie.id ?? `movie-${index}`).trim();
+
   return {
-    id: movie.id ?? `movie-${index}`,
+    id: movieId,
     title: movie.title || movie.name || "Фильм",
     posterUrl: movie.posterUrl || movie.poster_url || movie.img_url || "img/image_10.jpg",
     backdropUrl: movie.backdropUrl || movie.backdrop_url || "",
@@ -212,7 +214,7 @@ function normalizeMovie(movie = {}, index = 0) {
     imdbRating: movie.imdbRating || movie.imdb_rating || "",
     kpRating: movie.kpRating || movie.kp_rating || "",
     actionText: "Смотреть",
-    href: "/movie",
+    href: `/movie/${encodeURIComponent(movieId)}`,
   };
 }
 
@@ -229,7 +231,7 @@ function buildFallbackHeroMovies() {
       imdbRating: "7.8",
       kpRating: "7.6",
       actionText: "Смотреть",
-      href: "/movie",
+      href: "/movie/fallback-hero-1",
     },
     {
       id: "fallback-hero-2",
@@ -242,7 +244,7 @@ function buildFallbackHeroMovies() {
       imdbRating: "8.1",
       kpRating: "7.9",
       actionText: "Смотреть",
-      href: "/movie",
+      href: "/movie/fallback-hero-2",
     },
     {
       id: "fallback-hero-3",
@@ -255,7 +257,7 @@ function buildFallbackHeroMovies() {
       imdbRating: "7.4",
       kpRating: "7.3",
       actionText: "Смотреть",
-      href: "/movie",
+      href: "/movie/fallback-hero-3",
     },
   ];
 }

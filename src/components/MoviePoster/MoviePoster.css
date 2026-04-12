@@ -215,6 +215,33 @@
   max-width: 52ch;
 }
 
+.movie-poster-card--person .movie-poster-card__media {
+  border-radius: 22px;
+}
+
+.movie-poster-card--person .movie-poster-card__shade {
+  background:
+    linear-gradient(180deg, rgba(6, 3, 1, 0.04) 30%, rgba(6, 3, 1, 0.34) 66%),
+    linear-gradient(0deg, rgba(6, 3, 1, 0.95) 4%, rgba(6, 3, 1, 0.1) 42%);
+}
+
+.movie-poster-card--person .movie-poster-card__content--always {
+  gap: 6px;
+  padding: 16px 16px 14px;
+}
+
+.movie-poster-card--person .movie-poster-card__title {
+  font-size: 17px;
+}
+
+.movie-poster-card__meta--person {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(243, 229, 212, 0.76);
+}
+
 .movie-poster-card--compact .movie-poster-card__shade {
   background:
     linear-gradient(180deg, rgba(6, 3, 1, 0.06) 18%, rgba(6, 3, 1, 0.32) 70%),

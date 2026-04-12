@@ -119,8 +119,7 @@ export class Router {
   _syncRoute() {
     const path = this._formatPath(window.location.pathname);
     console.log("route path =", path);
-    const pageBuilder =
-      this.routeTable.get(path) || this.routeTable.get("/404");
+    const pageBuilder = this._matchRoute(path) || this.routeTable.get("/404");
     console.log("pageBuilder =", pageBuilder);
 
     if (!pageBuilder) {

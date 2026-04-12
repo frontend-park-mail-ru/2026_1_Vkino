@@ -78,39 +78,31 @@
   margin-top: 8px;
 }
 
-.actor-movies__title {
-  margin-bottom: 12px;
+.actor-movies .poster-carousel__track {
+  padding-inline: 0;
+  padding-block: 8px 6px;
 }
 
-.actor-movies__list {
-  gap: 14px;
-  padding-bottom: 6px;
-}
-
-.actor-movie-card {
-  width: 150px;
-  flex: 0 0 auto;
-  color: var(--text-primary);
-}
-
-.actor-movie-card:hover {
-  color: var(--text-primary);
-}
-
-.actor-movie-card__image {
+.actor-movies .poster-carousel__slide--small {
   width: 150px;
   height: 225px;
-  border-radius: 12px;
-  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.32);
-  background: #24110b;
 }
 
-.actor-movie-card__title {
-  display: block;
-  margin-top: 8px;
-  font-size: 13px;
-  line-height: 1.35;
-  color: var(--text-secondary);
+.actor-movies .poster-carousel__title {
+  margin-bottom: 4px;
+}
+
+.actor-movies .movie-poster-card__media {
+  border-radius: 14px;
+}
+
+.actor-movies .movie-poster-card__overlay-inner {
+  padding: 14px 14px 12px;
+}
+
+.actor-movies .movie-poster-card__title {
+  font-size: 15px;
+  line-height: 1.15;
 }
 
 @media (max-width: 768px) {
@@ -139,5 +131,10 @@
 
   .actor-card__detail--wide dd {
     max-width: none;
+  }
+
+  .actor-movies .poster-carousel__slide--small {
+    width: 140px;
+    height: 210px;
   }
 }
