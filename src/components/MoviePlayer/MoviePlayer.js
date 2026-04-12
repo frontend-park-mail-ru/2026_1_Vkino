@@ -197,6 +197,11 @@ export default class MoviePlayerComponent extends BaseComponent {
 
     const playbackUrl = normalizeString(resp?.playback_url);
 
+    console.log("MoviePlayer playback_url =", playbackUrl, {
+      episodeId: normalizedEpisodeId,
+      response: resp,
+    });
+
     if (!playbackUrl) {
       this.context = {
         ...this.context,
