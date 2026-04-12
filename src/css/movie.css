@@ -264,6 +264,16 @@
   gap: var(--space-3);
 }
 
+#movie-cast-carousel .poster-carousel__track {
+  padding-inline: 0;
+  padding-block: 8px 6px;
+}
+
+#movie-cast-carousel .poster-carousel__slide--small {
+  width: 180px;
+  height: 250px;
+}
+
 .movie-cast-card {
   display: flex;
   flex-direction: column;

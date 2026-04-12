@@ -145,14 +145,7 @@
       <section class="movie-section">
         <h2 class="movie-section-title">Актерский состав</h2>
         {{#if movie.cast}}
-          <div class="movie-cast-list">
-            {{#each movie.cast}}
-              <article class="movie-cast-card">
-                <img src="{{this.imgUrl}}" alt="{{this.name}}" />
-                <p>{{this.name}}</p>
-              </article>
-            {{/each}}
-          </div>
+          <div id="movie-cast-carousel"></div>
         {{else}}
           <p class="movie-empty-text">Данные об актерах пока недоступны.</p>
         {{/if}}

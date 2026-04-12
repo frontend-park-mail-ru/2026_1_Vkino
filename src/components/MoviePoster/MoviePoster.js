@@ -55,6 +55,7 @@ function buildPosterContext(context = {}) {
     kpRating,
     hasRatings: variant !== "hero" && Boolean(imdbRating || kpRating),
     isHero: variant === "hero",
+    isPerson: variant === "person",
     useContainedImage: variant === "hero" && !hasHeroBackdrop,
     showAlwaysContent: variantConfig.showAlwaysContent,
     showOverlay: variantConfig.showOverlay,
@@ -79,6 +80,15 @@ function getVariantConfig(variant) {
       showOverlay: false,
       showDescription: true,
       showButton: true,
+    };
+  }
+
+  if (variant === "person") {
+    return {
+      showAlwaysContent: true,
+      showOverlay: false,
+      showDescription: false,
+      showButton: false,
     };
   }
 

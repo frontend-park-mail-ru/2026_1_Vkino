@@ -2,6 +2,7 @@ import BasePage from "../BasePage.js";
 import "./Movie.precompiled.js";
 import HeaderComponent from "../../components/Header/Header.js";
 import { movieService } from "../../js/MovieService.js";
+import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
 
 const DEFAULT_POSTER_URL = "img/3.jpg";
 
@@ -108,6 +109,32 @@ export default class MoviePage extends BasePage {
         },
         this,
         header,
+      ),
+    );
+
+    this._setupCastCarousel();
+  }
+
+  _setupCastCarousel() {
+    const carouselSlot = this.el.querySelector("#movie-cast-carousel");
+    const cast = Array.isArray(this.context.movie?.cast) ? this.context.movie.cast : [];
+
+    if (!carouselSlot || !cast.length) {
+      return;
+    }
+
+    this.addChild(
+      "movie-cast-carousel",
+      new PosterCarouselComponent(
+        {
+          slug: "movie-cast",
+          movies: cast,
+          posterVariant: "person",
+          posterSize: "small",
+          showArrows: false,
+        },
+        this,
+        carouselSlot,
       ),
     );
   }
@@ -274,8 +301,12 @@ function mapActors(value) {
 
       return {
         id: normalizeString(actor.id),
+        title: name,
         name,
-        imgUrl: normalizeImageUrl(actor.img_url) || "img/user-avatar.png",
+        posterUrl: normalizeImageUrl(actor.img_url) || "/img/user-avatar.png",
+        imgUrl: normalizeImageUrl(actor.img_url) || "/img/user-avatar.png",
+        href: `/actor/${encodeURIComponent(normalizeString(actor.id))}`,
+        actionText: "Об актере",
       };
     })
     .filter(Boolean);
