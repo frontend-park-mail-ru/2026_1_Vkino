@@ -1,0 +1,213 @@
+<div
+  class="movie-player {{#if isOpen}}is-open{{/if}} {{#if areControlsVisible}}is-controls-visible{{/if}}"
+  data-role="player-overlay"
+  aria-hidden="{{#if isOpen}}false{{else}}true{{/if}}"
+>
+  <div class="movie-player__backdrop" data-action="close"></div>
+
+  <section
+    class="movie-player__shell"
+    data-role="player-shell"
+    aria-label="Видеоплеер"
+  >
+    <div class="movie-player__surface">
+      <header class="movie-player__topbar">
+        <button
+          class="movie-player__icon-button"
+          type="button"
+          data-action="close"
+          aria-label="Закрыть плеер"
+        >
+          ✕
+        </button>
+
+        <div class="movie-player__heading">
+          <p class="movie-player__eyebrow">{{movieTitle}}</p>
+          <h2 class="movie-player__title">{{episodeTitle}}</h2>
+        </div>
+
+        <button
+          class="movie-player__icon-button"
+          type="button"
+          data-action="toggle-fullscreen"
+          aria-label="Переключить полноэкранный режим"
+        >
+          ⛶
+        </button>
+      </header>
+
+      <div
+        class="movie-player__content {{#if hasEpisodes}}movie-player__content--with-sidebar{{/if}}"
+      >
+        <div class="movie-player__video-column">
+          <div class="movie-player__video-frame" data-role="video-frame">
+            <video
+              class="movie-player__video"
+              data-role="video"
+              playsinline
+              preload="metadata"
+            ></video>
+
+            <div class="movie-player__poster-layer" data-role="poster-layer">
+              {{#if posterUrl}}
+                <img
+                  class="movie-player__poster"
+                  src="{{posterUrl}}"
+                  alt="Постер {{movieTitle}}"
+                />
+              {{/if}}
+
+              <button
+                class="movie-player__center-play"
+                type="button"
+                data-action="toggle-play"
+                aria-label="Запустить или остановить видео"
+              >
+                ▶
+              </button>
+            </div>
+
+            {{#if isLoading}}
+              <div class="movie-player__state movie-player__state--loading" data-role="loading-state">
+                <span class="movie-player__spinner" aria-hidden="true"></span>
+                <span>Загружаем видео...</span>
+              </div>
+            {{/if}}
+
+            {{#if hasError}}
+              <div class="movie-player__state movie-player__state--error" data-role="error-state">
+                <p class="movie-player__state-title">Не удалось запустить видео</p>
+                <p class="movie-player__state-text">{{errorText}}</p>
+              </div>
+            {{/if}}
+
+            {{#if isEmpty}}
+              <div class="movie-player__state movie-player__state--empty" data-role="empty-state">
+                <p class="movie-player__state-title">Видео недоступно</p>
+                <p class="movie-player__state-text">{{emptyText}}</p>
+              </div>
+            {{/if}}
+          </div>
+
+          <div class="movie-player__controls" data-role="controls">
+            <div class="movie-player__timeline">
+              <input
+                class="movie-player__progress"
+                type="range"
+                min="0"
+                max="100"
+                value="{{progressPercent}}"
+                step="0.1"
+                data-role="progress-input"
+                aria-label="Перемотка видео"
+              />
+            </div>
+
+            <div class="movie-player__control-row">
+              <div class="movie-player__control-group">
+                <button
+                  class="movie-player__icon-control"
+                  type="button"
+                  data-action="seek-backward"
+                  aria-label="Перемотать назад на 10 секунд"
+                >
+                  <img src="/icons/skip_previous.svg" alt="" aria-hidden="true" />
+                </button>
+
+                <button
+                  class="movie-player__icon-control movie-player__icon-control--play"
+                  type="button"
+                  data-action="toggle-play"
+                  aria-label="Воспроизвести или поставить на паузу"
+                >
+                  <img
+                    class="movie-player__icon movie-player__icon--play"
+                    src="/icons/play.svg"
+                    alt=""
+                    aria-hidden="true"
+                  />
+                  <span class="movie-player__pause-icon" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                  </span>
+                </button>
+
+                <button
+                  class="movie-player__icon-control"
+                  type="button"
+                  data-action="seek-forward"
+                  aria-label="Перемотать вперед на 10 секунд"
+                >
+                  <img src="/icons/skip_next.svg" alt="" aria-hidden="true" />
+                </button>
+
+                <p class="movie-player__time">
+                  <span data-role="current-time">{{currentTimeLabel}}</span>
+                  /
+                  <span data-role="duration-time">{{durationLabel}}</span>
+                </p>
+
+                <button
+                  class="movie-player__icon-control"
+                  type="button"
+                  data-action="toggle-mute"
+                  aria-label="Включить или выключить звук"
+                >
+                  <img src="/icons/sound_level.svg" alt="" aria-hidden="true" />
+                </button>
+              </div>
+
+              <div class="movie-player__control-group">
+                <button
+                  class="movie-player__icon-control"
+                  type="button"
+                  data-action="toggle-fullscreen"
+                  aria-label="Переключить полноэкранный режим"
+                >
+                  <img
+                    class="movie-player__icon movie-player__icon--fullscreen"
+                    src="/icons/fullscreen.svg"
+                    alt=""
+                    aria-hidden="true"
+                  />
+                  <img
+                    class="movie-player__icon movie-player__icon--fullscreen-exit"
+                    src="/icons/fullscreen_exit.svg"
+                    alt=""
+                    aria-hidden="true"
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {{#if hasEpisodes}}
+          <aside class="movie-player__sidebar">
+            <section class="movie-player__episodes-block">
+              <div class="movie-player__episodes-head">
+                <h3 class="movie-player__section-title">Эпизоды</h3>
+                <span class="movie-player__episodes-meta">{{episodesCountLabel}}</span>
+              </div>
+
+              <div class="movie-player__episodes-list" data-role="episodes-list">
+                {{#each episodes}}
+                  <button
+                    class="movie-player__episode-item {{#if this.isActive}}is-active{{/if}}"
+                    type="button"
+                    data-action="select-episode"
+                    data-episode-id="{{this.id}}"
+                  >
+                    <span class="movie-player__episode-index">{{this.metaLabel}}</span>
+                    <span class="movie-player__episode-title">{{this.title}}</span>
+                    <span class="movie-player__episode-duration">{{this.durationLabel}}</span>
+                  </button>
+                {{/each}}
+              </div>
+            </section>
+          </aside>
+        {{/if}}
+      </div>
+    </div>
+  </section>
+</div>

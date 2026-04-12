@@ -3,6 +3,7 @@ import "./Movie.precompiled.js";
 import HeaderComponent from "../../components/Header/Header.js";
 import { movieService } from "../../js/MovieService.js";
 import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
+import MoviePlayerComponent from "../../components/MoviePlayer/MoviePlayer.js";
 
 const DEFAULT_POSTER_URL = "img/3.jpg";
 
@@ -43,13 +44,19 @@ export default class MoviePage extends BasePage {
     );
 
     this._contextLoaded = false;
+    this._onOpenPlayerClickBound = this._onOpenPlayerClick.bind(this);
+    this._onPopStateBound = this._onPopState.bind(this);
   }
 
   init() {
     super.init();
 
+    window.addEventListener("popstate", this._onPopStateBound);
+
     if (!this._contextLoaded) {
       this.loadContext();
+    } else {
+      this._syncPlayerWithLocation();
     }
 
     return this;
@@ -92,6 +99,8 @@ export default class MoviePage extends BasePage {
       errorText: "",
       movie: mapMovieDtoToViewModel(resp),
     });
+
+    this._syncPlayerWithLocation();
   }
 
   setupChildren() {
@@ -113,6 +122,21 @@ export default class MoviePage extends BasePage {
     );
 
     this._setupCastCarousel();
+    this._setupMoviePlayer();
+  }
+
+  addEventListeners() {
+    const openPlayerButton = this.el.querySelector('[data-action="open-player"]');
+    openPlayerButton?.addEventListener("click", this._onOpenPlayerClickBound);
+  }
+
+  removeEventListeners() {
+    const openPlayerButton = this.el?.querySelector('[data-action="open-player"]');
+    openPlayerButton?.removeEventListener("click", this._onOpenPlayerClickBound);
+  }
+
+  beforeDestroy() {
+    window.removeEventListener("popstate", this._onPopStateBound);
   }
 
   _setupCastCarousel() {
@@ -137,6 +161,92 @@ export default class MoviePage extends BasePage {
         carouselSlot,
       ),
     );
+  }
+
+  _setupMoviePlayer() {
+    const playerRoot = this.el.querySelector("#movie-player-root");
+
+    if (!playerRoot) {
+      return;
+    }
+
+    this.addChild(
+      "movie-player",
+      new MoviePlayerComponent({}, this, playerRoot),
+    );
+
+    const player = this.getChild("movie-player");
+    player?.setOnCloseRequested(() => {
+      this._requestPlayerClose();
+    });
+  }
+
+  async _onOpenPlayerClick(event) {
+    event.preventDefault();
+
+    if (this.context.loading || this.context.hasError) {
+      return;
+    }
+
+    const player = this.getChild("movie-player");
+
+    if (!player) {
+      return;
+    }
+
+    const initialEpisode = resolveInitialEpisode(this.context.movie);
+    await this._openPlayer(initialEpisode?.id || "");
+  }
+
+  async _openPlayer(initialEpisodeId = "") {
+    const player = this.getChild("movie-player");
+
+    if (!player || this.context.loading || this.context.hasError) {
+      return;
+    }
+
+    const normalizedEpisodeId = normalizeString(initialEpisodeId);
+
+    if (!isPlayerWatchLocation(window.location)) {
+      window.history.pushState(
+        { modal: "movie-player", movieId: this.context.movie.id, episodeId: normalizedEpisodeId },
+        "",
+        buildWatchUrl(this.context.movie.id, normalizedEpisodeId),
+      );
+    }
+
+    await player.open(this.context.movie, normalizedEpisodeId);
+  }
+
+  _requestPlayerClose() {
+    if (isPlayerWatchLocation(window.location)) {
+      window.history.back();
+      return;
+    }
+
+    const player = this.getChild("movie-player");
+    player?.close({ restoreHistory: false });
+  }
+
+  async _syncPlayerWithLocation() {
+    const player = this.getChild("movie-player");
+
+    if (!player || this.context.loading || this.context.hasError) {
+      return;
+    }
+
+    const watchState = readWatchState(window.location, this.context.movie);
+
+    if (!watchState.shouldOpen) {
+      await player.close({ restoreHistory: false });
+      return;
+    }
+
+    await player.open(this.context.movie, watchState.episodeId);
+  }
+
+  async _onPopState() {
+    await this._syncPlayerWithLocation();
   }
 }
 
@@ -222,8 +332,47 @@ function mapMovieDtoToViewModel(dto) {
     genres: mapGenres(dto.genres),
     posterUrl,
     trailerPreviewUrl,
+    episodes: mapEpisodes(dto.episodes),
     cast: mapActors(dto.actors),
   };
+}
+
+function mapEpisodes(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((episode, index) => {
+      if (!episode || typeof episode !== "object") {
+        return null;
+      }
+
+      const id = normalizeString(episode.id);
+
+      if (!id) {
+        return null;
+      }
+
+      return {
+        id,
+        movieId: normalizeString(episode.movie_id),
+        seasonNumber: Number(episode.season_number) || 1,
+        episodeNumber: Number(episode.episode_number) || index + 1,
+        title: normalizeString(episode.title) || `Эпизод ${index + 1}`,
+        description: normalizeString(episode.description),
+        durationSeconds: Number(episode.duration_seconds) || 0,
+        imgUrl: normalizeImageUrl(episode.img_url) || DEFAULT_POSTER_URL,
+      };
+    })
+    .filter(Boolean)
+    .sort((leftEpisode, rightEpisode) => {
+      if (leftEpisode.seasonNumber !== rightEpisode.seasonNumber) {
+        return leftEpisode.seasonNumber - rightEpisode.seasonNumber;
+      }
+
+      return leftEpisode.episodeNumber - rightEpisode.episodeNumber;
+    });
 }
 
 function normalizeEpisodePreviewUrl(episodes) {
@@ -402,4 +551,56 @@ function normalizeString(value) {
   }
 
   return "";
+}
+
+function resolveInitialEpisode(movie = {}) {
+  const episodes = Array.isArray(movie.episodes) ? movie.episodes : [];
+
+  if (!episodes.length) {
+    return null;
+  }
+
+  return episodes[0];
+}
+
+function isPlayerWatchLocation(location) {
+  const params = new URLSearchParams(location.search);
+  return params.get("watch") === "1";
+}
+
+function readWatchState(location, movie = {}) {
+  const shouldOpen = isPlayerWatchLocation(location);
+
+  if (!shouldOpen) {
+    return {
+      shouldOpen: false,
+      episodeId: "",
+    };
+  }
+
+  const params = new URLSearchParams(location.search);
+  const requestedEpisodeId = normalizeString(params.get("episode"));
+  const episodes = Array.isArray(movie.episodes) ? movie.episodes : [];
+  const fallbackEpisodeId = resolveInitialEpisode(movie)?.id || "";
+  const hasRequestedEpisode = episodes.some(
+    (episode) => normalizeString(episode.id) === requestedEpisodeId,
+  );
+
+  return {
+    shouldOpen: true,
+    episodeId: hasRequestedEpisode ? requestedEpisodeId : fallbackEpisodeId,
+  };
+}
+
+function buildWatchUrl(movieId, episodeId = "") {
+  const encodedMovieId = encodeURIComponent(normalizeString(movieId));
+  const params = new URLSearchParams();
+  params.set("watch", "1");
+
+  if (normalizeString(episodeId)) {
+    params.set("episode", normalizeString(episodeId));
+  }
+
+  const query = params.toString();
+  return `/movie/${encodedMovieId}${query ? `?${query}` : ""}`;
 }
