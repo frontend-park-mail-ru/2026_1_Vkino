@@ -95,7 +95,11 @@
             </div>
 
             <div class="movie-action-row">
-              <button class="movie-btn movie-btn-primary" type="button">
+              <button
+                class="movie-btn movie-btn-primary"
+                type="button"
+                data-action="open-player"
+              >
                 Смотреть
               </button>
               <button class="movie-btn movie-btn-secondary" type="button">
@@ -171,4 +175,6 @@
       </section>
     {{/if}}
   </main>
+
+  <div id="movie-player-root"></div>
 </div>

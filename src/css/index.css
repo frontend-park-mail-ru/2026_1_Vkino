@@ -1,6 +1,7 @@
 @import "./main.css";
 @import "../components/Header/Header.css";
 @import "../components/MoviePoster/MoviePoster.css";
+@import "../components/MoviePlayer/MoviePlayer.css";
 @import "../components/PosterCarousel/PosterCarousel.css";
 @import "./home.css";
 @import "./movie.css";
@@ -8,4 +9,3 @@
 @import "./login.css";
 @import "./register.css";
 @import "./actor.css";
-

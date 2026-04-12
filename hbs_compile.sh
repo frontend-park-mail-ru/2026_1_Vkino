@@ -1,6 +1,7 @@
 handlebars ./src/components/Header/Header.hbs -f ./src/components/Header/Header.precompiled.js
 handlebars ./src/components/MoviePoster/MoviePoster.hbs -f ./src/components/MoviePoster/MoviePoster.precompiled.js
 handlebars ./src/components/PosterCarousel/PosterCarousel.hbs -f ./src/components/PosterCarousel/PosterCarousel.precompiled.js
+handlebars ./src/components/MoviePlayer/MoviePlayer.hbs -f ./src/components/MoviePlayer/MoviePlayer.precompiled.js
 
 
 handlebars ./src/pages/Main/Main.hbs -f ./src/pages/Main/Main.precompiled.js
