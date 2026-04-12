@@ -1,6 +1,8 @@
 import { BaseComponent } from "../BaseComponent.js";
 import "./Header.precompiled.js";
 import { authStore } from "../../store/authStore.js";
+import { router } from "../../router/index.js";
+import { resolveAvatarUrl } from "../../utils/avatar.js";
 
 /**
  * Компонент header
@@ -122,8 +124,8 @@ export default class HeaderComponent extends BaseComponent {
     e.preventDefault();
     e.stopPropagation();
     this.closeAllMenus();
-    const res = await authStore.logout();
-    console.log(res);
+    await authStore.logout();
+    router.go("/");
   };
 
   _onDocumentClick(e) {
@@ -194,10 +196,12 @@ export default class HeaderComponent extends BaseComponent {
 
   _buildContext(state, currentContext = {}) {
     const isAuthorized = state.status === "authenticated";
+    const avatarUrl = resolveAvatarUrl(state.user?.avatar_url);
     const nextContext = {
       ...currentContext,
       isAuthorized,
       userName: getDisplayNameFromEmail(state.user?.email),
+      avatarUrl,
       isBurgerMenuOpen: currentContext.isBurgerMenuOpen ?? false,
       isSearchOpen: currentContext.isSearchOpen ?? false,
       isProfileMenuOpen: isAuthorized

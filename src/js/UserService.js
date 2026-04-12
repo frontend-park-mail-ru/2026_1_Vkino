@@ -4,15 +4,15 @@ import { apiService } from "./api.js";
  * Сервис авторизации. Надстройка нам ApiService
  * Управляет ручками, связанными с авторизацией, регистрацией, обнолением токенов, информацией пользователя и разлогином.
  */
-export class AuthService {
+export class UserService {
   /**
-   * Конструирует экземпляр AuthService.
+  * Конструирует экземпляр UserService.
    * @constructor
    * @param {ApiService} экземпляр ApiService
    */
   constructor(apiService) {
     this.apiRoot = apiService;
-    this.api = apiService.withNamespace("/auth");
+    this.api = apiService.withNamespace("/user");
   }
 
   /**
@@ -118,10 +118,38 @@ export class AuthService {
     this._clearSessionLocal();
     return result;
   }
+
+  /**
+   * Обновляет профиль пользователя.
+   * Передаёт дату рождения и аватарку одним multipart запросом.
+   * @param {string|null} birthdate
+   * @param {File|null} avatarFile
+   */
+  async updateProfile(birthdate, avatarFile = null) {
+    const formData = new FormData();
+
+    if (birthdate !== null && birthdate !== undefined) {
+      formData.append("birthdate", String(birthdate));
+    }
+
+    if (avatarFile) {
+      formData.append("avatar", avatarFile);
+    }
+
+    return this.api.put("/profile", formData);
+  }
+
+  /**
+   * Меняет пароль пользователя.
+   * @param {{old_password: string, new_password: string}} payload
+   */
+  async changePassword(payload) {
+    return this.api.post("/change-password", payload);
+  }
 }
 
 /**
- * Экземпляр сервиса авторизации.
- * @type {AuthService}
+ * Экземпляр сервиса пользователя.
+ * @type {UserService}
  */
-export const authService = new AuthService(apiService);
+export const userService = new UserService(apiService);

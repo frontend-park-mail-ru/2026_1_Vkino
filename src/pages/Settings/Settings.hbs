@@ -1,0 +1,113 @@
+<div class="page page_settings">
+  <header id="header"></header>
+
+  <main class="main-content main-content_settings">
+    <div class="settings-layout">
+      <div class="settings-main">
+        <div class="settings__section">
+          <h2 class="settings__title">Общие данные</h2>
+          <div class="settings__avatar-block">
+            <div class="settings__avatar-preview-wrap">
+              <img
+                class="settings__avatar-preview"
+                src="{{userData.avatarUrl}}"
+                alt="Аватар пользователя"
+                data-role="avatar-preview"
+              />
+            </div>
+            <div class="settings__avatar-controls">
+              <label class="settings__btn settings__btn-avatar btn btn_outline" for="avatarInput">
+                Выбрать фото
+              </label>
+              <input
+                id="avatarInput"
+                class="settings__avatar-input"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+              />
+              <div class="settings__avatar-hint">PNG/JPG/WEBP, до 5MB</div>
+              <div class="settings__error" id="avatar-error"></div>
+            </div>
+          </div>
+
+          <div class="settings__form-grid">
+            <div class="settings__field">
+              <label class="settings__label">Email</label>
+              <input class="settings__input" type="email" id="email" value="{{userData.email}}" readonly />
+            </div>
+            <div class="settings__field">
+              <label class="settings__label">Дата рождения</label>
+              <input class="settings__input settings__input_editable" type="date" id="birthDate" value="{{userData.birthDate}}" data-field="birthdate" />
+            </div>
+          </div>
+
+          <button class="settings__btn settings__btn_save btn btn_outline" data-action="save-profile" disabled>Сохранить</button>
+        </div>
+
+        <div class="settings__section">
+          <h2 class="settings__title">Сменить пароль</h2>
+          <div class="settings__form-grid settings__form-grid_password">
+            <div class="settings__field settings__field_password">
+              <label class="settings__label">Старый пароль</label>
+              <div class="settings__input-wrapper settings__input-wrapper_eye">
+                <input class="settings__input settings__input_password_field" type="password" id="oldPassword" placeholder="Введите старый пароль" data-field="oldPassword" />
+                <button class="settings__eye-btn eye-btn icon-button" type="button" aria-label="Показать пароль" data-target="oldPassword">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M2.5 12C4.4 8.6 7.7 6.2 12 6.2C16.3 6.2 19.6 8.6 21.5 12C19.6 15.4 16.3 17.8 12 17.8C7.7 17.8 4.4 15.4 2.5 12Z" stroke="currentColor" stroke-width="1.8"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>
+                    <path class="slash" d="M5 19L19 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="settings__error" id="old-password-error"></div>
+            </div>
+            <div class="settings__field settings__field_password">
+              <label class="settings__label">Новый пароль</label>
+              <div class="settings__input-wrapper settings__input-wrapper_eye">
+                <input class="settings__input settings__input_password_field" type="password" id="newPassword" placeholder="Пароль" data-field="newPassword" />
+                <button class="settings__eye-btn eye-btn icon-button" type="button" aria-label="Показать пароль" data-target="newPassword">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M2.5 12C4.4 8.6 7.7 6.2 12 6.2C16.3 6.2 19.6 8.6 21.5 12C19.6 15.4 16.3 17.8 12 17.8C7.7 17.8 4.4 15.4 2.5 12Z" stroke="currentColor" stroke-width="1.8"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>
+                    <path class="slash" d="M5 19L19 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="settings__error" id="new-password-error"></div>
+            </div>
+            <div class="settings__field settings__field_password">
+              <label class="settings__label">Повторите пароль</label>
+              <div class="settings__input-wrapper settings__input-wrapper_eye">
+                <input class="settings__input settings__input_password_field" type="password" id="confirmPassword" placeholder="Повторите пароль" data-field="confirmPassword" />
+                <button class="settings__eye-btn eye-btn icon-button" type="button" aria-label="Показать пароль" data-target="confirmPassword">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M2.5 12C4.4 8.6 7.7 6.2 12 6.2C16.3 6.2 19.6 8.6 21.5 12C19.6 15.4 16.3 17.8 12 17.8C7.7 17.8 4.4 15.4 2.5 12Z" stroke="currentColor" stroke-width="1.8"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>
+                    <path class="slash" d="M5 19L19 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="settings__error" id="confirm-password-error"></div>
+            </div>
+          </div>
+          <button class="settings__btn settings__btn_change-password btn btn_outline" data-action="change-password">Изменить пароль</button>
+        </div>
+      </div>
+
+      <div class="settings__coins-history">
+        <h3 class="settings__coins-history-title">История начисления VKino coins</h3>
+        <div class="settings__coins-history-list">
+          {{#each coinHistory}}
+            <div class="settings__coins-history-item">
+              <div class="settings__coins-history-date">{{this.date}}</div>
+              <div class="settings__coins-history-action">{{this.action}}</div>
+              <div class="settings__coins-history-amount {{#if this.isPositive}}settings__coins-history-amount_positive{{else}}settings__coins-history-amount_negative{{/if}}">
+                {{this.amount}}
+              </div>
+            </div>
+          {{/each}}
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

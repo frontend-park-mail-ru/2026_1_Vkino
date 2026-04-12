@@ -69,7 +69,7 @@
         >
           <img
             class="vk-header__avatar"
-            src="/img/user-avatar.png"
+            src="{{avatarUrl}}"
             alt="Аватар пользователя"
           />
         </button>
@@ -85,9 +85,8 @@
       class="vk-header__profile-menu{{#if isProfileMenuOpen}} is-open{{/if}}"
       data-menu="profile"
     >
-      <a href="/">Мой профиль</a>
-      <a href="/">Настройки</a>
-      <a href="/">История VKino coins</a>
+      <a href="/settings" router-link data-action="close-all-menus">Мой профиль</a>
+      <a href="/settings" router-link data-action="close-all-menus">Настройки</a>
       <button type="button" data-action="logout">Выход</button>
     </div>
   {{/if}}

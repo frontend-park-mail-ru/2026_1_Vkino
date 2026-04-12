@@ -1,5 +1,5 @@
 import { createStore } from "./createStore.js";
-import { authService } from "../js/AuthService.js";
+import { userService } from "../js/UserService.js";
 
 const initialState = {
   status: "idle",
@@ -73,14 +73,14 @@ class AuthStore {
       error: null,
     });
 
-    const token = authService.getAccessToken();
+    const token = userService.getAccessToken();
 
     if (!token) {
       this._setGuest();
       return;
     }
 
-    let meResult = await authService.me();
+    let meResult = await userService.me();
 
     if (meResult.ok) {
       this._setAuthenticated(meResult.resp);
@@ -88,10 +88,10 @@ class AuthStore {
     }
 
     if (meResult.status === 401) {
-      const refreshResult = await authService.refresh();
+      const refreshResult = await userService.refresh();
 
       if (refreshResult.ok) {
-        meResult = await authService.me();
+        meResult = await userService.me();
 
         if (meResult.ok) {
           this._setAuthenticated(meResult.resp);
@@ -100,7 +100,7 @@ class AuthStore {
       }
     }
 
-    authService.clearAccessToken();
+    userService.clearAccessToken();
     this._setGuest("Не удалось восстановить сессию");
   }
 
@@ -115,14 +115,14 @@ class AuthStore {
       error: null,
     });
 
-    const signInResult = await authService.signIn(credentials);
+    const signInResult = await userService.signIn(credentials);
 
     if (!signInResult.ok) {
       this._setGuest(signInResult.resp?.Error || "Не удалось выполнить вход");
       return signInResult;
     }
 
-    const meResult = await authService.me();
+    const meResult = await userService.me();
 
     if (meResult.ok) {
       this._setAuthenticated(meResult.resp);
@@ -150,7 +150,7 @@ class AuthStore {
       error: null,
     });
 
-    const signUpResult = await authService.signUp(data);
+    const signUpResult = await userService.signUp(data);
 
     if (!signUpResult.ok) {
       this._setGuest(
@@ -159,7 +159,7 @@ class AuthStore {
       return signUpResult;
     }
 
-    const meResult = await authService.me();
+    const meResult = await userService.me();
 
     if (meResult.ok) {
       this._setAuthenticated(meResult.resp);
@@ -184,8 +184,26 @@ class AuthStore {
    * @returns {Promise<void>}
    */
   async logout() {
-    await authService.logout();
+    await userService.logout();
     this._setGuest();
+  }
+
+  /**
+   * Обновляет данные текущего пользователя в store без сброса сессии.
+   * @param {Object} profile
+   */
+  updateUserProfile(profile) {
+    const state = this.getState();
+    if (state.status !== "authenticated" || !state.user) {
+      return;
+    }
+
+    this._setState({
+      user: {
+        ...state.user,
+        ...profile,
+      },
+    });
   }
 }
 

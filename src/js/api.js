@@ -98,8 +98,12 @@ export class ApiService {
     };
 
     if (data !== null) {
-      fetchParams.headers["Content-Type"] = "application/json";
-      fetchParams.body = JSON.stringify(data);
+      if (data instanceof FormData) {
+        fetchParams.body = data;
+      } else {
+        fetchParams.headers["Content-Type"] = "application/json";
+        fetchParams.body = JSON.stringify(data);
+      }
     }
 
     if (accessToken) {
