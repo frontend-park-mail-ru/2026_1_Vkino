@@ -119,8 +119,7 @@ export class Router {
   _syncRoute() {
     const path = this._formatPath(window.location.pathname);
     console.log("route path =", path);
-    const pageBuilder =
-      this.routeTable.get(path) || this.routeTable.get("/404");
+    const pageBuilder = this._matchRoute(path) || this.routeTable.get("/404");
     console.log("pageBuilder =", pageBuilder);
 
     if (!pageBuilder) {
@@ -156,5 +155,38 @@ export class Router {
       return "/";
     }
     return path.endsWith("/") ? path.slice(0, -1) : path;
+  }
+
+  /**
+   * Ищет обработчик для точного или параметризованного маршрута.
+   * @param {string} path
+   * @returns {Function|undefined}
+   */
+  _matchRoute(path) {
+    const exactMatch = this.routeTable.get(path);
+
+    if (exactMatch) {
+      return exactMatch;
+    }
+
+    const pathParts = path.split("/").filter(Boolean);
+
+    for (const [routePath, pageBuilder] of this.routeTable.entries()) {
+      const routeParts = routePath.split("/").filter(Boolean);
+
+      if (routeParts.length !== pathParts.length) {
+        continue;
+      }
+
+      const isMatch = routeParts.every((routePart, index) => {
+        return routePart.startsWith(":") || routePart === pathParts[index];
+      });
+
+      if (isMatch) {
+        return pageBuilder;
+      }
+    }
+
+    return undefined;
   }
 }

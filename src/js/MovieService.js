@@ -40,6 +40,41 @@ export class MovieService {
   async getSelectionByTitle(title) {
     return this.api.get(`/selection/${title}`);
   }
+
+  /**
+   * Получает детальную информацию о фильме по id.
+   * @async
+   * @param {string|number} id id фильма
+   * @returns {Promise<Object>} результат запроса с данными фильма
+   * @returns {boolean} return.ok успешен ли запрос
+   * @returns {number} return.status HTTP статус ответа
+   * @returns {Object|null} return.resp данные фильма
+   * @returns {string} return.error сообщение об ошибке (если есть)
+   */
+  async getMovieById(id) {
+    const normalizedId = String(id ?? "").trim();
+
+    if (!normalizedId) {
+      return {
+        ok: false,
+        status: 0,
+        resp: null,
+        error: "MovieService: не передан id фильма",
+      };
+    }
+
+    return this.api.get(`/${encodeURIComponent(normalizedId)}`);
+  }
+
+  /**
+   * Получает актера по идентификатору.
+   * @async
+   * @param {number|string} actorId идентификатор актера
+   * @returns {Promise<Object>} результат запроса с данными актера
+   */
+  async getActorById(actorId) {
+    return this.api.get(`/actor/${actorId}`);
+  }
 }
 
 /**

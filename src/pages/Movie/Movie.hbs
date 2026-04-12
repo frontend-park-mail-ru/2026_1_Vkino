@@ -1,1 +1,174 @@
-<p>Проверка авторизации</p>
+<div class="movie-page">
+  <header id="header"></header>
+
+  <main class="movie-details-page">
+    {{#if loading}}
+      <section class="movie-section">
+        <h2 class="movie-section-title">Загрузка фильма</h2>
+        <p class="movie-description">Получаем данные с сервера...</p>
+      </section>
+    {{else}}
+      {{#if hasError}}
+        <section class="movie-section movie-error-section">
+          <h2 class="movie-section-title">Не удалось загрузить фильм</h2>
+          <p class="movie-description">{{errorText}}</p>
+        </section>
+      {{/if}}
+
+      <section class="movie-hero">
+        <div class="movie-poster-wrap">
+          <img
+            class="movie-main-poster"
+            src="{{movie.posterUrl}}"
+            alt="Постер фильма {{movie.title}}"
+          />
+          <button class="movie-favorite-btn" type="button" aria-label="В избранное">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12.001 20.727L10.585 19.438C5.554 14.874 2.25 11.878 2.25 8.227C2.25 5.231 4.602 2.875 7.59 2.875C9.279 2.875 10.9 3.662 12.001 4.907C13.101 3.662 14.722 2.875 16.411 2.875C19.399 2.875 21.75 5.231 21.75 8.227C21.75 11.878 18.447 14.874 13.417 19.438L12.001 20.727Z"
+                stroke="currentColor"
+                stroke-width="1.8"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div class="movie-hero-content">
+          <h1 class="movie-title">{{movie.title}}</h1>
+
+          <div class="movie-summary-panel">
+            <dl class="movie-meta">
+              <div class="movie-meta-row">
+                <dt>Длительность</dt>
+                <dd>{{movie.duration}}</dd>
+              </div>
+              <div class="movie-meta-row">
+                <dt>Возраст</dt>
+                <dd>{{movie.age}}</dd>
+              </div>
+              <div class="movie-meta-row">
+                <dt>Жанр</dt>
+                <dd>{{movie.genres}}</dd>
+              </div>
+              <div class="movie-meta-row">
+                <dt>Страна</dt>
+                <dd>{{movie.country}}</dd>
+              </div>
+              <div class="movie-meta-row">
+                <dt>Режиссер</dt>
+                <dd>{{movie.director}}</dd>
+              </div>
+              <div class="movie-meta-row">
+                <dt>Тип контента</dt>
+                <dd>{{movie.contentType}}</dd>
+              </div>
+              <div class="movie-meta-row">
+                <dt>Год</dt>
+                <dd>{{movie.releaseYear}}</dd>
+              </div>
+              <div class="movie-meta-row">
+                <dt>Язык</dt>
+                <dd>{{movie.language}}</dd>
+              </div>
+            </dl>
+
+            <div class="movie-ratings">
+              {{#if movie.ratings}}
+                {{#each movie.ratings}}
+                  <div class="movie-rating-card">
+                    <span class="movie-rating-source">{{this.source}}</span>
+                    <span class="movie-rating-value">{{this.value}}</span>
+                  </div>
+                {{/each}}
+              {{else}}
+                <div class="movie-rating-card">
+                  <span class="movie-rating-source">Рейтинг</span>
+                  <span class="movie-rating-value">Недоступно</span>
+                </div>
+              {{/if}}
+            </div>
+
+            <div class="movie-action-row">
+              <button class="movie-btn movie-btn-primary" type="button">
+                Смотреть
+              </button>
+              <button class="movie-btn movie-btn-secondary" type="button">
+                Смотреть позже
+              </button>
+              <button class="movie-btn movie-btn-secondary" type="button">
+                Совместный просмотр
+              </button>
+              <button class="movie-btn movie-btn-primary" type="button">
+                + Создать комнату
+              </button>
+            </div>
+
+            <p class="movie-description">{{movie.description}}</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="movie-section">
+        <h2 class="movie-section-title">Смотреть официальный трейлер</h2>
+        {{#if movie.trailerUrl}}
+          <a
+            class="movie-trailer"
+            href="{{movie.trailerUrl}}"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              class="movie-trailer-image"
+              src="{{movie.trailerPreviewUrl}}"
+              alt="Официальный трейлер фильма {{movie.title}}"
+            />
+            <span class="movie-trailer-play" aria-hidden="true">▶</span>
+          </a>
+        {{else}}
+          <div class="movie-trailer movie-trailer-disabled">
+            <img
+              class="movie-trailer-image"
+              src="{{movie.trailerPreviewUrl}}"
+              alt="Трейлер недоступен"
+            />
+            <span class="movie-empty-overlay">Трейлер недоступен</span>
+          </div>
+        {{/if}}
+      </section>
+
+      <section class="movie-section">
+        <h2 class="movie-section-title">Актерский состав</h2>
+        {{#if movie.cast}}
+          <div id="movie-cast-carousel"></div>
+        {{else}}
+          <p class="movie-empty-text">Данные об актерах пока недоступны.</p>
+        {{/if}}
+      </section>
+
+      <section class="movie-section">
+        <h2 class="movie-section-title">Смотреть также</h2>
+        <div class="movie-filter-row">
+          <button class="movie-filter-btn is-active" type="button">Похожие</button>
+        </div>
+
+        {{#if movie.similar}}
+          <div class="movie-similar-list">
+            {{#each movie.similar}}
+              <a class="movie-similar-link" href="/movie/{{this.id}}" router-link>
+                <img class="movie-poster" src="{{this.imgUrl}}" alt="{{this.title}}" />
+              </a>
+            {{/each}}
+          </div>
+        {{else}}
+          <p class="movie-empty-text">Похожие фильмы не найдены.</p>
+        {{/if}}
+      </section>
+    {{/if}}
+  </main>
+</div>

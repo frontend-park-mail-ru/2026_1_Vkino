@@ -1,0 +1,260 @@
+.movie-poster-card {
+  width: 100%;
+  height: 100%;
+}
+
+.movie-poster-card__link {
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: inherit;
+}
+
+.movie-poster-card__media {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 28px;
+  background: #160a06;
+  box-shadow:
+    inset 0 0 0 1px rgba(230, 204, 171, 0.08),
+    0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+.movie-poster-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition:
+    transform 0.45s ease,
+    filter 0.45s ease;
+}
+
+.movie-poster-card__image--contained {
+  object-fit: contain;
+  object-position: center;
+}
+
+.movie-poster-card__shade,
+.movie-poster-card__overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.movie-poster-card__shade {
+  background:
+    linear-gradient(180deg, rgba(6, 3, 1, 0.02) 20%, rgba(6, 3, 1, 0.42) 65%),
+    linear-gradient(0deg, rgba(6, 3, 1, 0.94) 8%, rgba(6, 3, 1, 0.08) 50%);
+  pointer-events: none;
+}
+
+.movie-poster-card__content,
+.movie-poster-card__overlay-inner {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px 24px 20px;
+}
+
+.movie-poster-card__content--always {
+  z-index: 2;
+}
+
+.movie-poster-card__meta,
+.movie-poster-card__genres,
+.movie-poster-card__description,
+.movie-poster-card__rating {
+  color: #f3e5d4;
+}
+
+.movie-poster-card__meta,
+.movie-poster-card__genres,
+.movie-poster-card__rating {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.movie-poster-card__title {
+  color: #fff4e6;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.movie-poster-card__description {
+  font-size: 12px;
+  line-height: 1.35;
+  max-width: 44ch;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.movie-poster-card__meta--hero {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.movie-poster-card__meta-pill {
+  display: inline-flex;
+  align-items: center;
+}
+
+.movie-poster-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.movie-poster-card__ratings {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.movie-poster-card__rating {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(6, 3, 1, 0.62);
+  border: 1px solid rgba(230, 204, 171, 0.12);
+}
+
+.movie-poster-card__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 122px;
+  min-height: 34px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ff7b33 0%, #ff5a1e 100%);
+  color: #fff4e6;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 10px 24px rgba(255, 90, 30, 0.24);
+}
+
+.movie-poster-card__overlay {
+  display: flex;
+  align-items: flex-end;
+  background:
+    linear-gradient(180deg, rgba(6, 3, 1, 0.1) 8%, rgba(6, 3, 1, 0.84) 100%);
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+
+.movie-poster-card:hover .movie-poster-card__overlay,
+.movie-poster-card:focus-within .movie-poster-card__overlay {
+  opacity: 1;
+}
+
+.movie-poster-card:hover .movie-poster-card__image,
+.movie-poster-card:focus-within .movie-poster-card__image {
+  transform: scale(1.035);
+  filter: saturate(1.04);
+}
+
+.movie-poster-card--small .movie-poster-card__media {
+  border-radius: 24px;
+}
+
+.movie-poster-card--small .movie-poster-card__overlay-inner {
+  padding: 16px 16px 15px;
+  gap: 8px;
+}
+
+.movie-poster-card--small .movie-poster-card__title {
+  font-size: 16px;
+}
+
+.movie-poster-card--small .movie-poster-card__description,
+.movie-poster-card--small .movie-poster-card__button {
+  display: none;
+}
+
+.movie-poster-card--medium .movie-poster-card__title,
+.movie-poster-card--large .movie-poster-card__title {
+  font-size: 22px;
+}
+
+.movie-poster-card--large .movie-poster-card__overlay-inner {
+  padding: 22px 22px 20px;
+}
+
+.movie-poster-card--hero .movie-poster-card__media {
+  border-radius: 34px;
+}
+
+.movie-poster-card--hero .movie-poster-card__content--always {
+  padding: 28px 30px 24px;
+  gap: 12px;
+}
+
+.movie-poster-card--hero .movie-poster-card__title {
+  font-size: 44px;
+  max-width: 12ch;
+}
+
+.movie-poster-card--hero .movie-poster-card__meta,
+.movie-poster-card--hero .movie-poster-card__genres {
+  font-size: 13px;
+}
+
+.movie-poster-card--hero .movie-poster-card__description {
+  max-width: 52ch;
+}
+
+.movie-poster-card--person .movie-poster-card__media {
+  border-radius: 22px;
+}
+
+.movie-poster-card--person .movie-poster-card__shade {
+  background:
+    linear-gradient(180deg, rgba(6, 3, 1, 0.04) 30%, rgba(6, 3, 1, 0.34) 66%),
+    linear-gradient(0deg, rgba(6, 3, 1, 0.95) 4%, rgba(6, 3, 1, 0.1) 42%);
+}
+
+.movie-poster-card--person .movie-poster-card__content--always {
+  gap: 6px;
+  padding: 16px 16px 14px;
+}
+
+.movie-poster-card--person .movie-poster-card__title {
+  font-size: 17px;
+}
+
+.movie-poster-card__meta--person {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(243, 229, 212, 0.76);
+}
+
+.movie-poster-card--compact .movie-poster-card__shade {
+  background:
+    linear-gradient(180deg, rgba(6, 3, 1, 0.06) 18%, rgba(6, 3, 1, 0.32) 70%),
+    linear-gradient(0deg, rgba(6, 3, 1, 0.92) 4%, rgba(6, 3, 1, 0.08) 44%);
+}
+
+@media (max-width: 900px) {
+  .movie-poster-card--hero .movie-poster-card__title {
+    font-size: 34px;
+  }
+
+  .movie-poster-card__content--always,
+  .movie-poster-card__overlay-inner {
+    padding: 20px;
+  }
+}
