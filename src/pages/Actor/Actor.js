@@ -130,27 +130,23 @@ export default class ActorPage extends BasePage {
       return null;
     }
 
-    const movieIds = actor.movie_ids ?? actor.MovieIDs;
     const birthDate = actor.birth_date ?? actor.BirthDate;
     const biography = actor.biography ?? actor.Biography;
-    const createdAt = actor.created_at ?? actor.CreatedAt;
-    const updatedAt = actor.updated_at ?? actor.UpdatedAt;
-    const normalizedMovieIds = Array.isArray(movieIds) ? movieIds : [];
+    const movies = Array.isArray(actor.movies) ? actor.movies : [];
 
     return {
       id: actor.id ?? actor.ID ?? null,
       full_name: actor.full_name ?? actor.FullName ?? "Имя актера не указано",
       country_id: actor.country_id ?? actor.CountryID ?? null,
       country_label: this._formatCountry(actor.country_id ?? actor.CountryID),
-      picture_file_key: actor.picture_file_key ?? actor.PictureFileKey ?? "",
-      picture_src: actor.picture_file_key || actor.PictureFileKey || "img/user-avatar.png",
+      picture_src:
+        this._normalizeImageUrl(
+          actor.picture_file_key || actor.PictureFileKey || actor.img_url || actor.imgUrl,
+        ) || "/img/user-avatar.png",
       birth_date: birthDate ? this._formatDate(birthDate) : "Не указана",
       biography: biography || "Нет описания",
-      created_at: createdAt ? this._formatDate(createdAt) : "Не указано",
-      updated_at: updatedAt ? this._formatDate(updatedAt) : "Не указано",
-      movie_ids: normalizedMovieIds,
-      movies_count: normalizedMovieIds.length,
-      movies: this._buildMovieCards(normalizedMovieIds),
+      movies_count: movies.length,
+      movies: this._mapMovies(movies),
     };
   }
 
@@ -168,10 +164,15 @@ export default class ActorPage extends BasePage {
       birth_date: "1974-01-30T00:00:00Z",
       biography: "Актер с широким диапазоном ролей: от психологических драм до масштабных приключенческих фильмов.",
       country_id: 826,
-      picture_file_key: "",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      movie_ids: [101, 205, 309, 412, 518, 624],
+      img_url: "img/actors/christian-bale.jpg",
+      movies: [
+        { id: 101, title: "Фильм 1", img_url: "img/1.jpg" },
+        { id: 205, title: "Фильм 2", img_url: "img/2.jpeg" },
+        { id: 309, title: "Фильм 3", img_url: "img/3.jpg" },
+        { id: 412, title: "Фильм 4", img_url: "img/4.jpg" },
+        { id: 518, title: "Фильм 5", img_url: "img/5.jpg" },
+        { id: 624, title: "Фильм 6", img_url: "img/image_10.jpg" },
+      ],
     };
   }
 
@@ -192,6 +193,35 @@ export default class ActorPage extends BasePage {
   }
 
   /**
+   * Нормализует путь до картинки.
+   * @private
+   * @param {string|number|null|undefined} value
+   * @returns {string}
+   */
+  _normalizeImageUrl(value) {
+    const normalizedPath = String(value ?? "").trim();
+
+    if (!normalizedPath) {
+      return "";
+    }
+
+    if (
+      normalizedPath.startsWith("http://") ||
+      normalizedPath.startsWith("https://") ||
+      normalizedPath.startsWith("data:") ||
+      normalizedPath.startsWith("blob:")
+    ) {
+      return normalizedPath;
+    }
+
+    if (normalizedPath.startsWith("img/")) {
+      return `/${normalizedPath}`;
+    }
+
+    return normalizedPath.startsWith("/") ? normalizedPath : `/${normalizedPath}`;
+  }
+
+  /**
    * Возвращает подпись страны по идентификатору.
    * @private
    * @param {number|string|null} countryId
@@ -206,33 +236,31 @@ export default class ActorPage extends BasePage {
   }
 
   /**
-   * Создает карточки-заглушки фильмов по списку id.
+   * Нормализует фильмы актера для карусели.
    * @private
-   * @param {number[]} movieIds
+   * @param {Object[]} movies
    * @returns {Object[]}
    */
-  _buildMovieCards(movieIds) {
-    const posterPool = [
-      "img/1.jpg",
-      "img/2.jpeg",
-      "img/3.jpg",
-      "img/4.jpg",
-      "img/5.jpg",
-      "img/image_10.jpg",
-      "img/image_11.jpg",
-      "img/image_12.jpg",
-    ];
+  _mapMovies(movies) {
+    return movies
+      .filter((movie) => movie && typeof movie === "object" && movie.id !== null && movie.id !== undefined)
+      .map((movie) => {
+        const movieId = movie.id;
+        const imageUrl =
+          this._normalizeImageUrl(movie?.img_url || movie?.posterUrl || movie?.poster_url) ||
+          "/img/image_10.jpg";
 
-    return movieIds.map((movieId, index) => ({
-      id: movieId,
-      title: `Фильм ${movieId}`,
-      posterUrl: posterPool[index % posterPool.length],
-      poster_src: posterPool[index % posterPool.length],
-      description: "Фильм из фильмографии актера.",
-      genres: [],
-      actionText: "О фильме",
-      href: `/movie/${encodeURIComponent(movieId)}`,
-    }));
+        return {
+          id: movieId,
+          title: movie.title || `Фильм ${movieId}`,
+          posterUrl: imageUrl,
+          poster_src: imageUrl,
+          description: "Фильм из фильмографии актера.",
+          genres: [],
+          actionText: "О фильме",
+          href: `/movie/${encodeURIComponent(movieId)}`,
+        };
+      });
   }
 
   /**

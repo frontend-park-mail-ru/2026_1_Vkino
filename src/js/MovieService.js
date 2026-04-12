@@ -12,6 +12,7 @@ export class MovieService {
    */
   constructor(apiService) {
     this.api = apiService.withNamespace("movie");
+    this.rootApi = apiService;
   }
 
   /**
@@ -73,7 +74,18 @@ export class MovieService {
    * @returns {Promise<Object>} результат запроса с данными актера
    */
   async getActorById(actorId) {
-    return this.api.get(`/actor/${actorId}`);
+    const normalizedActorId = String(actorId ?? "").trim();
+
+    if (!normalizedActorId) {
+      return {
+        ok: false,
+        status: 0,
+        resp: null,
+        error: "MovieService: не передан id актера",
+      };
+    }
+
+    return this.rootApi.get(`/actor/${encodeURIComponent(normalizedActorId)}`);
   }
 }
 
