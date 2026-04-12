@@ -3,10 +3,10 @@
 @import "../components/MoviePoster/MoviePoster.css";
 @import "../components/PosterCarousel/PosterCarousel.css";
 @import "./home.css";
+@import "./movie.css";
 @import "./auth.css";
+@import "./carousel.css";
 @import "./login.css";
 @import "./register.css";
-<<<<<<< actor_page
 @import "./actor.css";
-=======
->>>>>>> main
+
