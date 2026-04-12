@@ -1,0 +1,46 @@
+<section
+  class="poster-carousel poster-carousel--{{variant}}{{#if centeredHero}} poster-carousel--centered-hero{{/if}}"
+>
+  {{#if title}}
+    <header class="poster-carousel__header">
+      <h2 class="poster-carousel__title">{{title}}</h2>
+    </header>
+  {{/if}}
+
+  <div class="poster-carousel__viewport-wrap">
+    {{#if showArrows}}
+      <button
+        class="poster-carousel__arrow poster-carousel__arrow--prev"
+        type="button"
+        data-action="scroll-prev"
+        aria-label="Прокрутить влево"
+      >
+        <span>&lsaquo;</span>
+      </button>
+    {{/if}}
+
+    <div class="poster-carousel__viewport" data-role="viewport">
+      <div class="poster-carousel__track">
+        {{#each posterItems}}
+          <div
+            class="poster-carousel__slide poster-carousel__slide--{{this.size}} poster-carousel__slide--{{this.variant}}"
+            data-index="{{this.slideIndex}}"
+          >
+            <div data-poster-slot="{{this.slotKey}}" class="poster-carousel__slot"></div>
+          </div>
+        {{/each}}
+      </div>
+    </div>
+
+    {{#if showArrows}}
+      <button
+        class="poster-carousel__arrow poster-carousel__arrow--next"
+        type="button"
+        data-action="scroll-next"
+        aria-label="Прокрутить вправо"
+      >
+        <span>&rsaquo;</span>
+      </button>
+    {{/if}}
+  </div>
+</section>
