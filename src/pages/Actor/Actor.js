@@ -3,6 +3,7 @@ import "./Actor.precompiled.js";
 
 import { movieService } from "../../js/MovieService.js";
 import HeaderComponent from "../../components/Header/Header.js";
+import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
 
 /**
  * Старница актера
@@ -32,23 +33,6 @@ export default class ActorPage extends BasePage {
      * @default false
      */
     this._contextLoaded = false;
-
-    /**
-     * Мапа обработчиков для контейнеров со скроллом.
-     * @private
-     * @type {Map<Element, {onMouseDown: Function, onMouseMove: Function, onMouseUp: Function, onMouseLeave: Function}>}
-     * @default new Map()
-     */
-    this._scrollContainerHandlers = new Map();
-
-    /**
-     * Мапа обработчиков кликов по постерам фильмов.
-     * @private
-     * @type {Map<Element, Function>}
-     * @default new Map()
-     */
-    this._posterClickHandlers = new Map();
-
   }
 
   /**
@@ -105,8 +89,6 @@ export default class ActorPage extends BasePage {
    */
   addEventListeners() {
     super.addEventListeners();
-    this._addScrollContainerListeners();
-    this._addMoviePostersClickListeners();
   }
 
   /**
@@ -115,113 +97,6 @@ export default class ActorPage extends BasePage {
    */
   removeEventListeners() {
     super.removeEventListeners();
-    this._removeScrollContainerListeners();
-    this._removeMoviePostersClickListeners();
-  }
-
-  /**
-   * Добавляет обработчики для горизонтального скролла контейнеров с постерами.
-   * Реализует drag-to-scroll функциональность.
-   * @private
-   */
-  _addScrollContainerListeners() {
-    const scrollContainers = this.el.querySelectorAll(".scroll-container");
-
-    scrollContainers.forEach((container) => {
-      let isDragging = false;
-      let startX = 0;
-      let startScrollLeft = 0;
-
-      const onMouseDown = (e) => {
-        e.preventDefault();
-
-        isDragging = true;
-        startX = e.pageX;
-        startScrollLeft = container.scrollLeft;
-
-        container.classList.add("is-dragging");
-      };
-
-      const onMouseMove = (e) => {
-        if (!isDragging) return;
-
-        const dx = e.pageX - startX;
-        container.scrollLeft = startScrollLeft - dx;
-      };
-
-      const onMouseUp = () => {
-        if (!isDragging) return;
-
-        isDragging = false;
-        container.classList.remove("is-dragging");
-      };
-
-      const onMouseLeave = () => {
-        if (!isDragging) return;
-
-        isDragging = false;
-        container.classList.remove("is-dragging");
-      };
-
-      container.addEventListener("mousedown", onMouseDown);
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
-      document.addEventListener("mouseleave", onMouseLeave);
-
-      this._scrollContainerHandlers.set(container, {
-        onMouseDown,
-        onMouseMove,
-        onMouseUp,
-        onMouseLeave,
-      });
-    });
-  }
-
-  /**
-   * Удаляет обработчики горизонтального скролла.
-   * @private
-   */
-  _removeScrollContainerListeners() {
-    for (const [container, handlers] of this._scrollContainerHandlers) {
-      container.removeEventListener("mousedown", handlers.onMouseDown);
-      document.removeEventListener("mousemove", handlers.onMouseMove);
-      document.removeEventListener("mouseup", handlers.onMouseUp);
-      document.removeEventListener("mouseleave", handlers.onMouseLeave);
-    }
-
-    this._scrollContainerHandlers.clear();
-  }
-
-  /**
-   * Добавляет обработчики кликов по постерам фильмов.
-   * @private
-   */
-  _addMoviePostersClickListeners() {
-    const moviePosters = this.el.querySelectorAll(".movie-poster");
-
-    moviePosters.forEach((moviePoster) => {
-      const onClick = () => {
-        const movieId = moviePoster.dataset.moviePosterId;
-        console.log("Нажали на постер фильма:", movieId);
-
-        // Здесь позже будет router.go(`/movie/${movieId}`) или аналог
-      };
-
-      moviePoster.addEventListener("click", onClick);
-      this._posterClickHandlers.set(moviePoster, onClick);
-    });
-  }
-
-  /**
-   * Удаляет обработчики кликов по постерам фильмов.
-   * @private
-   */
-  _removeMoviePostersClickListeners() {
-    for (const [poster, handler] of this._posterClickHandlers) {
-      poster.removeEventListener("click", handler);
-    }
-
-    this._posterClickHandlers.clear();
   }
 
   /**
@@ -351,7 +226,12 @@ export default class ActorPage extends BasePage {
     return movieIds.map((movieId, index) => ({
       id: movieId,
       title: `Фильм ${movieId}`,
+      posterUrl: posterPool[index % posterPool.length],
       poster_src: posterPool[index % posterPool.length],
+      description: "Фильм из фильмографии актера.",
+      genres: [],
+      actionText: "О фильме",
+      href: `/movie?id=${movieId}`,
     }));
   }
 
@@ -377,6 +257,33 @@ export default class ActorPage extends BasePage {
             this,
             header,
         ),
+    );
+
+    this._setupActorMoviesCarousel();
+  }
+
+  _setupActorMoviesCarousel() {
+    const carouselSlot = this.el.querySelector("#actor-movies-carousel");
+    const movies = Array.isArray(this.context.actor?.movies) ? this.context.actor.movies : [];
+
+    if (!carouselSlot || !movies.length) {
+      return;
+    }
+
+    this.addChild(
+      "actor-movies-carousel",
+      new PosterCarouselComponent(
+        {
+          slug: "actor-movies",
+          title: "Фильмы с этим актером",
+          movies,
+          posterVariant: "default",
+          posterSize: "small",
+          showArrows: false,
+        },
+        this,
+        carouselSlot,
+      ),
     );
   }
 }

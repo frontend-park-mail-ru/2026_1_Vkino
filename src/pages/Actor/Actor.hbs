@@ -54,31 +54,7 @@
     </section>
 
     <section class="actor-movies">
-      <h2 class="selection-title actor-movies__title">
-        <div class="selection-rectangle"></div>
-        <span>Фильмы с этим актером</span>
-      </h2>
-
-      <div class="scroll-container">
-        <div class="scroll-items actor-movies__list">
-          {{#each actor.movies}}
-            <a
-              class="actor-movie-card"
-              href="/movie?id={{this.id}}"
-              router-link
-            >
-              <img
-                class="actor-movie-card__image movie-poster"
-                data-movie-poster-id="{{this.id}}"
-                src="{{this.poster_src}}"
-                draggable="false"
-                alt="{{this.title}}"
-              />
-              <span class="actor-movie-card__title">{{this.title}}</span>
-            </a>
-          {{/each}}
-        </div>
-      </div>
+      <div id="actor-movies-carousel"></div>
     </section>
   {{else}}
     <section class="actor-card">
