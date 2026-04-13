@@ -1,0 +1,103 @@
+<div class="page page_profile">
+  <header id="header"></header>
+
+  <main class="profile-page">
+    {{#if isLoading}}
+      <section class="profile-hero profile-hero_loading">
+        <div class="profile-hero__avatar-shell"></div>
+        <div class="profile-hero__loading-copy">
+          <div class="profile-skeleton profile-skeleton_title"></div>
+          <div class="profile-skeleton profile-skeleton_text"></div>
+          <div class="profile-hero__facts profile-hero__facts_loading">
+            <div class="profile-skeleton profile-skeleton_fact"></div>
+            <div class="profile-skeleton profile-skeleton_fact"></div>
+            <div class="profile-skeleton profile-skeleton_fact"></div>
+          </div>
+        </div>
+      </section>
+    {{else}}
+      <section class="profile-hero">
+        <a
+          class="profile-hero__settings-button"
+          href="/settings"
+          router-link
+          aria-label="Редактировать профиль"
+          title="Редактировать профиль"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M10.4 2.8h3.2l.5 2.3a7.4 7.4 0 0 1 1.7.7l2-1.2 2.3 2.3-1.2 2a7.4 7.4 0 0 1 .7 1.7l2.3.5v3.2l-2.3.5a7.4 7.4 0 0 1-.7 1.7l1.2 2-2.3 2.3-2-1.2a7.4 7.4 0 0 1-1.7.7l-.5 2.3h-3.2l-.5-2.3a7.4 7.4 0 0 1-1.7-.7l-2 1.2-2.3-2.3 1.2-2a7.4 7.4 0 0 1-.7-1.7l-2.3-.5v-3.2l2.3-.5a7.4 7.4 0 0 1 .7-1.7l-1.2-2 2.3-2.3 2 1.2a7.4 7.4 0 0 1 1.7-.7z"
+            />
+            <circle cx="12" cy="12" r="3.1" />
+          </svg>
+        </a>
+
+        <div class="profile-hero__avatar-wrap">
+          <img
+            class="profile-hero__avatar"
+            src="{{avatarUrl}}"
+            alt="Аватар пользователя"
+          />
+        </div>
+
+        <div class="profile-hero__content">
+          <div class="profile-hero__eyebrow">Личный профиль</div>
+          <h1 class="profile-hero__name">{{displayName}}</h1>
+          <p class="profile-hero__email">{{email}}</p>
+
+          <div class="profile-hero__facts">
+            <article class="profile-fact">
+              <span class="profile-fact__label">Email</span>
+              <span class="profile-fact__value">{{email}}</span>
+            </article>
+
+            <article class="profile-fact">
+              <span class="profile-fact__label">Дата рождения</span>
+              <span class="profile-fact__value">{{birthdateLabel}}</span>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      {{#if errorMessage}}
+        <div class="profile-banner" role="status">
+          <span>{{errorMessage}}</span>
+          <button
+            type="button"
+            class="profile-banner__button"
+            data-action="retry-profile"
+          >
+            Повторить
+          </button>
+        </div>
+      {{/if}}
+
+      {{#if featuredMovies.length}}
+        <section class="profile-section">
+          <div
+            class="profile-carousel-slot"
+            data-profile-carousel="featured"
+          ></div>
+        </section>
+      {{/if}}
+
+      {{#if recentMovies.length}}
+        <section class="profile-section">
+          <div
+            class="profile-carousel-slot"
+            data-profile-carousel="recent"
+          ></div>
+        </section>
+      {{/if}}
+
+      {{#if favoriteMovies.length}}
+        <section class="profile-section">
+          <div
+            class="profile-carousel-slot"
+            data-profile-carousel="favorites"
+          ></div>
+        </section>
+      {{/if}}
+    {{/if}}
+  </main>
+</div>

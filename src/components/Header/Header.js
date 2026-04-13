@@ -3,6 +3,7 @@ import "./Header.precompiled.js";
 import { authStore } from "../../store/authStore.js";
 import { router } from "../../router/index.js";
 import { resolveAvatarUrl } from "../../utils/avatar.js";
+import { getDisplayNameFromEmail } from "../../utils/user.js";
 
 /**
  * Компонент header
@@ -297,20 +298,4 @@ export default class HeaderComponent extends BaseComponent {
 
     node.removeEventListener("submit", handler);
   }
-}
-
-/**
- * Извлекает отображаемое имя пользователя из email.
- * @private
- * @param {string} [email=""] email пользователя
- * @returns {string} имя пользователя (часть до @) или пустая строка
- */
-function getDisplayNameFromEmail(email = "") {
-  const normalized = String(email).trim();
-  if (!normalized) return "";
-
-  const atIndex = normalized.indexOf("@");
-  if (atIndex === -1) return normalized;
-
-  return normalized.slice(0, atIndex);
 }
