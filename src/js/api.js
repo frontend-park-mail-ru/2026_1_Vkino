@@ -15,7 +15,6 @@ export class ApiService {
     this.namespace = namespace;
     this.accessTokenKey = accessTokenKey;
   }
-  // test deploy
 
   /**
    * Создает новый экземпляр сервиса с указанным пространством имен.
