@@ -5,10 +5,14 @@ import "./PosterCarousel.precompiled.js";
 export default class PosterCarouselComponent extends BaseComponent {
   constructor(context = {}, parent = null, el = null) {
     if (!parent) {
-      throw new Error("PosterCarousel: не передан parent для PosterCarouselComponent");
+      throw new Error(
+        "PosterCarousel: не передан parent для PosterCarouselComponent",
+      );
     }
     if (!el) {
-      throw new Error("PosterCarousel: не передан el для PosterCarouselComponent");
+      throw new Error(
+        "PosterCarousel: не передан el для PosterCarouselComponent",
+      );
     }
     super(context, Handlebars.templates["PosterCarousel.hbs"], parent, el);
 
@@ -30,7 +34,9 @@ export default class PosterCarouselComponent extends BaseComponent {
 
   setupChildren() {
     this.context.posterItems.forEach((posterItem) => {
-      const slot = this.el.querySelector(`[data-poster-slot="${posterItem.slotKey}"]`);
+      const slot = this.el.querySelector(
+        `[data-poster-slot="${posterItem.slotKey}"]`,
+      );
       if (!slot) return;
       this.addChild(
         `poster-${posterItem.slotKey}`,
@@ -215,7 +221,9 @@ export default class PosterCarouselComponent extends BaseComponent {
   }
 
   _applyActiveSlideState() {
-    const slides = Array.from(this.el.querySelectorAll(".poster-carousel__slide"));
+    const slides = Array.from(
+      this.el.querySelectorAll(".poster-carousel__slide"),
+    );
     const activeIndex = Math.floor(slides.length / 2);
 
     slides.forEach((slide, index) => {

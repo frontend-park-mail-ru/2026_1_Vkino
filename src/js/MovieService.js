@@ -85,7 +85,7 @@ export class MovieService {
       };
     }
 
-    return this.rootApi.get(`/actor/${encodeURIComponent(normalizedActorId)}`);
+    return this.api.get(`/actor/${encodeURIComponent(normalizedActorId)}`);
   }
 }
 

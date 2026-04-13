@@ -3,7 +3,11 @@
   margin: 0 auto;
   padding: 24px 32px 40px;
   background:
-    radial-gradient(circle at top right, rgba(255, 87, 31, 0.08), transparent 30%),
+    radial-gradient(
+      circle at top right,
+      rgba(255, 87, 31, 0.08),
+      transparent 30%
+    ),
     linear-gradient(180deg, rgba(39, 20, 11, 0.72), rgba(18, 6, 3, 0.94));
 }
 
@@ -83,9 +87,9 @@
   padding-block: 8px 6px;
 }
 
-.actor-movies .poster-carousel__slide--small {
-  width: 150px;
-  height: 225px;
+.actor-movies .poster-carousel__slide--medium {
+  width: 220px;
+  height: 310px;
 }
 
 .actor-movies .poster-carousel__title {
@@ -133,8 +137,8 @@
     max-width: none;
   }
 
-  .actor-movies .poster-carousel__slide--small {
-    width: 140px;
-    height: 210px;
+  .actor-movies .poster-carousel__slide--medium {
+    width: 200px;
+    height: 292px;
   }
 }

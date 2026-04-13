@@ -148,8 +148,11 @@
 .movie-poster-card__overlay {
   display: flex;
   align-items: flex-end;
-  background:
-    linear-gradient(180deg, rgba(6, 3, 1, 0.1) 8%, rgba(6, 3, 1, 0.84) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(6, 3, 1, 0.1) 8%,
+    rgba(6, 3, 1, 0.84) 100%
+  );
   opacity: 0;
   transition: opacity 0.28s ease;
 }

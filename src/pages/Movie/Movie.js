@@ -77,7 +77,8 @@ export default class MoviePage extends BasePage {
       return;
     }
 
-    const { ok, status, resp, error } = await movieService.getMovieById(movieId);
+    const { ok, status, resp, error } =
+      await movieService.getMovieById(movieId);
 
     if (!ok) {
       this._contextLoaded = true;
@@ -126,13 +127,20 @@ export default class MoviePage extends BasePage {
   }
 
   addEventListeners() {
-    const openPlayerButton = this.el.querySelector('[data-action="open-player"]');
+    const openPlayerButton = this.el.querySelector(
+      '[data-action="open-player"]',
+    );
     openPlayerButton?.addEventListener("click", this._onOpenPlayerClickBound);
   }
 
   removeEventListeners() {
-    const openPlayerButton = this.el?.querySelector('[data-action="open-player"]');
-    openPlayerButton?.removeEventListener("click", this._onOpenPlayerClickBound);
+    const openPlayerButton = this.el?.querySelector(
+      '[data-action="open-player"]',
+    );
+    openPlayerButton?.removeEventListener(
+      "click",
+      this._onOpenPlayerClickBound,
+    );
   }
 
   beforeDestroy() {
@@ -141,7 +149,9 @@ export default class MoviePage extends BasePage {
 
   _setupCastCarousel() {
     const carouselSlot = this.el.querySelector("#movie-cast-carousel");
-    const cast = Array.isArray(this.context.movie?.cast) ? this.context.movie.cast : [];
+    const cast = Array.isArray(this.context.movie?.cast)
+      ? this.context.movie.cast
+      : [];
 
     if (!carouselSlot || !cast.length) {
       return;
@@ -209,7 +219,11 @@ export default class MoviePage extends BasePage {
 
     if (!isPlayerWatchLocation(window.location)) {
       window.history.pushState(
-        { modal: "movie-player", movieId: this.context.movie.id, episodeId: normalizedEpisodeId },
+        {
+          modal: "movie-player",
+          movieId: this.context.movie.id,
+          episodeId: normalizedEpisodeId,
+        },
         "",
         buildWatchUrl(this.context.movie.id, normalizedEpisodeId),
       );
@@ -260,7 +274,8 @@ function getMovieIdFromLocation() {
 
   const pathParts = window.location.pathname.split("/").filter(Boolean);
   const movieIndex = pathParts.indexOf("movie");
-  const idFromPath = movieIndex >= 0 ? String(pathParts[movieIndex + 1] || "").trim() : "";
+  const idFromPath =
+    movieIndex >= 0 ? String(pathParts[movieIndex + 1] || "").trim() : "";
 
   if (idFromPath) {
     return decodeURIComponent(idFromPath);
@@ -315,7 +330,9 @@ function mapMovieDtoToViewModel(dto) {
   const fallbackMovie = createEmptyMovieData(dto.id);
   const posterUrl = normalizeImageUrl(dto.img_url) || fallbackMovie.posterUrl;
   const trailerPreviewUrl =
-    normalizeEpisodePreviewUrl(dto.episodes) || posterUrl || fallbackMovie.trailerPreviewUrl;
+    normalizeEpisodePreviewUrl(dto.episodes) ||
+    posterUrl ||
+    fallbackMovie.trailerPreviewUrl;
 
   return {
     ...fallbackMovie,
@@ -381,7 +398,10 @@ function normalizeEpisodePreviewUrl(episodes) {
   }
 
   const firstEpisodeWithPreview = episodes.find(
-    (episode) => episode && typeof episode === "object" && normalizeString(episode.img_url),
+    (episode) =>
+      episode &&
+      typeof episode === "object" &&
+      normalizeString(episode.img_url),
   );
 
   if (!firstEpisodeWithPreview) {
@@ -425,9 +445,7 @@ function mapGenres(value) {
     return "Не указаны";
   }
 
-  const genres = value
-    .map((genre) => normalizeString(genre))
-    .filter(Boolean);
+  const genres = value.map((genre) => normalizeString(genre)).filter(Boolean);
 
   return genres.length ? genres.join(", ") : "Не указаны";
 }
@@ -478,10 +496,7 @@ function mapCountry(countryId) {
 function mapLanguage(languageId) {
   const numericLanguageId = Number(languageId);
 
-  if (
-    Number.isFinite(numericLanguageId) &&
-    LANGUAGE_BY_ID[numericLanguageId]
-  ) {
+  if (Number.isFinite(numericLanguageId) && LANGUAGE_BY_ID[numericLanguageId]) {
     return LANGUAGE_BY_ID[numericLanguageId];
   }
 

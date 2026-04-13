@@ -72,74 +72,32 @@
         </div>
       {{/if}}
 
-      <section class="profile-section">
-        <div class="profile-section__header">
-          <h2 class="profile-section__title">Продолжить просмотр</h2>
-        </div>
+      {{#if featuredMovies.length}}
+        <section class="profile-section">
+          <div
+            class="profile-carousel-slot"
+            data-profile-carousel="featured"
+          ></div>
+        </section>
+      {{/if}}
 
-        <div class="profile-featured-grid">
-          {{#each featuredMovies}}
-            <a class="profile-featured-card" href="{{this.href}}" router-link>
-              <img
-                class="profile-featured-card__image"
-                src="{{this.backdropUrl}}"
-                alt="{{this.title}}"
-              />
-              <div class="profile-featured-card__overlay"></div>
-              <div class="profile-featured-card__play" aria-hidden="true">
-                <span></span>
-              </div>
-              <div class="profile-featured-card__content">
-                <div
-                  class="profile-featured-card__label"
-                >{{this.accentLabel}}</div>
-                <h3 class="profile-featured-card__title">{{this.title}}</h3>
-                <p class="profile-featured-card__meta">{{this.meta}}</p>
-              </div>
-            </a>
-          {{/each}}
-        </div>
-      </section>
+      {{#if recentMovies.length}}
+        <section class="profile-section">
+          <div
+            class="profile-carousel-slot"
+            data-profile-carousel="recent"
+          ></div>
+        </section>
+      {{/if}}
 
-      <section class="profile-section">
-        <div class="profile-section__header">
-          <h2 class="profile-section__title">Недавно просмотренное</h2>
-        </div>
-
-        <div class="profile-poster-grid">
-          {{#each recentMovies}}
-            <a class="profile-poster-card" href="{{this.href}}" router-link>
-              <img
-                class="profile-poster-card__image"
-                src="{{this.posterUrl}}"
-                alt="{{this.title}}"
-              />
-              <div class="profile-poster-card__shade"></div>
-              <div class="profile-poster-card__title">{{this.title}}</div>
-            </a>
-          {{/each}}
-        </div>
-      </section>
-
-      <section class="profile-section">
-        <div class="profile-section__header">
-          <h2 class="profile-section__title">Избранное</h2>
-        </div>
-
-        <div class="profile-poster-grid profile-poster-grid_favorites">
-          {{#each favoriteMovies}}
-            <a class="profile-poster-card" href="{{this.href}}" router-link>
-              <img
-                class="profile-poster-card__image"
-                src="{{this.posterUrl}}"
-                alt="{{this.title}}"
-              />
-              <div class="profile-poster-card__shade"></div>
-              <div class="profile-poster-card__title">{{this.title}}</div>
-            </a>
-          {{/each}}
-        </div>
-      </section>
+      {{#if favoriteMovies.length}}
+        <section class="profile-section">
+          <div
+            class="profile-carousel-slot"
+            data-profile-carousel="favorites"
+          ></div>
+        </section>
+      {{/if}}
     {{/if}}
   </main>
 </div>

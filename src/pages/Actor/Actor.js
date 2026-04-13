@@ -62,21 +62,35 @@ export default class ActorPage extends BasePage {
       this._contextLoaded = true;
       this.refresh({
         ...this.context,
-        actor: this._mapActor(this._createActorStub()),
+        actor: null,
       });
       return;
     }
 
-    const { ok, resp } = await movieService.getActorById(actorId);
-    const actorSource = ok ? resp : this._createActorStub(actorId);
+    const [actorResult, selectionsResult] = await Promise.all([
+      movieService.getActorById(actorId),
+      movieService.getAllSelections(),
+    ]);
+    const actorSource = this._extractActorPayload(actorResult.resp);
+    const selectionMovies = actorResult.ok
+      ? this._getMoviesFromSelections(
+          selectionsResult.ok ? selectionsResult.resp : [],
+          actorSource,
+        )
+      : [];
 
     const newContext = {
       ...this.context,
-      actor: this._mapActor(actorSource),
+      actor: actorResult.ok
+        ? this._mapActor(actorSource, selectionMovies)
+        : null,
     };
 
-    if (!ok) {
-      console.log("Актер не прилетел с бэка, используется заглушка");
+    if (!actorResult.ok || !newContext.actor) {
+      console.log("ActorPage: не удалось загрузить данные актера", {
+        actorId,
+        resp: actorResult.resp,
+      });
     }
 
     this._contextLoaded = true;
@@ -116,7 +130,41 @@ export default class ActorPage extends BasePage {
     const actorIndex = parts.indexOf("actor");
     const actorIdFromPath = actorIndex >= 0 ? parts[actorIndex + 1] : null;
 
-    return actorIdFromPath || null;
+    return actorIdFromPath ? decodeURIComponent(actorIdFromPath) : null;
+  }
+
+  /**
+   * Достает объект актера из типовых оберток ответа API.
+   * @private
+   * @param {Object|null} payload
+   * @returns {Object|null}
+   */
+  _extractActorPayload(payload) {
+    if (!payload || typeof payload !== "object") {
+      return null;
+    }
+
+    if (payload.actor && typeof payload.actor === "object") {
+      return payload.actor;
+    }
+
+    if (payload.data && typeof payload.data === "object") {
+      if (payload.data.actor && typeof payload.data.actor === "object") {
+        return payload.data.actor;
+      }
+
+      return payload.data;
+    }
+
+    if (payload.result && typeof payload.result === "object") {
+      if (payload.result.actor && typeof payload.result.actor === "object") {
+        return payload.result.actor;
+      }
+
+      return payload.result;
+    }
+
+    return payload;
   }
 
   /**
@@ -125,54 +173,60 @@ export default class ActorPage extends BasePage {
    * @param {Object|null} actor данные актера с бэка
    * @returns {Object|null}
    */
-  _mapActor(actor) {
+  _mapActor(actor, fallbackMovies = []) {
     if (!actor) {
       return null;
     }
 
-    const birthDate = actor.birth_date ?? actor.BirthDate;
-    const biography = actor.biography ?? actor.Biography;
-    const movies = Array.isArray(actor.movies) ? actor.movies : [];
+    const birthDate =
+      actor.birth_date ??
+      actor.BirthDate ??
+      actor.birthDate ??
+      actor.date_of_birth;
+    const biography =
+      actor.biography ??
+      actor.Biography ??
+      actor.description ??
+      actor.bio ??
+      actor.about;
+    const movies = this._mergeMovies(
+      this._getActorMovies(actor),
+      fallbackMovies,
+    );
+    const actorId =
+      actor.id ?? actor.ID ?? actor.actor_id ?? actor.ActorID ?? null;
+    const fullName =
+      actor.full_name ??
+      actor.FullName ??
+      actor.fullName ??
+      [actor.first_name, actor.last_name].filter(Boolean).join(" ").trim();
+    const countryId =
+      actor.country_id ?? actor.CountryID ?? actor.countryId ?? null;
+    const imageValue =
+      actor.picture_file_key ??
+      actor.PictureFileKey ??
+      actor.picture_src ??
+      actor.picture ??
+      actor.avatar ??
+      actor.img_url ??
+      actor.imgUrl ??
+      actor.photo_url ??
+      actor.photoUrl;
 
     return {
-      id: actor.id ?? actor.ID ?? null,
-      full_name: actor.full_name ?? actor.FullName ?? "Имя актера не указано",
-      country_id: actor.country_id ?? actor.CountryID ?? null,
-      country_label: this._formatCountry(actor.country_id ?? actor.CountryID),
+      id: actorId,
+      full_name: fullName || "Имя актера не указано",
+      country_id: countryId,
+      country_label: this._formatCountry(
+        countryId,
+        actor.country_name ?? actor.country ?? actor.Country,
+      ),
       picture_src:
-        this._normalizeImageUrl(
-          actor.picture_file_key || actor.PictureFileKey || actor.img_url || actor.imgUrl,
-        ) || "/img/user-avatar.png",
+        this._normalizeImageUrl(imageValue) || "/img/user-avatar.png",
       birth_date: birthDate ? this._formatDate(birthDate) : "Не указана",
       biography: biography || "Нет описания",
       movies_count: movies.length,
       movies: this._mapMovies(movies),
-    };
-  }
-
-  /**
-   * Временная заглушка актера, пока с бэка нет стабильного ответа.
-   * Поля соответствуют структуре API.
-   * @private
-   * @param {string|number|null} [actorId=null]
-   * @returns {Object}
-   */
-  _createActorStub(actorId = null) {
-    return {
-      id: Number(actorId) || 0,
-      full_name: "Кристиан Бейл",
-      birth_date: "1974-01-30T00:00:00Z",
-      biography: "Актер с широким диапазоном ролей: от психологических драм до масштабных приключенческих фильмов.",
-      country_id: 826,
-      img_url: "img/actors/christian-bale.jpg",
-      movies: [
-        { id: 101, title: "Фильм 1", img_url: "img/1.jpg" },
-        { id: 205, title: "Фильм 2", img_url: "img/2.jpeg" },
-        { id: 309, title: "Фильм 3", img_url: "img/3.jpg" },
-        { id: 412, title: "Фильм 4", img_url: "img/4.jpg" },
-        { id: 518, title: "Фильм 5", img_url: "img/5.jpg" },
-        { id: 624, title: "Фильм 6", img_url: "img/image_10.jpg" },
-      ],
     };
   }
 
@@ -218,7 +272,9 @@ export default class ActorPage extends BasePage {
       return `/${normalizedPath}`;
     }
 
-    return normalizedPath.startsWith("/") ? normalizedPath : `/${normalizedPath}`;
+    return normalizedPath.startsWith("/")
+      ? normalizedPath
+      : `/${normalizedPath}`;
   }
 
   /**
@@ -227,12 +283,158 @@ export default class ActorPage extends BasePage {
    * @param {number|string|null} countryId
    * @returns {string}
    */
-  _formatCountry(countryId) {
+  _formatCountry(countryId, countryName = "") {
+    const normalizedCountryName = String(countryName ?? "").trim();
+
+    if (normalizedCountryName) {
+      return normalizedCountryName;
+    }
+
     if (countryId === null || countryId === undefined || countryId === "") {
       return "Не указана";
     }
 
     return `Country #${countryId}`;
+  }
+
+  /**
+   * Возвращает фильмографию актера из разных вариантов ответа API.
+   * @private
+   * @param {Object} actor
+   * @returns {Object[]}
+   */
+  _getActorMovies(actor) {
+    const movieCollections = [
+      actor.movies,
+      actor.Movies,
+      actor.filmography,
+      actor.films,
+      actor.titles,
+      actor.projects,
+    ];
+
+    const movies = movieCollections.find((value) => Array.isArray(value));
+    return Array.isArray(movies) ? movies : [];
+  }
+
+  _mergeMovies(primaryMovies, fallbackMovies) {
+    const mergedMovies = [];
+    const seenIds = new Set();
+
+    [primaryMovies, fallbackMovies].forEach((movieCollection) => {
+      if (!Array.isArray(movieCollection)) {
+        return;
+      }
+
+      movieCollection.forEach((movie) => {
+        if (!movie || typeof movie !== "object") {
+          return;
+        }
+
+        const movieId = String(
+          movie.id ?? movie.ID ?? movie.movie_id ?? movie.MovieID ?? "",
+        ).trim();
+
+        if (!movieId || seenIds.has(movieId)) {
+          return;
+        }
+
+        seenIds.add(movieId);
+        mergedMovies.push(movie);
+      });
+    });
+
+    return mergedMovies;
+  }
+
+  _getMoviesFromSelections(selections, actor) {
+    if (!Array.isArray(selections) || !actor || typeof actor !== "object") {
+      return [];
+    }
+
+    const actorId = String(
+      actor.id ?? actor.ID ?? actor.actor_id ?? actor.ActorID ?? "",
+    ).trim();
+    const actorName = String(
+      actor.full_name ??
+        actor.FullName ??
+        actor.fullName ??
+        [actor.first_name, actor.last_name].filter(Boolean).join(" "),
+    )
+      .trim()
+      .toLowerCase();
+
+    const allMovies = selections
+      .flatMap((selection) => {
+        if (Array.isArray(selection?.movies)) {
+          return selection.movies;
+        }
+
+        if (Array.isArray(selection?.Movies)) {
+          return selection.Movies;
+        }
+
+        if (Array.isArray(selection?.titles)) {
+          return selection.titles;
+        }
+
+        return [];
+      })
+      .filter((movie) => movie && typeof movie === "object");
+
+    return allMovies.filter((movie) =>
+      this._movieMatchesActor(movie, actorId, actorName),
+    );
+  }
+
+  _movieMatchesActor(movie, actorId, actorName) {
+    const movieActorCollections = [
+      movie.actors,
+      movie.Actors,
+      movie.cast,
+      movie.Cast,
+      movie.persons,
+      movie.Persons,
+    ];
+
+    const people = movieActorCollections.find((value) => Array.isArray(value));
+
+    if (Array.isArray(people) && people.length) {
+      return people.some((person) => {
+        if (!person || typeof person !== "object") {
+          return false;
+        }
+
+        const personId = String(
+          person.id ?? person.ID ?? person.actor_id ?? person.ActorID ?? "",
+        ).trim();
+        const personName = String(
+          person.full_name ??
+            person.FullName ??
+            person.fullName ??
+            [person.first_name, person.last_name].filter(Boolean).join(" "),
+        )
+          .trim()
+          .toLowerCase();
+
+        return (
+          (actorId && personId === actorId) ||
+          (actorName && personName === actorName)
+        );
+      });
+    }
+
+    const singleActorId = String(movie.actor_id ?? movie.ActorID ?? "").trim();
+    const singleActorName = String(
+      movie.actor_name ?? movie.actor ?? movie.Actor ?? "",
+    )
+      .trim()
+      .toLowerCase();
+
+    return (
+      (actorId && singleActorId === actorId) ||
+      (actorName && singleActorName === actorName)
+    );
   }
 
   /**
@@ -243,20 +445,36 @@ export default class ActorPage extends BasePage {
    */
   _mapMovies(movies) {
     return movies
-      .filter((movie) => movie && typeof movie === "object" && movie.id !== null && movie.id !== undefined)
+      .filter((movie) => {
+        if (!movie || typeof movie !== "object") {
+          return false;
+        }
+
+        const movieId = movie.id ?? movie.ID ?? movie.movie_id ?? movie.MovieID;
+        return movieId !== null && movieId !== undefined && movieId !== "";
+      })
       .map((movie) => {
-        const movieId = movie.id;
+        const movieId = movie.id ?? movie.ID ?? movie.movie_id ?? movie.MovieID;
         const imageUrl =
-          this._normalizeImageUrl(movie?.img_url || movie?.posterUrl || movie?.poster_url) ||
-          "/img/image_10.jpg";
+          this._normalizeImageUrl(
+            movie?.img_url ||
+              movie?.posterUrl ||
+              movie?.poster_url ||
+              movie?.picture_src ||
+              movie?.PictureFileKey,
+          ) || "/img/image_10.jpg";
+        const title = movie.title ?? movie.Title ?? movie.name ?? movie.Name;
 
         return {
           id: movieId,
-          title: movie.title || `Фильм ${movieId}`,
+          title: title || `Фильм ${movieId}`,
           posterUrl: imageUrl,
           poster_src: imageUrl,
-          description: "Фильм из фильмографии актера.",
-          genres: [],
+          description:
+            movie.description ??
+            movie.Description ??
+            "Фильм из фильмографии актера.",
+          genres: Array.isArray(movie.genres) ? movie.genres : [],
           actionText: "О фильме",
           href: `/movie/${encodeURIComponent(movieId)}`,
         };
@@ -277,14 +495,14 @@ export default class ActorPage extends BasePage {
     }
 
     this.addChild(
-        "header",
-        new HeaderComponent(
-            {
-              ...this.context.userData,
-            },
-            this,
-            header,
-        ),
+      "header",
+      new HeaderComponent(
+        {
+          ...this.context.userData,
+        },
+        this,
+        header,
+      ),
     );
 
     this._setupActorMoviesCarousel();
@@ -292,7 +510,9 @@ export default class ActorPage extends BasePage {
 
   _setupActorMoviesCarousel() {
     const carouselSlot = this.el.querySelector("#actor-movies-carousel");
-    const movies = Array.isArray(this.context.actor?.movies) ? this.context.actor.movies : [];
+    const movies = Array.isArray(this.context.actor?.movies)
+      ? this.context.actor.movies
+      : [];
 
     if (!carouselSlot || !movies.length) {
       return;
@@ -306,7 +526,7 @@ export default class ActorPage extends BasePage {
           title: "Фильмы с этим актером",
           movies,
           posterVariant: "default",
-          posterSize: "small",
+          posterSize: "medium",
           showArrows: false,
         },
         this,

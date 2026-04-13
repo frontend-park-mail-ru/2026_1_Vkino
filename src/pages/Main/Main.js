@@ -33,7 +33,6 @@ export default class MainPage extends BasePage {
      * @default false
      */
     this._contextLoaded = false;
-
   }
 
   /**
@@ -120,7 +119,11 @@ export default class MainPage extends BasePage {
 
   _setupHeroCarousel() {
     const heroSlot = this.el.querySelector("#hero-carousel");
-    if (!heroSlot || !Array.isArray(this.context.heroMovies) || !this.context.heroMovies.length) {
+    if (
+      !heroSlot ||
+      !Array.isArray(this.context.heroMovies) ||
+      !this.context.heroMovies.length
+    ) {
       return;
     }
 
@@ -202,9 +205,18 @@ function normalizeMovie(movie = {}, index = 0) {
   return {
     id: movieId,
     title: movie.title || movie.name || "Фильм",
-    posterUrl: movie.posterUrl || movie.poster_url || movie.img_url || "img/image_10.jpg",
+    posterUrl:
+      movie.posterUrl ||
+      movie.poster_url ||
+      movie.img_url ||
+      "img/image_10.jpg",
     backdropUrl: movie.backdropUrl || movie.backdrop_url || "",
-    ageRating: movie.ageRating || movie.age_rating || movie.ageLimit || movie.age_limit || "18+",
+    ageRating:
+      movie.ageRating ||
+      movie.age_rating ||
+      movie.ageLimit ||
+      movie.age_limit ||
+      "18+",
     genres: movie.genres || movie.genre || [],
     description:
       movie.description ||
@@ -226,7 +238,8 @@ function buildFallbackHeroMovies() {
       backdropUrl: "img/image_10.jpg",
       ageRating: "16+",
       genres: ["Триллер", "Драма"],
-      description: "История о случайной встрече, которая меняет планы на одну длинную ночь.",
+      description:
+        "История о случайной встрече, которая меняет планы на одну длинную ночь.",
       imdbRating: "7.8",
       kpRating: "7.6",
       actionText: "Смотреть",
@@ -239,7 +252,8 @@ function buildFallbackHeroMovies() {
       backdropUrl: "img/image_11.jpg",
       ageRating: "12+",
       genres: ["Мелодрама", "Приключения"],
-      description: "Теплая история о выборе, свободе и людях, которые появляются в нужный момент.",
+      description:
+        "Теплая история о выборе, свободе и людях, которые появляются в нужный момент.",
       imdbRating: "8.1",
       kpRating: "7.9",
       actionText: "Смотреть",
@@ -252,7 +266,8 @@ function buildFallbackHeroMovies() {
       backdropUrl: "img/image_12.jpg",
       ageRating: "18+",
       genres: ["Боевик", "Криминал"],
-      description: "Одна поездка через весь город превращается в гонку, из которой нельзя выйти раньше времени.",
+      description:
+        "Одна поездка через весь город превращается в гонку, из которой нельзя выйти раньше времени.",
       imdbRating: "7.4",
       kpRating: "7.3",
       actionText: "Смотреть",

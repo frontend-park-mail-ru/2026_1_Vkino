@@ -50,12 +50,18 @@ export default class HeaderComponent extends BaseComponent {
    */
   addEventListeners() {
     this._subscribeToAuth();
-    this._bindToggleButton('[data-action="toggle-burger-menu"]', this._onBurgerToggleClick);
+    this._bindToggleButton(
+      '[data-action="toggle-burger-menu"]',
+      this._onBurgerToggleClick,
+    );
     this._bindToggleButton(
       '[data-action="toggle-profile-menu"]',
       this._onProfileToggleClick,
     );
-    this._bindToggleButton('[data-action="toggle-search"]', this._onSearchToggleClick);
+    this._bindToggleButton(
+      '[data-action="toggle-search"]',
+      this._onSearchToggleClick,
+    );
     this._bindToggleButton('[data-action="logout"]', this._onLogoutClick);
     this._bindNodeList(
       '[data-action="close-all-menus"]',
@@ -75,12 +81,18 @@ export default class HeaderComponent extends BaseComponent {
       this._unsubscribe = null;
     }
 
-    this._unbindToggleButton('[data-action="toggle-burger-menu"]', this._onBurgerToggleClick);
+    this._unbindToggleButton(
+      '[data-action="toggle-burger-menu"]',
+      this._onBurgerToggleClick,
+    );
     this._unbindToggleButton(
       '[data-action="toggle-profile-menu"]',
       this._onProfileToggleClick,
     );
-    this._unbindToggleButton('[data-action="toggle-search"]', this._onSearchToggleClick);
+    this._unbindToggleButton(
+      '[data-action="toggle-search"]',
+      this._onSearchToggleClick,
+    );
     this._unbindToggleButton('[data-action="logout"]', this._onLogoutClick);
     this._unbindNodeList(
       '[data-action="close-all-menus"]',
@@ -230,7 +242,9 @@ export default class HeaderComponent extends BaseComponent {
   }
 
   _isClickInsideMenu(target) {
-    const burgerButton = this.el.querySelector('[data-action="toggle-burger-menu"]');
+    const burgerButton = this.el.querySelector(
+      '[data-action="toggle-burger-menu"]',
+    );
     const profileButton = this.el.querySelector(
       '[data-action="toggle-profile-menu"]',
     );
