@@ -1,3 +1,10 @@
+/**
+ * Подключает список CSS-файлов страницы в `<head>` и возвращает функцию очистки.
+ *
+ * @param {string[]} [styleHrefs=[]] пути к CSS-файлам
+ * @param {string} [ownerKey="page"] ключ владельца для маркировки подключенных стилей
+ * @returns {Function} функция, удаляющая ранее подключенные стили
+ */
 export function attachPageStyles(styleHrefs = [], ownerKey = "page") {
   const attachedLinks = [];
 
