@@ -4,7 +4,7 @@ import { defineConfig } from "eslint/config";
 
 export default defineConfig([
   {
-    ignores: ["node_modules/**", "**/*.precompiled.js"],
+    ignores: ["node_modules/**", "**/*.precompiled.js", "dist/**"],
   },
   {
     files: ["server/**/*.js"],
