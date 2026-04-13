@@ -9,7 +9,9 @@ const SEEK_STEP_SECONDS = 10;
 export default class MoviePlayerComponent extends BaseComponent {
   constructor(context = {}, parent = null, el = null) {
     if (!parent) {
-      throw new Error("MoviePlayer: не передан parent для MoviePlayerComponent");
+      throw new Error(
+        "MoviePlayer: не передан parent для MoviePlayerComponent",
+      );
     }
 
     if (!el) {
@@ -60,7 +62,10 @@ export default class MoviePlayerComponent extends BaseComponent {
     this._bindDomEvents();
     document.addEventListener("keydown", this._onDocumentKeyDownBound);
     document.addEventListener("mousemove", this._onDocumentMouseMoveBound);
-    document.addEventListener("fullscreenchange", this._onFullscreenChangeBound);
+    document.addEventListener(
+      "fullscreenchange",
+      this._onFullscreenChangeBound,
+    );
     window.addEventListener("beforeunload", this._onBeforeUnloadBound);
   }
 
@@ -68,7 +73,10 @@ export default class MoviePlayerComponent extends BaseComponent {
     this._unbindDomEvents();
     document.removeEventListener("keydown", this._onDocumentKeyDownBound);
     document.removeEventListener("mousemove", this._onDocumentMouseMoveBound);
-    document.removeEventListener("fullscreenchange", this._onFullscreenChangeBound);
+    document.removeEventListener(
+      "fullscreenchange",
+      this._onFullscreenChangeBound,
+    );
     window.removeEventListener("beforeunload", this._onBeforeUnloadBound);
   }
 
@@ -81,7 +89,10 @@ export default class MoviePlayerComponent extends BaseComponent {
 
   async open(movieData, initialEpisodeId = null) {
     const normalizedMovie = normalizeMovieData(movieData);
-    const initialEpisode = this._resolveInitialEpisode(normalizedMovie, initialEpisodeId);
+    const initialEpisode = this._resolveInitialEpisode(
+      normalizedMovie,
+      initialEpisodeId,
+    );
 
     this.context = {
       ...this.context,
@@ -104,7 +115,10 @@ export default class MoviePlayerComponent extends BaseComponent {
       return;
     }
 
-    await this.loadEpisode(initialEpisode.id, { autoplay: true, restoreProgress: true });
+    await this.loadEpisode(initialEpisode.id, {
+      autoplay: true,
+      restoreProgress: true,
+    });
   }
 
   async close({ restoreHistory = true } = {}) {
@@ -136,10 +150,14 @@ export default class MoviePlayerComponent extends BaseComponent {
   }
 
   setOnCloseRequested(callback) {
-    this._closeRequestedCallback = typeof callback === "function" ? callback : null;
+    this._closeRequestedCallback =
+      typeof callback === "function" ? callback : null;
   }
 
-  async loadEpisode(episodeId, { autoplay = true, restoreProgress = true } = {}) {
+  async loadEpisode(
+    episodeId,
+    { autoplay = true, restoreProgress = true } = {},
+  ) {
     const normalizedEpisodeId = String(episodeId ?? "").trim();
 
     if (!normalizedEpisodeId) {
@@ -153,7 +171,10 @@ export default class MoviePlayerComponent extends BaseComponent {
       return;
     }
 
-    if (this.context.activeEpisodeId && this.context.activeEpisodeId !== normalizedEpisodeId) {
+    if (
+      this.context.activeEpisodeId &&
+      this.context.activeEpisodeId !== normalizedEpisodeId
+    ) {
       await this.saveProgress({ force: true });
     }
 
@@ -171,8 +192,12 @@ export default class MoviePlayerComponent extends BaseComponent {
       isEmpty: false,
       emptyText: "",
       isLoading: true,
-      episodeTitle: activeEpisode?.displayTitle || activeEpisode?.title || this.context.movieTitle,
-      episodeDescription: activeEpisode?.description || this.context.movieDescription,
+      episodeTitle:
+        activeEpisode?.displayTitle ||
+        activeEpisode?.title ||
+        this.context.movieTitle,
+      episodeDescription:
+        activeEpisode?.description || this.context.movieDescription,
     };
 
     this.pause();
@@ -180,9 +205,8 @@ export default class MoviePlayerComponent extends BaseComponent {
     this._lastSavedSecond = -1;
     this.updateUI();
 
-    const { ok, status, resp, error } = await this.playerService.getEpisodePlayback(
-      normalizedEpisodeId,
-    );
+    const { ok, status, resp, error } =
+      await this.playerService.getEpisodePlayback(normalizedEpisodeId);
 
     if (!ok) {
       this.context = {
@@ -214,7 +238,10 @@ export default class MoviePlayerComponent extends BaseComponent {
       return;
     }
 
-    const playbackPositionSeconds = Math.max(0, Number(resp?.position_seconds) || 0);
+    const playbackPositionSeconds = Math.max(
+      0,
+      Number(resp?.position_seconds) || 0,
+    );
     const restoredProgressSeconds = restoreProgress
       ? await this.restoreProgress(normalizedEpisodeId, playbackPositionSeconds)
       : 0;
@@ -236,7 +263,8 @@ export default class MoviePlayerComponent extends BaseComponent {
       errorText: "",
       isEmpty: false,
       emptyText: "",
-      duration: Number(resp?.duration_seconds) || activeEpisode?.durationSeconds || 0,
+      duration:
+        Number(resp?.duration_seconds) || activeEpisode?.durationSeconds || 0,
       durationLabel: formatTime(Number(resp?.duration_seconds) || 0),
       currentTime: this._pendingCurrentTime,
       currentTimeLabel: formatTime(this._pendingCurrentTime),
@@ -347,8 +375,11 @@ export default class MoviePlayerComponent extends BaseComponent {
       };
     }
 
-    const duration = Number(this.videoEl.duration) || this.context.duration || 0;
-    const rawCurrentTime = resetOnEnded ? 0 : Number(this.videoEl.currentTime) || 0;
+    const duration =
+      Number(this.videoEl.duration) || this.context.duration || 0;
+    const rawCurrentTime = resetOnEnded
+      ? 0
+      : Number(this.videoEl.currentTime) || 0;
     const normalizedCurrentTime = Math.max(
       0,
       Math.min(Math.floor(rawCurrentTime), duration || Number.MAX_SAFE_INTEGER),
@@ -392,7 +423,9 @@ export default class MoviePlayerComponent extends BaseComponent {
 
     return Math.max(
       0,
-      Math.floor(Math.max(apiProgressSeconds, Number(playbackPositionSeconds) || 0)),
+      Math.floor(
+        Math.max(apiProgressSeconds, Number(playbackPositionSeconds) || 0),
+      ),
     );
   }
 
@@ -406,15 +439,23 @@ export default class MoviePlayerComponent extends BaseComponent {
     const currentTimeEl = this.el.querySelector('[data-role="current-time"]');
     const durationTimeEl = this.el.querySelector('[data-role="duration-time"]');
     const playButtons = this.el.querySelectorAll('[data-action="toggle-play"]');
-    const fullscreenButtons = this.el.querySelectorAll('[data-action="toggle-fullscreen"]');
+    const fullscreenButtons = this.el.querySelectorAll(
+      '[data-action="toggle-fullscreen"]',
+    );
     const muteButtons = this.el.querySelectorAll('[data-action="toggle-mute"]');
     const titleEl = this.el.querySelector(".movie-player__title");
     const descriptionEl = this.el.querySelector(".movie-player__description");
     const posterLayer = this.el.querySelector('[data-role="poster-layer"]');
 
     overlay?.classList.toggle("is-open", this.context.isOpen);
-    overlay?.classList.toggle("is-controls-visible", this.context.areControlsVisible);
-    overlay?.classList.toggle("is-fullscreen-fallback", this.context.isFullscreenFallback);
+    overlay?.classList.toggle(
+      "is-controls-visible",
+      this.context.areControlsVisible,
+    );
+    overlay?.classList.toggle(
+      "is-fullscreen-fallback",
+      this.context.isFullscreenFallback,
+    );
 
     if (overlay) {
       overlay.setAttribute("aria-hidden", String(!this.context.isOpen));
@@ -461,7 +502,10 @@ export default class MoviePlayerComponent extends BaseComponent {
 
     posterLayer?.classList.toggle(
       "is-hidden",
-      this.context.isPlaying || this.context.isLoading || this.context.hasError || this.context.isEmpty,
+      this.context.isPlaying ||
+        this.context.isLoading ||
+        this.context.hasError ||
+        this.context.isEmpty,
     );
   }
 
@@ -486,12 +530,27 @@ export default class MoviePlayerComponent extends BaseComponent {
 
   _bindDomEvents() {
     this._bindAction('[data-action="close"]', this._onCloseClick, true);
-    this._bindAction('[data-action="toggle-play"]', this._onTogglePlayClick, true);
-    this._bindAction('[data-action="seek-backward"]', this._onSeekBackwardClick);
+    this._bindAction(
+      '[data-action="toggle-play"]',
+      this._onTogglePlayClick,
+      true,
+    );
+    this._bindAction(
+      '[data-action="seek-backward"]',
+      this._onSeekBackwardClick,
+    );
     this._bindAction('[data-action="seek-forward"]', this._onSeekForwardClick);
     this._bindAction('[data-action="toggle-mute"]', this._onToggleMuteClick);
-    this._bindAction('[data-action="toggle-fullscreen"]', this._onToggleFullscreenClick, true);
-    this._bindAction('[data-action="select-episode"]', this._onSelectEpisodeClick, true);
+    this._bindAction(
+      '[data-action="toggle-fullscreen"]',
+      this._onToggleFullscreenClick,
+      true,
+    );
+    this._bindAction(
+      '[data-action="select-episode"]',
+      this._onSelectEpisodeClick,
+      true,
+    );
 
     const progressInput = this.el.querySelector('[data-role="progress-input"]');
     progressInput?.addEventListener("input", this._onProgressInput);
@@ -514,14 +573,34 @@ export default class MoviePlayerComponent extends BaseComponent {
 
   _unbindDomEvents() {
     this._unbindAction('[data-action="close"]', this._onCloseClick, true);
-    this._unbindAction('[data-action="toggle-play"]', this._onTogglePlayClick, true);
-    this._unbindAction('[data-action="seek-backward"]', this._onSeekBackwardClick);
-    this._unbindAction('[data-action="seek-forward"]', this._onSeekForwardClick);
+    this._unbindAction(
+      '[data-action="toggle-play"]',
+      this._onTogglePlayClick,
+      true,
+    );
+    this._unbindAction(
+      '[data-action="seek-backward"]',
+      this._onSeekBackwardClick,
+    );
+    this._unbindAction(
+      '[data-action="seek-forward"]',
+      this._onSeekForwardClick,
+    );
     this._unbindAction('[data-action="toggle-mute"]', this._onToggleMuteClick);
-    this._unbindAction('[data-action="toggle-fullscreen"]', this._onToggleFullscreenClick, true);
-    this._unbindAction('[data-action="select-episode"]', this._onSelectEpisodeClick, true);
+    this._unbindAction(
+      '[data-action="toggle-fullscreen"]',
+      this._onToggleFullscreenClick,
+      true,
+    );
+    this._unbindAction(
+      '[data-action="select-episode"]',
+      this._onSelectEpisodeClick,
+      true,
+    );
 
-    const progressInput = this.el?.querySelector('[data-role="progress-input"]');
+    const progressInput = this.el?.querySelector(
+      '[data-role="progress-input"]',
+    );
     progressInput?.removeEventListener("input", this._onProgressInput);
     progressInput?.removeEventListener("change", this._onProgressChange);
 
@@ -593,7 +672,10 @@ export default class MoviePlayerComponent extends BaseComponent {
   }
 
   async _exitFullscreenIfNeeded() {
-    if (document.fullscreenElement && typeof document.exitFullscreen === "function") {
+    if (
+      document.fullscreenElement &&
+      typeof document.exitFullscreen === "function"
+    ) {
       await document.exitFullscreen();
     }
   }
@@ -679,7 +761,9 @@ export default class MoviePlayerComponent extends BaseComponent {
   }
 
   _resolveInitialEpisode(movieData, initialEpisodeId) {
-    const episodes = Array.isArray(movieData?.episodes) ? movieData.episodes : [];
+    const episodes = Array.isArray(movieData?.episodes)
+      ? movieData.episodes
+      : [];
     const normalizedEpisodeId = String(initialEpisodeId ?? "").trim();
 
     if (!episodes.length) {
@@ -704,8 +788,12 @@ export default class MoviePlayerComponent extends BaseComponent {
       return;
     }
 
-    const duration = Number(this.videoEl.duration) || this.context.duration || 0;
-    const boundedTime = Math.min(Math.max(Number(nextTime) || 0, 0), duration || Number.MAX_SAFE_INTEGER);
+    const duration =
+      Number(this.videoEl.duration) || this.context.duration || 0;
+    const boundedTime = Math.min(
+      Math.max(Number(nextTime) || 0, 0),
+      duration || Number.MAX_SAFE_INTEGER,
+    );
 
     this.videoEl.currentTime = boundedTime;
     this.context = {
@@ -760,12 +848,16 @@ export default class MoviePlayerComponent extends BaseComponent {
       return;
     }
 
-    await this.loadEpisode(episodeId, { autoplay: true, restoreProgress: true });
+    await this.loadEpisode(episodeId, {
+      autoplay: true,
+      restoreProgress: true,
+    });
   };
 
   _onProgressInput = (event) => {
     const target = event.currentTarget;
-    const duration = Number(this.videoEl?.duration) || this.context.duration || 0;
+    const duration =
+      Number(this.videoEl?.duration) || this.context.duration || 0;
     const nextPercent = Number(target?.value) || 0;
     const nextTime = duration > 0 ? (duration * nextPercent) / 100 : 0;
 
@@ -781,7 +873,8 @@ export default class MoviePlayerComponent extends BaseComponent {
 
   _onProgressChange = (event) => {
     const target = event.currentTarget;
-    const duration = Number(this.videoEl?.duration) || this.context.duration || 0;
+    const duration =
+      Number(this.videoEl?.duration) || this.context.duration || 0;
     const nextPercent = Number(target?.value) || 0;
     const nextTime = duration > 0 ? (duration * nextPercent) / 100 : 0;
 
@@ -806,7 +899,8 @@ export default class MoviePlayerComponent extends BaseComponent {
       return;
     }
 
-    const duration = Number(this.videoEl.duration) || this.context.duration || 0;
+    const duration =
+      Number(this.videoEl.duration) || this.context.duration || 0;
 
     if (this._pendingCurrentTime > 0) {
       try {
@@ -822,7 +916,10 @@ export default class MoviePlayerComponent extends BaseComponent {
       durationLabel: formatTime(duration),
       currentTime: Number(this.videoEl.currentTime) || 0,
       currentTimeLabel: formatTime(Number(this.videoEl.currentTime) || 0),
-      progressPercent: calculateProgressPercent(Number(this.videoEl.currentTime) || 0, duration),
+      progressPercent: calculateProgressPercent(
+        Number(this.videoEl.currentTime) || 0,
+        duration,
+      ),
     };
     this.updateUI();
 
@@ -837,7 +934,8 @@ export default class MoviePlayerComponent extends BaseComponent {
     }
 
     const currentTime = Number(this.videoEl.currentTime) || 0;
-    const duration = Number(this.videoEl.duration) || this.context.duration || 0;
+    const duration =
+      Number(this.videoEl.duration) || this.context.duration || 0;
 
     this.context = {
       ...this.context,
@@ -935,13 +1033,17 @@ export default class MoviePlayerComponent extends BaseComponent {
 
     if (event.code === "ArrowLeft") {
       event.preventDefault();
-      this._seekTo((Number(this.videoEl?.currentTime) || 0) - SEEK_STEP_SECONDS);
+      this._seekTo(
+        (Number(this.videoEl?.currentTime) || 0) - SEEK_STEP_SECONDS,
+      );
       return;
     }
 
     if (event.code === "ArrowRight") {
       event.preventDefault();
-      this._seekTo((Number(this.videoEl?.currentTime) || 0) + SEEK_STEP_SECONDS);
+      this._seekTo(
+        (Number(this.videoEl?.currentTime) || 0) + SEEK_STEP_SECONDS,
+      );
       return;
     }
 
@@ -1022,7 +1124,8 @@ function createInitialContext() {
 
 function buildOpenContext(movieData, activeEpisodeId) {
   const episodes = markActiveEpisode(movieData.episodes, activeEpisodeId);
-  const activeEpisode = episodes.find((episode) => episode.isActive) || episodes[0] || null;
+  const activeEpisode =
+    episodes.find((episode) => episode.isActive) || episodes[0] || null;
 
   return {
     isOpen: true,
@@ -1058,23 +1161,30 @@ function buildOpenContext(movieData, activeEpisodeId) {
 
 function normalizeMovieData(movieData = {}) {
   const episodes = Array.isArray(movieData.episodes)
-    ? movieData.episodes.map((episode, index) => normalizeEpisodeData(episode, index))
+    ? movieData.episodes.map((episode, index) =>
+        normalizeEpisodeData(episode, index),
+      )
     : [];
 
   return {
     id: normalizeString(movieData.id),
     title: normalizeString(movieData.title) || "Видео",
     description: normalizeString(movieData.description),
-    contentType: normalizeString(movieData.contentType || movieData.content_type),
+    contentType: normalizeString(
+      movieData.contentType || movieData.content_type,
+    ),
     posterUrl: normalizeString(movieData.posterUrl || movieData.img_url),
     episodes,
   };
 }
 
 function normalizeEpisodeData(episode = {}, index = 0) {
-  const seasonNumber = Number(episode.seasonNumber ?? episode.season_number) || 1;
-  const episodeNumber = Number(episode.episodeNumber ?? episode.episode_number) || index + 1;
-  const durationSeconds = Number(episode.durationSeconds ?? episode.duration_seconds) || 0;
+  const seasonNumber =
+    Number(episode.seasonNumber ?? episode.season_number) || 1;
+  const episodeNumber =
+    Number(episode.episodeNumber ?? episode.episode_number) || index + 1;
+  const durationSeconds =
+    Number(episode.durationSeconds ?? episode.duration_seconds) || 0;
   const title = normalizeString(episode.title) || `Эпизод ${episodeNumber}`;
 
   return {
@@ -1123,7 +1233,10 @@ function calculateProgressPercent(currentTime, duration) {
     return 0;
   }
 
-  return Math.max(0, Math.min((Number(currentTime) / normalizedDuration) * 100, 100));
+  return Math.max(
+    0,
+    Math.min((Number(currentTime) / normalizedDuration) * 100, 100),
+  );
 }
 
 function mapPlaybackError(status, errorText = "") {

@@ -13,7 +13,9 @@ import { resolveAvatarUrl } from "../../utils/avatar.js";
 export default class SettingsPage extends BasePage {
   constructor(context = {}, parent = null, el = null) {
     if (!el) {
-      throw new Error("SettingsPage: не передан корневой элемент для SettingsPage");
+      throw new Error(
+        "SettingsPage: не передан корневой элемент для SettingsPage",
+      );
     }
 
     const mockCoinHistory = [
@@ -33,7 +35,8 @@ export default class SettingsPage extends BasePage {
       userData: { email: "", birthDate: "", avatarUrl: "" }, // временно
       coinHistory: mockCoinHistory,
       emptyCoinsTitle: "Пока здесь пусто",
-      emptyCoinsDescription: "Смотрите фильмы и участвуйте в активностях VKino, чтобы начать зарабатывать Vkino coins.",
+      emptyCoinsDescription:
+        "Смотрите фильмы и участвуйте в активностях VKino, чтобы начать зарабатывать Vkino coins.",
       ...context,
     };
 
@@ -64,7 +67,7 @@ export default class SettingsPage extends BasePage {
     if (state.status === "loading") {
       this._authUnsubscribe = authStore.subscribe((newState) => {
         if (newState.status === "loading") return;
-        
+
         if (!newState.user) {
           router.go("/sign-in");
           return;
@@ -72,13 +75,13 @@ export default class SettingsPage extends BasePage {
 
         this._authUnsubscribe?.();
         this._authUnsubscribe = null;
-        
+
         this.refresh({
           ...this.context,
           userData: this._buildUserDataFromStore(newState),
         });
       });
-      
+
       return super.init();
     }
 
@@ -111,7 +114,9 @@ export default class SettingsPage extends BasePage {
   }
 
   _setupEditableFields() {
-    const editableInputs = this.el.querySelectorAll(".settings__input_editable");
+    const editableInputs = this.el.querySelectorAll(
+      ".settings__input_editable",
+    );
     editableInputs.forEach((input) => {
       const field = input.dataset.field;
       this._originalValues[field] = input.value;
@@ -147,7 +152,10 @@ export default class SettingsPage extends BasePage {
 
     const today = new Date();
     const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    const message = value > todayString ? "Дата рождения не может быть позже сегодняшнего дня" : "";
+    const message =
+      value > todayString
+        ? "Дата рождения не может быть позже сегодняшнего дня"
+        : "";
 
     setError(birthDateInput, errorEl, message);
     return message;
@@ -252,9 +260,21 @@ export default class SettingsPage extends BasePage {
 
   _getPasswordFields() {
     return [
-      { id: "oldPassword", input: this.el.querySelector("#oldPassword"), errorEl: this.el.querySelector("#old-password-error") },
-      { id: "newPassword", input: this.el.querySelector("#newPassword"), errorEl: this.el.querySelector("#new-password-error") },
-      { id: "confirmPassword", input: this.el.querySelector("#confirmPassword"), errorEl: this.el.querySelector("#confirm-password-error") },
+      {
+        id: "oldPassword",
+        input: this.el.querySelector("#oldPassword"),
+        errorEl: this.el.querySelector("#old-password-error"),
+      },
+      {
+        id: "newPassword",
+        input: this.el.querySelector("#newPassword"),
+        errorEl: this.el.querySelector("#new-password-error"),
+      },
+      {
+        id: "confirmPassword",
+        input: this.el.querySelector("#confirmPassword"),
+        errorEl: this.el.querySelector("#confirm-password-error"),
+      },
     ];
   }
 
@@ -267,28 +287,61 @@ export default class SettingsPage extends BasePage {
 
     if (fieldId === "oldPassword") {
       const msg = hasAny && !old ? "Введите текущий пароль" : "";
-      setError(this.el.querySelector("#oldPassword"), this.el.querySelector("#old-password-error"), msg);
+      setError(
+        this.el.querySelector("#oldPassword"),
+        this.el.querySelector("#old-password-error"),
+        msg,
+      );
       return msg;
     }
 
     if (fieldId === "newPassword") {
-      const msg = newP ? validatePassword(newP) : (hasAny ? "Введите новый пароль" : "");
-      setError(this.el.querySelector("#newPassword"), this.el.querySelector("#new-password-error"), msg);
+      const msg = newP
+        ? validatePassword(newP)
+        : hasAny
+          ? "Введите новый пароль"
+          : "";
+      setError(
+        this.el.querySelector("#newPassword"),
+        this.el.querySelector("#new-password-error"),
+        msg,
+      );
 
       if (conf && conf !== newP) {
-        setError(this.el.querySelector("#confirmPassword"), this.el.querySelector("#confirm-password-error"), "Пароли не совпадают");
+        setError(
+          this.el.querySelector("#confirmPassword"),
+          this.el.querySelector("#confirm-password-error"),
+          "Пароли не совпадают",
+        );
       } else if (!conf && newP) {
-        setError(this.el.querySelector("#confirmPassword"), this.el.querySelector("#confirm-password-error"), "Повторите новый пароль");
+        setError(
+          this.el.querySelector("#confirmPassword"),
+          this.el.querySelector("#confirm-password-error"),
+          "Повторите новый пароль",
+        );
       } else {
-        setError(this.el.querySelector("#confirmPassword"), this.el.querySelector("#confirm-password-error"), "");
+        setError(
+          this.el.querySelector("#confirmPassword"),
+          this.el.querySelector("#confirm-password-error"),
+          "",
+        );
       }
 
       return msg;
     }
 
     if (fieldId === "confirmPassword") {
-      const msg = conf && conf !== newP ? "Пароли не совпадают" : (hasAny && !conf ? "Повторите новый пароль" : "");
-      setError(this.el.querySelector("#confirmPassword"), this.el.querySelector("#confirm-password-error"), msg);
+      const msg =
+        conf && conf !== newP
+          ? "Пароли не совпадают"
+          : hasAny && !conf
+            ? "Повторите новый пароль"
+            : "";
+      setError(
+        this.el.querySelector("#confirmPassword"),
+        this.el.querySelector("#confirm-password-error"),
+        msg,
+      );
       return msg;
     }
 
@@ -322,7 +375,9 @@ export default class SettingsPage extends BasePage {
   }
 
   _checkForChanges() {
-    const editableInputs = this.el.querySelectorAll(".settings__input_editable");
+    const editableInputs = this.el.querySelectorAll(
+      ".settings__input_editable",
+    );
     let hasChanges = false;
     const birthDateError = this._validateBirthDate();
 
@@ -352,7 +407,9 @@ export default class SettingsPage extends BasePage {
 
   _setupButtonHandlers() {
     const saveBtn = this.el.querySelector('[data-action="save-profile"]');
-    const changePwdBtn = this.el.querySelector('[data-action="change-password"]');
+    const changePwdBtn = this.el.querySelector(
+      '[data-action="change-password"]',
+    );
 
     if (saveBtn) {
       const onSaveClick = async (e) => {
@@ -406,7 +463,10 @@ export default class SettingsPage extends BasePage {
       this._pendingAvatarFile,
     );
     if (!profileResult.ok) {
-      this._setProfileSaveError(profileResult.error || "Не удалось сохранить профиль. Попробуйте позже.");
+      this._setProfileSaveError(
+        profileResult.error ||
+          "Не удалось сохранить профиль. Попробуйте позже.",
+      );
       if (saveBtn) saveBtn.disabled = false;
       return;
     }
@@ -426,7 +486,9 @@ export default class SettingsPage extends BasePage {
     }
 
     if (profileResult.resp?.avatar_url !== undefined) {
-      this.context.userData.avatarUrl = resolveAvatarUrl(profileResult.resp.avatar_url);
+      this.context.userData.avatarUrl = resolveAvatarUrl(
+        profileResult.resp.avatar_url,
+      );
     }
 
     // Обновляем оригинальные значения для отслеживания изменений
@@ -483,7 +545,9 @@ export default class SettingsPage extends BasePage {
   }
 
   _validateAllPasswordFields() {
-    return this._getPasswordFields().every(({ id }) => !this._validatePasswordField(id));
+    return this._getPasswordFields().every(
+      ({ id }) => !this._validatePasswordField(id),
+    );
   }
 
   removeEventListeners() {
@@ -506,7 +570,8 @@ export default class SettingsPage extends BasePage {
 
     if (this._avatarInputHandler) {
       const avatarInput = this.el.querySelector("#avatarInput");
-      if (avatarInput) avatarInput.removeEventListener("change", this._avatarInputHandler);
+      if (avatarInput)
+        avatarInput.removeEventListener("change", this._avatarInputHandler);
       this._avatarInputHandler = null;
     }
 
@@ -516,10 +581,17 @@ export default class SettingsPage extends BasePage {
     }
 
     const saveBtn = this.el.querySelector('[data-action="save-profile"]');
-    const changePwdBtn = this.el.querySelector('[data-action="change-password"]');
+    const changePwdBtn = this.el.querySelector(
+      '[data-action="change-password"]',
+    );
 
-    if (saveBtn) saveBtn.removeEventListener("click", this._buttonHandlers.get(saveBtn));
-    if (changePwdBtn) changePwdBtn.removeEventListener("click", this._buttonHandlers.get(changePwdBtn));
+    if (saveBtn)
+      saveBtn.removeEventListener("click", this._buttonHandlers.get(saveBtn));
+    if (changePwdBtn)
+      changePwdBtn.removeEventListener(
+        "click",
+        this._buttonHandlers.get(changePwdBtn),
+      );
   }
 
   beforeDestroy() {

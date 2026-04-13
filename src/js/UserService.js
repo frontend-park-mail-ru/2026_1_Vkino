@@ -6,7 +6,7 @@ import { apiService } from "./api.js";
  */
 export class UserService {
   /**
-  * Конструирует экземпляр UserService.
+   * Конструирует экземпляр UserService.
    * @constructor
    * @param {ApiService} экземпляр ApiService
    */

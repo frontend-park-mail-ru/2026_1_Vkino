@@ -25,7 +25,6 @@ export class Router {
     window.addEventListener("popstate", this._syncRoute);
   }
 
-
   /**
    * Регистрирует новый путь.
    * @param {string} path - URL путь.

@@ -8,7 +8,9 @@ const DEFAULT_ACTION_TEXT = "Смотреть";
 export default class MoviePosterComponent extends BaseComponent {
   constructor(context = {}, parent = null, el = null) {
     if (!parent) {
-      throw new Error("MoviePoster: не передан parent для MoviePosterComponent");
+      throw new Error(
+        "MoviePoster: не передан parent для MoviePosterComponent",
+      );
     }
 
     if (!el) {
@@ -29,7 +31,9 @@ function buildPosterContext(context = {}) {
   const size = context.size || DEFAULT_SIZE;
   const genres = normalizeGenres(context.genres);
   const description = normalizeDescription(context.description);
-  const ageRating = normalizeAgeRating(context.ageRating || context.age_rating || context.ageLimit);
+  const ageRating = normalizeAgeRating(
+    context.ageRating || context.age_rating || context.ageLimit,
+  );
   const imdbRating = normalizeRating(context.imdbRating || context.imdb_rating);
   const kpRating = normalizeRating(context.kpRating || context.kp_rating);
   const hasHeroBackdrop = variant === "hero" && Boolean(context.backdropUrl);

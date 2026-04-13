@@ -20,7 +20,9 @@ export class PlayerService {
       };
     }
 
-    return this.api.get(`/episode/${encodeURIComponent(normalizedEpisodeId)}/playback`);
+    return this.api.get(
+      `/episode/${encodeURIComponent(normalizedEpisodeId)}/playback`,
+    );
   }
 
   async getEpisodeProgress(episodeId) {
@@ -35,12 +37,17 @@ export class PlayerService {
       };
     }
 
-    return this.api.get(`/episode/${encodeURIComponent(normalizedEpisodeId)}/progress`);
+    return this.api.get(
+      `/episode/${encodeURIComponent(normalizedEpisodeId)}/progress`,
+    );
   }
 
   async saveEpisodeProgress(episodeId, positionSeconds) {
     const normalizedEpisodeId = String(episodeId ?? "").trim();
-    const normalizedPosition = Math.max(0, Math.floor(Number(positionSeconds) || 0));
+    const normalizedPosition = Math.max(
+      0,
+      Math.floor(Number(positionSeconds) || 0),
+    );
 
     if (!normalizedEpisodeId) {
       return {
@@ -51,9 +58,12 @@ export class PlayerService {
       };
     }
 
-    return this.api.put(`/episode/${encodeURIComponent(normalizedEpisodeId)}/progress`, {
-      position_seconds: normalizedPosition,
-    });
+    return this.api.put(
+      `/episode/${encodeURIComponent(normalizedEpisodeId)}/progress`,
+      {
+        position_seconds: normalizedPosition,
+      },
+    );
   }
 }
 

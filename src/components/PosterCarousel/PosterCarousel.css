@@ -75,7 +75,9 @@
   flex-shrink: 0;
   flex-grow: 0;
   flex-basis: auto;
-  transition: transform 0.28s ease, opacity 0.28s ease;
+  transition:
+    transform 0.28s ease,
+    opacity 0.28s ease;
 }
 
 .poster-carousel__slide--small {
@@ -127,30 +129,39 @@
   z-index: 1;
 }
 
-.poster-carousel--centered-hero .poster-carousel__slide--hero:not(.is-active):hover {
+.poster-carousel--centered-hero
+  .poster-carousel__slide--hero:not(.is-active):hover {
   opacity: 0.78;
   transform: scale(0.95);
 }
 
-.poster-carousel--centered-hero .poster-carousel__slide.is-active .movie-poster-card__content--always {
+.poster-carousel--centered-hero
+  .poster-carousel__slide.is-active
+  .movie-poster-card__content--always {
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;
 }
 
-.poster-carousel--centered-hero .poster-carousel__slide:not(.is-active) .movie-poster-card__content--always {
+.poster-carousel--centered-hero
+  .poster-carousel__slide:not(.is-active)
+  .movie-poster-card__content--always {
   opacity: 0;
   transform: translateY(18px);
   pointer-events: none;
 }
 
-.poster-carousel--centered-hero .poster-carousel__slide:not(.is-active) .movie-poster-card__shade {
+.poster-carousel--centered-hero
+  .poster-carousel__slide:not(.is-active)
+  .movie-poster-card__shade {
   background:
     linear-gradient(180deg, rgba(6, 3, 1, 0.08) 12%, rgba(6, 3, 1, 0.18) 52%),
     linear-gradient(0deg, rgba(6, 3, 1, 0.42) 0%, rgba(6, 3, 1, 0.06) 40%);
 }
 
-.poster-carousel--centered-hero .poster-carousel__slide:not(.is-active) .movie-poster-card__media {
+.poster-carousel--centered-hero
+  .poster-carousel__slide:not(.is-active)
+  .movie-poster-card__media {
   box-shadow:
     inset 0 0 0 1px rgba(230, 204, 171, 0.08),
     0 12px 28px rgba(0, 0, 0, 0.24);
@@ -277,15 +288,13 @@
   }
 }
 
-
 .poster-carousel__viewport img,
 .poster-carousel__slide img,
 .poster-carousel img {
-    user-drag: none;
-    -webkit-user-drag: none;
-    user-select: none;
-    -moz-user-select: none;
-    -webkit-user-select: none;
-    -ms-user-select: none;
+  user-drag: none;
+  -webkit-user-drag: none;
+  user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
 }
-

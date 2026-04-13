@@ -63,7 +63,7 @@ class AuthStore {
   }
   /**
    * Инициализация сессии при запуске приложения.
-   * Проверяет наличие токена, пытается получить данные пользователя 
+   * Проверяет наличие токена, пытается получить данные пользователя
    * или обновить истекшую сессию.
    * @returns {Promise<void>}
    */
@@ -207,8 +207,8 @@ class AuthStore {
   }
 }
 
-/** 
+/**
  * Экспортируемый экземпляр AuthStore (Singleton).
- * @type {AuthStore} 
+ * @type {AuthStore}
  */
 export const authStore = new AuthStore();

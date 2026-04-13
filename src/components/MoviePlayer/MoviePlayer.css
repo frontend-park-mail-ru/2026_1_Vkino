@@ -38,8 +38,11 @@
   display: flex;
   border-radius: 28px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background:
-    linear-gradient(180deg, rgba(24, 14, 9, 0.97) 0%, rgba(9, 6, 4, 0.98) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(24, 14, 9, 0.97) 0%,
+    rgba(9, 6, 4, 0.98) 100%
+  );
   box-shadow:
     0 24px 90px rgba(0, 0, 0, 0.5),
     inset 0 0 0 1px rgba(255, 255, 255, 0.03);
@@ -187,8 +190,7 @@
   align-items: center;
   justify-content: center;
   background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.54)),
-    #0f0a08;
+    linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.54)), #0f0a08;
   transition:
     opacity 0.2s ease,
     visibility 0.2s ease;
@@ -220,8 +222,11 @@
   border-radius: 999px;
   color: #fff8ef;
   font-size: 2rem;
-  background:
-    radial-gradient(circle at top, rgba(255, 196, 149, 0.44), rgba(214, 107, 43, 0.88));
+  background: radial-gradient(
+    circle at top,
+    rgba(255, 196, 149, 0.44),
+    rgba(214, 107, 43, 0.88)
+  );
   box-shadow:
     0 18px 44px rgba(0, 0, 0, 0.42),
     0 0 0 12px rgba(255, 255, 255, 0.06);
@@ -395,7 +400,7 @@
   width: 14px;
   height: 2px;
   border-radius: 999px;
-  background: #EA3323;
+  background: #ea3323;
   transform: rotate(-35deg);
   opacity: 0;
   transition: opacity 0.18s ease;
@@ -460,8 +465,11 @@
 .movie-player__episodes-block {
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.07);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.02)
+  );
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
@@ -521,8 +529,11 @@
 }
 
 .movie-player__episode-item.is-active {
-  background:
-    linear-gradient(135deg, rgba(214, 107, 43, 0.22), rgba(255, 173, 112, 0.08));
+  background: linear-gradient(
+    135deg,
+    rgba(214, 107, 43, 0.22),
+    rgba(255, 173, 112, 0.08)
+  );
   border-color: rgba(255, 154, 88, 0.4);
   box-shadow:
     inset 0 0 0 1px rgba(255, 194, 153, 0.1),
