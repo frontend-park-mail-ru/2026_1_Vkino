@@ -170,6 +170,22 @@
   color: #ff7b6e;
 }
 
+#birthdate-error {
+  margin-top: -0.25rem;
+  margin-bottom: var(--space-3);
+}
+
+#profile-save-error {
+  margin-top: var(--space-2);
+}
+
+.settings__success {
+  min-height: 1rem;
+  margin-top: var(--space-2);
+  font-size: 0.78rem;
+  color: #4ad275;
+}
+
 .settings__form-grid_password .settings__error {
   min-height: 2.5rem;
 }
@@ -211,6 +227,27 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+.settings__coins-history-empty {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  background: rgba(230, 204, 171, 0.06);
+}
+
+.settings__coins-history-empty-title {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.settings__coins-history-empty-description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.4;
 }
 
 .settings__coins-history-item {

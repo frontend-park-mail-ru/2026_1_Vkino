@@ -40,8 +40,9 @@
               <input class="settings__input settings__input_editable" type="date" id="birthDate" value="{{userData.birthDate}}" data-field="birthdate" />
             </div>
           </div>
-
+          <div class="settings__error" id="birthdate-error"></div>
           <button class="settings__btn settings__btn_save btn btn_outline" data-action="save-profile" disabled>Сохранить</button>
+          <div class="settings__error" id="profile-save-error"></div>
         </div>
 
         <div class="settings__section">
@@ -91,21 +92,29 @@
             </div>
           </div>
           <button class="settings__btn settings__btn_change-password btn btn_outline" data-action="change-password">Изменить пароль</button>
+          <div class="settings__success" id="password-success"></div>
         </div>
       </div>
 
       <div class="settings__coins-history">
         <h3 class="settings__coins-history-title">История начисления VKino coins</h3>
         <div class="settings__coins-history-list">
-          {{#each coinHistory}}
-            <div class="settings__coins-history-item">
-              <div class="settings__coins-history-date">{{this.date}}</div>
-              <div class="settings__coins-history-action">{{this.action}}</div>
-              <div class="settings__coins-history-amount {{#if this.isPositive}}settings__coins-history-amount_positive{{else}}settings__coins-history-amount_negative{{/if}}">
-                {{this.amount}}
+          {{#if coinHistory.length}}
+            {{#each coinHistory}}
+              <div class="settings__coins-history-item">
+                <div class="settings__coins-history-date">{{this.date}}</div>
+                <div class="settings__coins-history-action">{{this.action}}</div>
+                <div class="settings__coins-history-amount {{#if this.isPositive}}settings__coins-history-amount_positive{{else}}settings__coins-history-amount_negative{{/if}}">
+                  {{this.amount}}
+                </div>
               </div>
+            {{/each}}
+          {{else}}
+            <div class="settings__coins-history-empty">
+              <p class="settings__coins-history-empty-title">{{emptyCoinsTitle}}</p>
+              <p class="settings__coins-history-empty-description">{{emptyCoinsDescription}}</p>
             </div>
-          {{/each}}
+          {{/if}}
         </div>
       </div>
     </div>

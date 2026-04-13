@@ -7,19 +7,20 @@ export default class PosterCarouselComponent extends BaseComponent {
     if (!parent) {
       throw new Error("PosterCarousel: не передан parent для PosterCarouselComponent");
     }
-
     if (!el) {
       throw new Error("PosterCarousel: не передан el для PosterCarouselComponent");
     }
-
     super(context, Handlebars.templates["PosterCarousel.hbs"], parent, el);
 
     this._dragState = null;
     this._isHeroCycling = false;
     this._onDocumentMouseMoveBound = this._onDocumentMouseMove.bind(this);
     this._onDocumentMouseUpBound = this._onDocumentMouseUp.bind(this);
+    this._onDocumentMouseLeaveBound = this._onDocumentMouseLeave.bind(this);
+    this._onWindowBlurBound = this._onWindowBlur.bind(this);
     this._onWindowResizeBound = this._onWindowResize.bind(this);
     this._onSlideClickBound = this._onSlideClick.bind(this);
+    this._onDragStartBound = this._onDragStart.bind(this);
   }
 
   init() {
@@ -30,10 +31,7 @@ export default class PosterCarouselComponent extends BaseComponent {
   setupChildren() {
     this.context.posterItems.forEach((posterItem) => {
       const slot = this.el.querySelector(`[data-poster-slot="${posterItem.slotKey}"]`);
-      if (!slot) {
-        return;
-      }
-
+      if (!slot) return;
       this.addChild(
         `poster-${posterItem.slotKey}`,
         new MoviePosterComponent(posterItem, this, slot),
@@ -50,10 +48,17 @@ export default class PosterCarouselComponent extends BaseComponent {
     prevButton?.addEventListener("click", this._onPrevClick);
     nextButton?.addEventListener("click", this._onNextClick);
     viewport?.addEventListener("mousedown", this._onViewportMouseDown);
-    slides.forEach((slide) => slide.addEventListener("click", this._onSlideClickBound));
+    slides.forEach((slide) => {
+      slide.addEventListener("click", this._onSlideClickBound);
+      slide.addEventListener("dragstart", this._onDragStartBound);
+    });
     document.addEventListener("mousemove", this._onDocumentMouseMoveBound);
     document.addEventListener("mouseup", this._onDocumentMouseUpBound);
+    document.addEventListener("mouseleave", this._onDocumentMouseLeaveBound);
+    window.addEventListener("blur", this._onWindowBlurBound);
     window.addEventListener("resize", this._onWindowResizeBound);
+
+    this._disableImageDragging();
 
     if (this.context.centeredHero) {
       this._applyActiveSlideState();
@@ -69,10 +74,40 @@ export default class PosterCarouselComponent extends BaseComponent {
     prevButton?.removeEventListener("click", this._onPrevClick);
     nextButton?.removeEventListener("click", this._onNextClick);
     viewport?.removeEventListener("mousedown", this._onViewportMouseDown);
-    slides.forEach((slide) => slide.removeEventListener("click", this._onSlideClickBound));
+    slides.forEach((slide) => {
+      slide.removeEventListener("click", this._onSlideClickBound);
+      slide.removeEventListener("dragstart", this._onDragStartBound);
+    });
     document.removeEventListener("mousemove", this._onDocumentMouseMoveBound);
     document.removeEventListener("mouseup", this._onDocumentMouseUpBound);
+    document.removeEventListener("mouseleave", this._onDocumentMouseLeaveBound);
+    window.removeEventListener("blur", this._onWindowBlurBound);
     window.removeEventListener("resize", this._onWindowResizeBound);
+
+    this._stopDragging();
+    this._cancelHeroCycle();
+  }
+
+  _disableImageDragging() {
+    const images = this.el.querySelectorAll(".poster-carousel__slide img");
+    images.forEach((img) => {
+      img.setAttribute("draggable", "false");
+    });
+  }
+
+  _onDragStart(e) {
+    e.preventDefault();
+    return false;
+  }
+
+  _cancelHeroCycle() {
+    if (!this.context.centeredHero) return;
+    const track = this.el.querySelector(".poster-carousel__track");
+    if (track) {
+      track.style.transition = "none";
+      track.style.transform = "translateX(0)";
+    }
+    this._isHeroCycling = false;
   }
 
   _onPrevClick = () => {
@@ -80,7 +115,6 @@ export default class PosterCarouselComponent extends BaseComponent {
       this._cycleHero(-1);
       return;
     }
-
     this._scrollByDirection(-1);
   };
 
@@ -89,39 +123,29 @@ export default class PosterCarouselComponent extends BaseComponent {
       this._cycleHero(1);
       return;
     }
-
     this._scrollByDirection(1);
   };
 
   _onSlideClick(e) {
-    if (!this.context.centeredHero) {
-      return;
-    }
-
+    if (!this.context.centeredHero) return;
     const slide = e.currentTarget;
     if (slide.classList.contains("is-prev")) {
       this._cycleHero(-1);
-      return;
-    }
-
-    if (slide.classList.contains("is-next")) {
+    } else if (slide.classList.contains("is-next")) {
       this._cycleHero(1);
     }
   }
 
   _onViewportMouseDown = (e) => {
-    if (this.context.centeredHero) {
-      return;
-    }
+    e.preventDefault();
 
-    if (e.button !== 0) {
-      return;
-    }
+    if (this.context.centeredHero) return;
+    if (e.button !== 0) return;
 
     const viewport = this.el.querySelector('[data-role="viewport"]');
-    if (!viewport) {
-      return;
-    }
+    if (!viewport) return;
+
+    if (viewport.scrollWidth <= viewport.clientWidth) return;
 
     this._dragState = {
       startX: e.pageX,
@@ -131,38 +155,49 @@ export default class PosterCarouselComponent extends BaseComponent {
   };
 
   _onDocumentMouseMove(e) {
-    if (!this._dragState) {
+    if (!this._dragState) return;
+    if (e.buttons === 0) {
+      this._stopDragging();
       return;
     }
 
     const viewport = this.el.querySelector('[data-role="viewport"]');
-    if (!viewport) {
-      return;
-    }
+    if (!viewport) return;
 
     const delta = e.pageX - this._dragState.startX;
     viewport.scrollLeft = this._dragState.scrollLeft - delta;
   }
 
   _onDocumentMouseUp() {
-    if (!this._dragState) {
-      return;
-    }
+    this._stopDragging();
+  }
 
+  _onDocumentMouseLeave() {
+    this._stopDragging();
+  }
+
+  _onWindowBlur() {
+    this._stopDragging();
+  }
+
+  _stopDragging() {
+    if (!this._dragState) return;
     const viewport = this.el.querySelector('[data-role="viewport"]');
-    viewport?.classList.remove("is-dragging");
+    if (viewport) {
+      viewport.classList.remove("is-dragging");
+    }
     this._dragState = null;
   }
 
   _onWindowResize() {
-    if (!this.context.centeredHero) {
-      return;
+    if (!this.context.centeredHero) return;
+
+    if (this._isHeroCycling) {
+      this._cancelHeroCycle();
     }
 
     const track = this.el.querySelector(".poster-carousel__track");
-    if (!track) {
-      return;
-    }
+    if (!track) return;
 
     track.style.transition = "none";
     track.style.transform = "translateX(0)";
@@ -171,9 +206,7 @@ export default class PosterCarouselComponent extends BaseComponent {
 
   _scrollByDirection(direction) {
     const viewport = this.el.querySelector('[data-role="viewport"]');
-    if (!viewport) {
-      return;
-    }
+    if (!viewport) return;
 
     viewport.scrollBy({
       left: viewport.clientWidth * 0.82 * direction,
@@ -193,16 +226,12 @@ export default class PosterCarouselComponent extends BaseComponent {
   }
 
   _cycleHero(direction) {
-    if (!this.context.centeredHero || this._isHeroCycling) {
-      return;
-    }
+    if (!this.context.centeredHero || this._isHeroCycling) return;
 
     const track = this.el.querySelector(".poster-carousel__track");
     const slides = Array.from(track?.children || []);
 
-    if (!track || slides.length < 2) {
-      return;
-    }
+    if (!track || slides.length < 3) return;
 
     this._isHeroCycling = true;
     const gap = getTrackGap(track);

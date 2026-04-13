@@ -11,7 +11,7 @@
 .vk-header__bar {
   min-height: 60px;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 24px;
   padding: 10px 28px;
@@ -81,6 +81,7 @@
 }
 
 .vk-header__nav {
+  justify-self: center;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -88,9 +89,9 @@
 }
 
 .vk-header__search-form {
+  justify-self: center;
   width: min(100%, 380px);
   height: 32px;
-  justify-self: center;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -148,11 +149,13 @@
   justify-content: center;
   color: #efe0c9;
   flex-shrink: 0;
+  width: 30px;
+  height: 30px;
 }
 
 .vk-header__search svg {
-  width: 17px;
-  height: 17px;
+  width: 22px;
+  height: 22px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.7;
@@ -161,8 +164,8 @@
 }
 
 .vk-header__search-submit svg {
-  width: 17px;
-  height: 17px;
+  width: 22px;
+  height: 22px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.7;
@@ -323,7 +326,7 @@
 
 @media (max-width: 720px) {
   .vk-header__bar {
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr)
   }
 
   .vk-header__nav {
