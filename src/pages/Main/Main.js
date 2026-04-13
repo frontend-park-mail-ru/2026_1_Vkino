@@ -4,7 +4,6 @@ import "./Main.precompiled.js";
 import { movieService } from "../../js/MovieService.js";
 import HeaderComponent from "../../components/Header/Header.js";
 import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
-import { router } from "../../router/index.js";
 
 /**
  * Главная страница приложения с подборками фильмов.

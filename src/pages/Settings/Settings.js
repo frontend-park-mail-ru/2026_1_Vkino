@@ -17,21 +17,23 @@ export default class SettingsPage extends BasePage {
     }
 
     const mockCoinHistory = [
-      { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
-      { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
-      { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
-      { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
-      { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
-      { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
-      { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
-      { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
-      { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
-      { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
+      // { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
+      // { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
+      // { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
+      // { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
+      // { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
+      // { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
+      // { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
+      // { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
+      // { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
+      // { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
     ];
 
     const finalContext = {
       userData: { email: "", birthDate: "", avatarUrl: "" }, // временно
       coinHistory: mockCoinHistory,
+      emptyCoinsTitle: "Пока здесь пусто",
+      emptyCoinsDescription: "Смотрите фильмы и участвуйте в активностях VKino, чтобы начать зарабатывать Vkino coins.",
       ...context,
     };
 
@@ -115,12 +117,40 @@ export default class SettingsPage extends BasePage {
       this._originalValues[field] = input.value;
 
       const onInput = () => {
+        if (field === "birthdate") {
+          this._validateBirthDate();
+        }
+
+        this._setProfileSaveError("");
         this._checkForChanges();
       };
 
       input.addEventListener("input", onInput);
+      input.addEventListener("blur", onInput);
       this._editableInputHandlers.set(input, onInput);
     });
+  }
+
+  _validateBirthDate() {
+    const birthDateInput = this.el.querySelector("#birthDate");
+    const errorEl = this.el.querySelector("#birthdate-error");
+    const value = String(birthDateInput?.value || "").trim();
+
+    if (!birthDateInput) {
+      return "";
+    }
+
+    if (!value) {
+      setError(birthDateInput, errorEl, "");
+      return "";
+    }
+
+    const today = new Date();
+    const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const message = value > todayString ? "Дата рождения не может быть позже сегодняшнего дня" : "";
+
+    setError(birthDateInput, errorEl, message);
+    return message;
   }
 
   _setupAvatarUpload() {
@@ -188,12 +218,27 @@ export default class SettingsPage extends BasePage {
     if (errorEl) errorEl.textContent = message;
   }
 
+  _setProfileSaveError(message) {
+    const errorEl = this.el.querySelector("#profile-save-error");
+    if (errorEl) {
+      errorEl.textContent = message || "";
+    }
+  }
+
+  _setPasswordSuccess(message) {
+    const successEl = this.el.querySelector("#password-success");
+    if (successEl) {
+      successEl.textContent = message || "";
+    }
+  }
+
   _setupPasswordValidation() {
     const passwordFields = this._getPasswordFields();
 
     passwordFields.forEach(({ input }) => {
       if (!input) return;
       const onInputOrBlur = () => {
+        this._setPasswordSuccess("");
         this._validatePasswordField(input.id);
         this._updatePasswordButtonState();
       };
@@ -279,6 +324,7 @@ export default class SettingsPage extends BasePage {
   _checkForChanges() {
     const editableInputs = this.el.querySelectorAll(".settings__input_editable");
     let hasChanges = false;
+    const birthDateError = this._validateBirthDate();
 
     for (const input of editableInputs) {
       const field = input.dataset.field;
@@ -296,7 +342,7 @@ export default class SettingsPage extends BasePage {
     if (hasChanges) {
       saveBtn.classList.add("btn_accent");
       saveBtn.classList.remove("btn_outline");
-      saveBtn.disabled = false;
+      saveBtn.disabled = !!birthDateError;
     } else {
       saveBtn.classList.remove("btn_accent");
       saveBtn.classList.add("btn_outline");
@@ -345,6 +391,12 @@ export default class SettingsPage extends BasePage {
   }
 
   async _saveProfile() {
+    const birthDateError = this._validateBirthDate();
+    if (birthDateError) {
+      return;
+    }
+
+    this._setProfileSaveError("");
     const updated = this._getUpdatedData();
     const saveBtn = this.el.querySelector('[data-action="save-profile"]');
     if (saveBtn) saveBtn.disabled = true;
@@ -354,6 +406,7 @@ export default class SettingsPage extends BasePage {
       this._pendingAvatarFile,
     );
     if (!profileResult.ok) {
+      this._setProfileSaveError(profileResult.error || "Не удалось сохранить профиль. Попробуйте позже.");
       if (saveBtn) saveBtn.disabled = false;
       return;
     }
@@ -364,6 +417,7 @@ export default class SettingsPage extends BasePage {
     const avatarInput = this.el.querySelector("#avatarInput");
     if (avatarInput) avatarInput.value = "";
     this._setAvatarError("");
+    this._setProfileSaveError("");
 
     authStore.updateUserProfile(profileResult.resp || {});
 
@@ -404,6 +458,7 @@ export default class SettingsPage extends BasePage {
     });
 
     if (!changeResult.ok) {
+      this._setPasswordSuccess("");
       setError(
         this.el.querySelector("#oldPassword"),
         this.el.querySelector("#old-password-error"),
@@ -417,6 +472,7 @@ export default class SettingsPage extends BasePage {
 
     const fields = this._getPasswordFields();
     fields.forEach(({ input, errorEl }) => setError(input, errorEl, ""));
+    this._setPasswordSuccess("Пароль успешно обновлен");
 
     const btn = this.el.querySelector('[data-action="change-password"]');
     if (btn) {
@@ -438,6 +494,7 @@ export default class SettingsPage extends BasePage {
 
     for (const [input, handler] of this._editableInputHandlers) {
       input.removeEventListener("input", handler);
+      input.removeEventListener("blur", handler);
     }
     this._editableInputHandlers.clear();
 

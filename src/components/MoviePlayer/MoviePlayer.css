@@ -299,11 +299,17 @@
 
 .movie-player__progress {
   width: 100%;
-  height: 4px;
+  height: 12px;
   appearance: none;
-  background: rgba(255, 255, 255, 0.96);
+  background: transparent;
   border-radius: 999px;
   cursor: pointer;
+}
+
+.movie-player__progress::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .movie-player__progress::-webkit-slider-thumb {
@@ -314,6 +320,12 @@
   background: #ff6c2f;
   box-shadow: 0 0 0 3px rgba(255, 108, 47, 0.18);
   margin-top: -4px;
+}
+
+.movie-player__progress::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .movie-player__progress::-moz-range-thumb {
@@ -372,6 +384,29 @@
 
 .movie-player__icon-control img {
   filter: saturate(1.05);
+}
+
+.movie-player__icon-control[data-action="toggle-mute"] {
+  position: relative;
+}
+
+.movie-player__mute-slash {
+  position: absolute;
+  width: 14px;
+  height: 2px;
+  border-radius: 999px;
+  background: #EA3323;
+  transform: rotate(-35deg);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.movie-player__icon-control.is-muted .movie-player__icon--sound {
+  opacity: 0.5;
+}
+
+.movie-player__icon-control.is-muted .movie-player__mute-slash {
+  opacity: 1;
 }
 
 .movie-player__icon-control--play {

@@ -308,7 +308,7 @@ export default class MoviePlayerComponent extends BaseComponent {
     this.context = {
       ...this.context,
       isMuted: this.videoEl.muted,
-      muteButtonLabel: this.videoEl.muted ? "Unmute" : "Mute",
+      muteButtonLabel: this.videoEl.muted ? "Включить звук" : "Выключить звук",
     };
     this.updateUI();
   }
@@ -407,6 +407,7 @@ export default class MoviePlayerComponent extends BaseComponent {
     const durationTimeEl = this.el.querySelector('[data-role="duration-time"]');
     const playButtons = this.el.querySelectorAll('[data-action="toggle-play"]');
     const fullscreenButtons = this.el.querySelectorAll('[data-action="toggle-fullscreen"]');
+    const muteButtons = this.el.querySelectorAll('[data-action="toggle-mute"]');
     const titleEl = this.el.querySelector(".movie-player__title");
     const descriptionEl = this.el.querySelector(".movie-player__description");
     const posterLayer = this.el.querySelector('[data-role="poster-layer"]');
@@ -439,6 +440,14 @@ export default class MoviePlayerComponent extends BaseComponent {
       button.classList.toggle(
         "is-fullscreen",
         this.context.isFullscreen || this.context.isFullscreenFallback,
+      );
+    });
+
+    muteButtons.forEach((button) => {
+      button.classList.toggle("is-muted", this.context.isMuted);
+      button.setAttribute(
+        "aria-label",
+        this.context.isMuted ? "Включить звук" : "Выключить звук",
       );
     });
 
@@ -879,7 +888,7 @@ export default class MoviePlayerComponent extends BaseComponent {
     this.context = {
       ...this.context,
       isMuted: Boolean(this.videoEl?.muted),
-      muteButtonLabel: this.videoEl?.muted ? "Unmute" : "Mute",
+      muteButtonLabel: this.videoEl?.muted ? "Включить звук" : "Выключить звук",
     };
     this.updateUI();
   };
@@ -1006,7 +1015,7 @@ function createInitialContext() {
     durationLabel: "0:00",
     progressPercent: 0,
     playButtonLabel: "Play",
-    muteButtonLabel: "Mute",
+    muteButtonLabel: "Выключить звук",
     playback: null,
   };
 }
@@ -1042,7 +1051,7 @@ function buildOpenContext(movieData, activeEpisodeId) {
     durationLabel: "0:00",
     progressPercent: 0,
     playButtonLabel: "Play",
-    muteButtonLabel: "Mute",
+    muteButtonLabel: "Выключить звук",
     playback: null,
   };
 }

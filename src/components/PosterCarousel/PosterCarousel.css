@@ -1,6 +1,8 @@
 .poster-carousel {
   position: relative;
   color: var(--text-primary);
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .poster-carousel__header {
@@ -184,8 +186,10 @@
 }
 
 .poster-carousel__arrow span {
+  display: block;
   font-size: 34px;
   line-height: 1;
+  transform: translateY(-1px);
 }
 
 .poster-carousel__arrow--prev {
@@ -194,6 +198,10 @@
 
 .poster-carousel__arrow--next {
   right: 16px;
+}
+
+.poster-carousel--centered-hero .poster-carousel__arrow {
+  top: calc(50% + 2px);
 }
 
 @media (max-width: 1100px) {
@@ -268,3 +276,16 @@
     height: 50px;
   }
 }
+
+
+.poster-carousel__viewport img,
+.poster-carousel__slide img,
+.poster-carousel img {
+    user-drag: none;
+    -webkit-user-drag: none;
+    user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+}
+
