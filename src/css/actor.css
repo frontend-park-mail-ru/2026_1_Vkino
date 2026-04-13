@@ -87,9 +87,9 @@
   padding-block: 8px 6px;
 }
 
-.actor-movies .poster-carousel__slide--small {
-  width: 150px;
-  height: 225px;
+.actor-movies .poster-carousel__slide--medium {
+  width: 220px;
+  height: 310px;
 }
 
 .actor-movies .poster-carousel__title {
@@ -137,8 +137,8 @@
     max-width: none;
   }
 
-  .actor-movies .poster-carousel__slide--small {
-    width: 140px;
-    height: 210px;
+  .actor-movies .poster-carousel__slide--medium {
+    width: 200px;
+    height: 292px;
   }
 }

@@ -526,7 +526,7 @@ export default class ActorPage extends BasePage {
           title: "Фильмы с этим актером",
           movies,
           posterVariant: "default",
-          posterSize: "small",
+          posterSize: "medium",
           showArrows: false,
         },
         this,
