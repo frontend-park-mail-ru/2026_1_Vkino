@@ -3,6 +3,7 @@ import "./Profile.precompiled.js";
 import "../../css/profile.css";
 
 import HeaderComponent from "../../components/Header/Header.js";
+import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
 import { movieService } from "../../js/MovieService.js";
 import { userService } from "../../js/UserService.js";
 import { router } from "../../router/index.js";
@@ -180,6 +181,7 @@ export default class ProfilePage extends BasePage {
     }
 
     this.addChild("header", new HeaderComponent({}, this, header));
+    this._setupProfileCarousels();
   }
 
   /**
@@ -199,6 +201,34 @@ export default class ProfilePage extends BasePage {
       errorMessage: "",
     });
   };
+
+  _setupProfileCarousels() {
+    buildProfileCarousels(this.context).forEach((carousel) => {
+      const slot = this.el.querySelector(
+        `[data-profile-carousel="${carousel.slotKey}"]`,
+      );
+
+      if (!slot) {
+        return;
+      }
+
+      this.addChild(
+        `profile-carousel-${carousel.slotKey}`,
+        new PosterCarouselComponent(
+          {
+            slug: `profile-${carousel.slotKey}`,
+            title: carousel.title,
+            movies: carousel.movies,
+            posterVariant: carousel.posterVariant,
+            posterSize: carousel.posterSize,
+            showArrows: carousel.showArrows,
+          },
+          this,
+          slot,
+        ),
+      );
+    });
+  }
 }
 
 /**
@@ -230,13 +260,47 @@ function buildMovieCollections(selections = []) {
   const moviePool = fillMoviePool(normalizedMovies, 16);
 
   return {
-    featuredMovies: moviePool.slice(0, 2).map((movie, index) => ({
+    featuredMovies: moviePool.slice(0, 4).map((movie) => ({
       ...movie,
-      accentLabel: index === 0 ? "Продолжить просмотр" : "Новая рекомендация",
+      variant: "hero",
+      size: "hero",
     })),
     recentMovies: moviePool.slice(2, 10),
     favoriteMovies: moviePool.slice(10, 16),
   };
+}
+
+function buildProfileCarousels(context = {}) {
+  const carousels = [
+    {
+      slotKey: "featured",
+      title: "Продолжить просмотр",
+      movies: context.featuredMovies,
+      posterVariant: "hero",
+      posterSize: "hero",
+      showArrows: true,
+    },
+    {
+      slotKey: "recent",
+      title: "Недавно просмотренное",
+      movies: context.recentMovies,
+      posterVariant: "default",
+      posterSize: "medium",
+      showArrows: false,
+    },
+    {
+      slotKey: "favorites",
+      title: "Избранное",
+      movies: context.favoriteMovies,
+      posterVariant: "compact",
+      posterSize: "medium",
+      showArrows: false,
+    },
+  ];
+
+  return carousels.filter(
+    (carousel) => Array.isArray(carousel.movies) && carousel.movies.length,
+  );
 }
 
 /**
