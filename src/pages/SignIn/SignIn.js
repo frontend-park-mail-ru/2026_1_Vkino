@@ -6,7 +6,6 @@ import { initPasswordToggle } from "../../js/password/eye-btn.js";
 import { initAuthValidation, setError } from "../../js/password/validation.js";
 import { authStore } from "../../store/authStore.js";
 
-
 /**
  * Класс страницы авторизации.
  * @extends BasePage

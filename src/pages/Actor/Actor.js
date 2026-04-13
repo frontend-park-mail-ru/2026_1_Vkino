@@ -73,12 +73,17 @@ export default class ActorPage extends BasePage {
     ]);
     const actorSource = this._extractActorPayload(actorResult.resp);
     const selectionMovies = actorResult.ok
-      ? this._getMoviesFromSelections(selectionsResult.ok ? selectionsResult.resp : [], actorSource)
+      ? this._getMoviesFromSelections(
+          selectionsResult.ok ? selectionsResult.resp : [],
+          actorSource,
+        )
       : [];
 
     const newContext = {
       ...this.context,
-      actor: actorResult.ok ? this._mapActor(actorSource, selectionMovies) : null,
+      actor: actorResult.ok
+        ? this._mapActor(actorSource, selectionMovies)
+        : null,
     };
 
     if (!actorResult.ok || !newContext.actor) {
@@ -173,17 +178,30 @@ export default class ActorPage extends BasePage {
       return null;
     }
 
-    const birthDate = actor.birth_date ?? actor.BirthDate ?? actor.birthDate ?? actor.date_of_birth;
+    const birthDate =
+      actor.birth_date ??
+      actor.BirthDate ??
+      actor.birthDate ??
+      actor.date_of_birth;
     const biography =
-      actor.biography ?? actor.Biography ?? actor.description ?? actor.bio ?? actor.about;
-    const movies = this._mergeMovies(this._getActorMovies(actor), fallbackMovies);
-    const actorId = actor.id ?? actor.ID ?? actor.actor_id ?? actor.ActorID ?? null;
+      actor.biography ??
+      actor.Biography ??
+      actor.description ??
+      actor.bio ??
+      actor.about;
+    const movies = this._mergeMovies(
+      this._getActorMovies(actor),
+      fallbackMovies,
+    );
+    const actorId =
+      actor.id ?? actor.ID ?? actor.actor_id ?? actor.ActorID ?? null;
     const fullName =
       actor.full_name ??
       actor.FullName ??
       actor.fullName ??
       [actor.first_name, actor.last_name].filter(Boolean).join(" ").trim();
-    const countryId = actor.country_id ?? actor.CountryID ?? actor.countryId ?? null;
+    const countryId =
+      actor.country_id ?? actor.CountryID ?? actor.countryId ?? null;
     const imageValue =
       actor.picture_file_key ??
       actor.PictureFileKey ??
@@ -199,8 +217,12 @@ export default class ActorPage extends BasePage {
       id: actorId,
       full_name: fullName || "Имя актера не указано",
       country_id: countryId,
-      country_label: this._formatCountry(countryId, actor.country_name ?? actor.country ?? actor.Country),
-      picture_src: this._normalizeImageUrl(imageValue) || "/img/user-avatar.png",
+      country_label: this._formatCountry(
+        countryId,
+        actor.country_name ?? actor.country ?? actor.Country,
+      ),
+      picture_src:
+        this._normalizeImageUrl(imageValue) || "/img/user-avatar.png",
       birth_date: birthDate ? this._formatDate(birthDate) : "Не указана",
       biography: biography || "Нет описания",
       movies_count: movies.length,
@@ -250,7 +272,9 @@ export default class ActorPage extends BasePage {
       return `/${normalizedPath}`;
     }
 
-    return normalizedPath.startsWith("/") ? normalizedPath : `/${normalizedPath}`;
+    return normalizedPath.startsWith("/")
+      ? normalizedPath
+      : `/${normalizedPath}`;
   }
 
   /**
@@ -358,7 +382,9 @@ export default class ActorPage extends BasePage {
       })
       .filter((movie) => movie && typeof movie === "object");
 
-    return allMovies.filter((movie) => this._movieMatchesActor(movie, actorId, actorName));
+    return allMovies.filter((movie) =>
+      this._movieMatchesActor(movie, actorId, actorName),
+    );
   }
 
   _movieMatchesActor(movie, actorId, actorName) {
@@ -391,16 +417,24 @@ export default class ActorPage extends BasePage {
           .trim()
           .toLowerCase();
 
-        return (actorId && personId === actorId) || (actorName && personName === actorName);
+        return (
+          (actorId && personId === actorId) ||
+          (actorName && personName === actorName)
+        );
       });
     }
 
     const singleActorId = String(movie.actor_id ?? movie.ActorID ?? "").trim();
-    const singleActorName = String(movie.actor_name ?? movie.actor ?? movie.Actor ?? "")
+    const singleActorName = String(
+      movie.actor_name ?? movie.actor ?? movie.Actor ?? "",
+    )
       .trim()
       .toLowerCase();
 
-    return (actorId && singleActorId === actorId) || (actorName && singleActorName === actorName);
+    return (
+      (actorId && singleActorId === actorId) ||
+      (actorName && singleActorName === actorName)
+    );
   }
 
   /**
@@ -428,8 +462,7 @@ export default class ActorPage extends BasePage {
               movie?.poster_url ||
               movie?.picture_src ||
               movie?.PictureFileKey,
-          ) ||
-          "/img/image_10.jpg";
+          ) || "/img/image_10.jpg";
         const title = movie.title ?? movie.Title ?? movie.name ?? movie.Name;
 
         return {
@@ -438,7 +471,9 @@ export default class ActorPage extends BasePage {
           posterUrl: imageUrl,
           poster_src: imageUrl,
           description:
-            movie.description ?? movie.Description ?? "Фильм из фильмографии актера.",
+            movie.description ??
+            movie.Description ??
+            "Фильм из фильмографии актера.",
           genres: Array.isArray(movie.genres) ? movie.genres : [],
           actionText: "О фильме",
           href: `/movie/${encodeURIComponent(movieId)}`,
@@ -460,14 +495,14 @@ export default class ActorPage extends BasePage {
     }
 
     this.addChild(
-        "header",
-        new HeaderComponent(
-            {
-              ...this.context.userData,
-            },
-            this,
-            header,
-        ),
+      "header",
+      new HeaderComponent(
+        {
+          ...this.context.userData,
+        },
+        this,
+        header,
+      ),
     );
 
     this._setupActorMoviesCarousel();
@@ -475,7 +510,9 @@ export default class ActorPage extends BasePage {
 
   _setupActorMoviesCarousel() {
     const carouselSlot = this.el.querySelector("#actor-movies-carousel");
-    const movies = Array.isArray(this.context.actor?.movies) ? this.context.actor.movies : [];
+    const movies = Array.isArray(this.context.actor?.movies)
+      ? this.context.actor.movies
+      : [];
 
     if (!carouselSlot || !movies.length) {
       return;

@@ -1,10 +1,10 @@
 /**
  * Создает экземпляр хранилища.
- * 
+ *
  * @template T
  * @param {T} initialState - Начальный объект состояния.
  * @returns {Store<T>} Объект с методами управления состоянием.
- * 
+ *
  * @example
  * const store = createStore({ count: 0 });
  * const unsubscribe = store.subscribe(state => console.log(state.count));

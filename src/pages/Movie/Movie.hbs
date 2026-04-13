@@ -22,7 +22,11 @@
             src="{{movie.posterUrl}}"
             alt="Постер фильма {{movie.title}}"
           />
-          <button class="movie-favorite-btn" type="button" aria-label="В избранное">
+          <button
+            class="movie-favorite-btn"
+            type="button"
+            aria-label="В избранное"
+          >
             <svg
               width="24"
               height="24"
@@ -158,14 +162,25 @@
       <section class="movie-section">
         <h2 class="movie-section-title">Смотреть также</h2>
         <div class="movie-filter-row">
-          <button class="movie-filter-btn is-active" type="button">Похожие</button>
+          <button
+            class="movie-filter-btn is-active"
+            type="button"
+          >Похожие</button>
         </div>
 
         {{#if movie.similar}}
           <div class="movie-similar-list">
             {{#each movie.similar}}
-              <a class="movie-similar-link" href="/movie/{{this.id}}" router-link>
-                <img class="movie-poster" src="{{this.imgUrl}}" alt="{{this.title}}" />
+              <a
+                class="movie-similar-link"
+                href="/movie/{{this.id}}"
+                router-link
+              >
+                <img
+                  class="movie-poster"
+                  src="{{this.imgUrl}}"
+                  alt="{{this.title}}"
+                />
               </a>
             {{/each}}
           </div>

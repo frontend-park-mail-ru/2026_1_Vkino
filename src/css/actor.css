@@ -3,7 +3,11 @@
   margin: 0 auto;
   padding: 24px 32px 40px;
   background:
-    radial-gradient(circle at top right, rgba(255, 87, 31, 0.08), transparent 30%),
+    radial-gradient(
+      circle at top right,
+      rgba(255, 87, 31, 0.08),
+      transparent 30%
+    ),
     linear-gradient(180deg, rgba(39, 20, 11, 0.72), rgba(18, 6, 3, 0.94));
 }
 
