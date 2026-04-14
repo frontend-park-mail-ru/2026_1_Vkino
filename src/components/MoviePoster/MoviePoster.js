@@ -1,5 +1,6 @@
 import { BaseComponent } from "../BaseComponent.js";
 import "./MoviePoster.precompiled.js";
+import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
 
 const DEFAULT_VARIANT = "default";
 const DEFAULT_SIZE = "medium";
@@ -38,10 +39,13 @@ function buildPosterContext(context = {}) {
   const kpRating = normalizeRating(context.kpRating || context.kp_rating);
   const hasHeroBackdrop = variant === "hero" && Boolean(context.backdropUrl);
   const imageUrl =
-    (hasHeroBackdrop ? context.backdropUrl : null) ||
-    context.posterUrl ||
-    context.backdropUrl ||
-    "img/image_11.jpg";
+    resolveMediaUrl(
+      (hasHeroBackdrop ? context.backdropUrl : null) ||
+        context.posterUrl ||
+        context.backdropUrl ||
+        "interstellar",
+      hasHeroBackdrop ? MEDIA_BUCKETS.posters : MEDIA_BUCKETS.cards,
+    );
 
   const variantConfig = getVariantConfig(variant);
 

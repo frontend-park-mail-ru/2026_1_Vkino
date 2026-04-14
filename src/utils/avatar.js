@@ -1,3 +1,5 @@
+import { MEDIA_BUCKETS, resolveMediaUrl } from "./media.js";
+
 /**
  * Путь к дефолтному аватару, используемому при отсутствии пользовательского изображения.
  * @type {string}
@@ -17,16 +19,5 @@ export function resolveAvatarUrl(avatarUrl) {
   if (!normalized) {
     return DEFAULT_AVATAR_URL;
   }
-
-  if (
-    normalized.startsWith("/") ||
-    normalized.startsWith("http://") ||
-    normalized.startsWith("https://") ||
-    normalized.startsWith("data:") ||
-    normalized.startsWith("blob:")
-  ) {
-    return normalized;
-  }
-
-  return `/${normalized.replace(/^\/+/, "")}`;
+  return resolveMediaUrl(normalized, MEDIA_BUCKETS.avatars);
 }

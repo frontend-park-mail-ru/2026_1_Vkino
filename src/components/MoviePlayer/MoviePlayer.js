@@ -2,6 +2,7 @@ import { BaseComponent } from "../BaseComponent.js";
 import "./MoviePlayer.precompiled.js";
 import { authStore } from "../../store/authStore.js";
 import { playerService } from "../../js/PlayerService.js";
+import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
 
 const CONTROLS_HIDE_DELAY_MS = 2200;
 const SEEK_STEP_SECONDS = 10;
@@ -1173,7 +1174,10 @@ function normalizeMovieData(movieData = {}) {
     contentType: normalizeString(
       movieData.contentType || movieData.content_type,
     ),
-    posterUrl: normalizeString(movieData.posterUrl || movieData.img_url),
+    posterUrl: resolveMediaUrl(
+      movieData.posterUrl || movieData.img_url,
+      MEDIA_BUCKETS.cards,
+    ),
     episodes,
   };
 }
@@ -1191,7 +1195,10 @@ function normalizeEpisodeData(episode = {}, index = 0) {
     id: normalizeString(episode.id),
     title,
     description: normalizeString(episode.description),
-    imgUrl: normalizeString(episode.imgUrl || episode.img_url),
+    imgUrl: resolveMediaUrl(
+      episode.imgUrl || episode.img_url,
+      MEDIA_BUCKETS.cards,
+    ),
     seasonNumber,
     episodeNumber,
     durationSeconds,
