@@ -65,7 +65,7 @@ export const validatePassword = (password = "") => {
   const issues = [];
 
   if (password.length < 6) issues.push("минимум 6 символов");
-  if (password.length > 255) issues.push("максимум 255 символов");
+  if (password.length > 72) issues.push("максимум 72 символов");
   if (/\s/.test(password)) issues.push("без пробелов");
 
   if (/^[a-zA-Z]+$/.test(password) || /^\d+$/.test(password)) {

@@ -116,18 +116,24 @@ export default class SignUpPage extends BasePage {
 
     if (!result.ok) {
       const email = this.el.querySelector('input[type="email"]');
+      const emailError = this.el.querySelector("#email-error");
       const password = this.el.querySelector("#password");
       const passwordError = this.el.querySelector("#password-error");
-
-      setError(
-        email,
-        password,
-        passwordError,
+      const message =
         MapError[result.resp?.Error] ||
-          result.resp?.message ||
-          result.error ||
-          "Не удалось зарегистрироваться",
-      );
+        result.resp?.message ||
+        result.error ||
+        "Не удалось зарегистрироваться";
+
+      setError(email, emailError, "");
+      setError(password, passwordError, "");
+
+      if (result.status === 409) {
+        setError(email, emailError, "Пользователь с таким email уже существует");
+        return;
+      }
+
+      setError(password, passwordError, message);
       return;
     }
 
