@@ -433,7 +433,7 @@
   transition: opacity var(--duration-fast) var(--ease-default);
 }
 
-.auth-styles .eye-btn.revealed .slash {
+.auth-styles .eye-btn.is-active .slash {
   opacity: 1;
 }
 
