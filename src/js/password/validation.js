@@ -36,9 +36,19 @@ export const setError = (el, errorEl, message) => {
 export const validateEmail = (email = "") => {
   const trimmed = email.trim();
   if (!trimmed) return "Введите email";
-  if (trimmed.length > 63) return "Слишком длинный email";
+  if (trimmed.length > 254) return "Email не должен быть длиннее 254 символов";
   if (trimmed.includes(".."))
     return "Email не должен содержать несколько точек подряд";
+
+  const [localPart = "", domainPart = ""] = trimmed.split("@");
+
+  if (localPart.length > 64) {
+    return "Часть email до @ не должна быть длиннее 64 символов";
+  }
+
+  if (domainPart.length > 253) {
+    return "Доменная часть email слишком длинная";
+  }
 
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)
     ? ""
@@ -55,7 +65,7 @@ export const validatePassword = (password = "") => {
   const issues = [];
 
   if (password.length < 6) issues.push("минимум 6 символов");
-  if (password.length > 255) issues.push("максимум 255 символов");
+  if (password.length > 72) issues.push("максимум 72 символов");
   if (/\s/.test(password)) issues.push("без пробелов");
 
   if (/^[a-zA-Z]+$/.test(password) || /^\d+$/.test(password)) {

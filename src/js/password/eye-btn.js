@@ -3,6 +3,25 @@ export function initPasswordToggle(root) {
     return () => {};
   }
 
+  const syncButtonState = (button, input) => {
+    const isVisible = input.type === "text";
+
+    button.classList.toggle("is-active", isVisible);
+    button.setAttribute(
+      "aria-label",
+      isVisible ? "Скрыть пароль" : "Показать пароль",
+    );
+    button.setAttribute("aria-pressed", String(isVisible));
+  };
+
+  root.querySelectorAll(".eye-btn[data-target]").forEach((button) => {
+    const input = root.querySelector(`#${button.dataset.target}`);
+
+    if (input) {
+      syncButtonState(button, input);
+    }
+  });
+
   const handleClick = (event) => {
     const button = event.target.closest(".eye-btn");
 
@@ -22,7 +41,7 @@ export function initPasswordToggle(root) {
 
     const isPassword = input.type === "password";
     input.type = isPassword ? "text" : "password";
-    button.classList.toggle("is-active", isPassword);
+    syncButtonState(button, input);
   };
 
   root.addEventListener("click", handleClick);

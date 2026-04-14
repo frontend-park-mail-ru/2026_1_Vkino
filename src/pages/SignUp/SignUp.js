@@ -5,6 +5,7 @@ import { attachPageStyles } from "../../utils/pageStyles.js";
 import { initPasswordToggle } from "../../js/password/eye-btn.js";
 import { initAuthValidation, setError } from "../../js/password/validation.js";
 import { initRegisterBottleEffect } from "../../js/register.js";
+import { router } from "../../router/index.js";
 import { authStore } from "../../store/authStore.js";
 
 /**
@@ -52,6 +53,11 @@ export default class SignUpPage extends BasePage {
    * @returns {*}
    */
   init() {
+    if (authStore.getState().status === "authenticated") {
+      router.go("/");
+      return this;
+    }
+
     this._detachStyles = attachPageStyles(
       ["/css/main.css", "/css/auth.css", "/css/register.css"],
       "sign-up",
@@ -116,18 +122,24 @@ export default class SignUpPage extends BasePage {
 
     if (!result.ok) {
       const email = this.el.querySelector('input[type="email"]');
+      const emailError = this.el.querySelector("#email-error");
       const password = this.el.querySelector("#password");
       const passwordError = this.el.querySelector("#password-error");
-
-      setError(
-        email,
-        password,
-        passwordError,
+      const message =
         MapError[result.resp?.Error] ||
-          result.resp?.message ||
-          result.error ||
-          "Не удалось зарегистрироваться",
-      );
+        result.resp?.message ||
+        result.error ||
+        "Не удалось зарегистрироваться";
+
+      setError(email, emailError, "");
+      setError(password, passwordError, "");
+
+      if (result.status === 409) {
+        setError(email, emailError, "Пользователь с таким email уже существует");
+        return;
+      }
+
+      setError(password, passwordError, message);
       return;
     }
 

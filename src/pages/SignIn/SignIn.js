@@ -4,6 +4,7 @@ import "./SignIn.precompiled.js";
 import { attachPageStyles } from "../../utils/pageStyles.js";
 import { initPasswordToggle } from "../../js/password/eye-btn.js";
 import { initAuthValidation, setError } from "../../js/password/validation.js";
+import { router } from "../../router/index.js";
 import { authStore } from "../../store/authStore.js";
 
 /**
@@ -41,6 +42,11 @@ export default class SignInPage extends BasePage {
    * @returns {void}
    */
   init() {
+    if (authStore.getState().status === "authenticated") {
+      router.go("/");
+      return this;
+    }
+
     this._detachStyles = attachPageStyles(
       ["/css/main.css", "/css/auth.css", "/css/login.css"],
       "sign-in",
