@@ -34,6 +34,7 @@ export default class HeaderComponent extends BaseComponent {
 
     this._unsubscribe = null;
     this._onDocumentClickBound = this._onDocumentClick.bind(this);
+    this._onWindowScrollBound = this._onWindowScroll.bind(this);
   }
 
   /**
@@ -75,6 +76,9 @@ export default class HeaderComponent extends BaseComponent {
     );
     this._bindSubmitForm('[data-menu="search"]', this._onSearchSubmit);
     document.addEventListener("click", this._onDocumentClickBound);
+    window.addEventListener("scroll", this._onWindowScrollBound, {
+      passive: true,
+    });
   }
 
   /**
@@ -110,6 +114,7 @@ export default class HeaderComponent extends BaseComponent {
     );
     this._unbindSubmitForm('[data-menu="search"]', this._onSearchSubmit);
     document.removeEventListener("click", this._onDocumentClickBound);
+    window.removeEventListener("scroll", this._onWindowScrollBound);
   }
 
   /**
@@ -177,6 +182,14 @@ export default class HeaderComponent extends BaseComponent {
     }
 
     if (this._isClickInsideMenu(e.target)) {
+      return;
+    }
+
+    this.closeAllMenus();
+  }
+
+  _onWindowScroll() {
+    if (!this.context.isAnyMenuOpen && !this.context.isSearchOpen) {
       return;
     }
 
