@@ -188,8 +188,11 @@ export default class MainPage extends BasePage {
       return;
     }
 
+    const escapedTarget = window.CSS?.escape
+      ? window.CSS.escape(this._pendingScrollTarget)
+      : this._pendingScrollTarget;
     const section = this.el.querySelector(
-      `[data-scroll-id="${this._pendingScrollTarget}"]`,
+      `[data-scroll-id="${escapedTarget}"]`,
     );
 
     if (!section) {

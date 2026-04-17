@@ -337,7 +337,6 @@ function mapMovieDtoToViewModel(dto) {
       normalizePosterImageUrl(dto.poster_url) ||
   normalizeImageUrl(dto.img_url) ||
     normalizeEpisodePreviewUrl(dto.episodes) ||
-    normalizeImageUrl(dto.img_url) ||
     posterUrl ||
     fallbackMovie.trailerPreviewUrl;
 
