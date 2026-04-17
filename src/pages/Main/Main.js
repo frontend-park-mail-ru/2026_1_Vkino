@@ -1,9 +1,11 @@
 import BasePage from "../BasePage.js";
 import "./Main.precompiled.js";
 
+import { consumePendingMainScrollTarget } from "../../components/Header/Header.js";
 import { movieService } from "../../js/MovieService.js";
 import HeaderComponent from "../../components/Header/Header.js";
 import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
+import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
 
 /**
  * Главная страница приложения с подборками фильмов.
@@ -33,6 +35,7 @@ export default class MainPage extends BasePage {
      * @default false
      */
     this._contextLoaded = false;
+    this._pendingScrollTarget = consumePendingMainScrollTarget();
   }
 
   /**
@@ -42,6 +45,10 @@ export default class MainPage extends BasePage {
    */
   init() {
     super.init();
+
+    if (this._contextLoaded) {
+      this._scrollToPendingSection();
+    }
 
     if (!this._contextLoaded) {
       this.loadContext();
@@ -71,6 +78,7 @@ export default class MainPage extends BasePage {
 
     this._contextLoaded = true;
     this.refresh(newContext);
+    this._scrollToPendingSection();
   }
 
   /**
@@ -174,6 +182,32 @@ export default class MainPage extends BasePage {
       );
     });
   }
+
+  _scrollToPendingSection() {
+    if (!this._pendingScrollTarget) {
+      return;
+    }
+
+    const escapedTarget = window.CSS?.escape
+      ? window.CSS.escape(this._pendingScrollTarget)
+      : this._pendingScrollTarget;
+    const section = this.el.querySelector(
+      `[data-scroll-id="${escapedTarget}"]`,
+    );
+
+    if (!section) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      section.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+
+    this._pendingScrollTarget = "";
+  }
 }
 
 function buildSelectionEntries(selections = []) {
@@ -205,12 +239,18 @@ function normalizeMovie(movie = {}, index = 0) {
   return {
     id: movieId,
     title: movie.title || movie.name || "Фильм",
-    posterUrl:
-      movie.posterUrl ||
+    posterUrl: resolveMediaUrl(
+      movie.img_url || movie.posterUrl || movie.poster_url || "interstellar",
+      MEDIA_BUCKETS.cards,
+    ),
+    backdropUrl: resolveMediaUrl(
       movie.poster_url ||
-      movie.img_url ||
-      "img/image_10.jpg",
-    backdropUrl: movie.backdropUrl || movie.backdrop_url || "",
+        movie.backdropUrl ||
+        movie.backdrop_url ||
+        movie.posterUrl ||
+        movie.img_url,
+      MEDIA_BUCKETS.posters,
+    ),
     ageRating:
       movie.ageRating ||
       movie.age_rating ||
@@ -234,8 +274,8 @@ function buildFallbackHeroMovies() {
     {
       id: "fallback-hero-1",
       title: "Интерстеллар",
-      posterUrl: "img/image_10.jpg",
-      backdropUrl: "img/image_10.jpg",
+      posterUrl: "/img/cards/interstellar.webp",
+      backdropUrl: "/img/cards/interstellar.webp",
       ageRating: "16+",
       genres: ["Триллер", "Драма"],
       description:
@@ -247,9 +287,9 @@ function buildFallbackHeroMovies() {
     },
     {
       id: "fallback-hero-2",
-      title: "Интерстеллар",
-      posterUrl: "img/image_11.jpg",
-      backdropUrl: "img/image_11.jpg",
+      title: "Гладиатор",
+      posterUrl: "/img/cards/gladiator.webp",
+      backdropUrl: "/img/cards/gladiator.webp",
       ageRating: "12+",
       genres: ["Мелодрама", "Приключения"],
       description:
@@ -262,8 +302,8 @@ function buildFallbackHeroMovies() {
     {
       id: "fallback-hero-3",
       title: "Дюна",
-      posterUrl: "img/image_12.jpg",
-      backdropUrl: "img/image_12.jpg",
+      posterUrl: "/img/cards/inception.webp",
+      backdropUrl: "/img/cards/inception.webp",
       ageRating: "18+",
       genres: ["Боевик", "Криминал"],
       description:
