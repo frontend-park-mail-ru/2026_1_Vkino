@@ -51,6 +51,12 @@
   cursor: grab;
 }
 
+.poster-carousel:not(.poster-carousel--centered-hero) .poster-carousel__viewport {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
 .poster-carousel__viewport::-webkit-scrollbar {
   display: none;
 }
