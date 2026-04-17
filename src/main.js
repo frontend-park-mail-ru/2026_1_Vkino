@@ -7,7 +7,7 @@ import ProfilePage from "./pages/Profile/Profile.js";
 import SettingsPage from "./pages/Settings/Settings.js";
 import ActorPage from "./pages/Actor/Actor.js";
 
-import "./css/index.css";
+import "./css/index.scss";
 
 import { authStore } from "./store/authStore.js";
 

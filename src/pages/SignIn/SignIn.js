@@ -1,7 +1,6 @@
 import BasePage from "../BasePage.js";
 import "./SignIn.precompiled.js";
 
-import { attachPageStyles } from "../../utils/pageStyles.js";
 import { initPasswordToggle } from "../../js/password/eye-btn.js";
 import { initAuthValidation, setError } from "../../js/password/validation.js";
 import { router } from "../../router/index.js";
@@ -31,14 +30,12 @@ export default class SignInPage extends BasePage {
       el,
       "SignInPage",
     );
-
-    this._detachStyles = null;
     this._destroyPasswordToggle = null;
     this._destroyValidation = null;
   }
 
   /**
-   * Инициализирует страницу: подключает стили и вызывает базовый рендеринг.
+   * Инициализирует страницу и вызывает базовый рендеринг.
    * @returns {void}
    */
   init() {
@@ -46,11 +43,6 @@ export default class SignInPage extends BasePage {
       router.go("/");
       return this;
     }
-
-    this._detachStyles = attachPageStyles(
-      ["/css/main.css", "/css/auth.css", "/css/login.css"],
-      "sign-in",
-    );
 
     return super.init();
   }
@@ -112,16 +104,6 @@ export default class SignInPage extends BasePage {
 
     if (typeof this.context.onSuccess === "function") {
       this.context.onSuccess(result.resp);
-    }
-  }
-  /**
-   * Выполняется перед уничтожением компонента.
-   * Отключает специфичные для страницы CSS-стили.
-   */
-  beforeDestroy() {
-    if (this._detachStyles) {
-      this._detachStyles();
-      this._detachStyles = null;
     }
   }
 }

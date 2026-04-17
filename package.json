@@ -23,6 +23,7 @@
     "handlebars": "^4.7.9",
     "postcss": "^8.5.9",
     "prettier": "3.8.1",
+    "sass": "^1.99.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.7"
   }
