@@ -1,6 +1,6 @@
 import BasePage from "../BasePage.js";
 import "./Settings.precompiled.js";
-import "../../css/settings.css";
+import "../../css/settings.scss";
 
 import { initPasswordToggle } from "../../js/password/eye-btn.js";
 import { setError, validatePassword } from "../../js/password/validation.js";

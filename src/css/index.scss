@@ -1,0 +1,11 @@
+@use "./main";
+@use "../components/Header/Header";
+@use "../components/MoviePoster/MoviePoster";
+@use "../components/MoviePlayer/MoviePlayer";
+@use "../components/PosterCarousel/PosterCarousel";
+@use "./home";
+@use "./movie";
+@use "./auth";
+@use "./login";
+@use "./register";
+@use "./actor";

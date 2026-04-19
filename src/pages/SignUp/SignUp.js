@@ -1,7 +1,6 @@
 import BasePage from "../BasePage.js";
 import "./SignUp.precompiled.js";
 
-import { attachPageStyles } from "../../utils/pageStyles.js";
 import { initPasswordToggle } from "../../js/password/eye-btn.js";
 import { initAuthValidation, setError } from "../../js/password/validation.js";
 import { initRegisterBottleEffect } from "../../js/register.js";
@@ -40,15 +39,13 @@ export default class SignUpPage extends BasePage {
       el,
       "SignUpPage",
     );
-
-    this._detachStyles = null;
     this._destroyPasswordToggle = null;
     this._destroyValidation = null;
     this._destroyBottleEffect = null;
   }
 
   /**
-   * Подключает стили страницы и вызывает базовую инициализацию.
+   * Выполняет базовую инициализацию страницы.
    *
    * @returns {*}
    */
@@ -57,11 +54,6 @@ export default class SignUpPage extends BasePage {
       router.go("/");
       return this;
     }
-
-    this._detachStyles = attachPageStyles(
-      ["/css/main.css", "/css/auth.css", "/css/register.css"],
-      "sign-up",
-    );
 
     return super.init();
   }
@@ -145,18 +137,6 @@ export default class SignUpPage extends BasePage {
 
     if (typeof this.context.onSuccess === "function") {
       this.context.onSuccess(result.resp);
-    }
-  }
-
-  /**
-   * Отключает стили страницы перед удалением экземпляра.
-   *
-   * @returns {void}
-   */
-  beforeDestroy() {
-    if (this._detachStyles) {
-      this._detachStyles();
-      this._detachStyles = null;
     }
   }
 }

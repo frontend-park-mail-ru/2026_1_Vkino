@@ -1,6 +1,6 @@
 import BasePage from "../BasePage.js";
 import "./Profile.precompiled.js";
-import "../../css/profile.css";
+import "../../css/profile.scss";
 
 import HeaderComponent from "../../components/Header/Header.js";
 import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
