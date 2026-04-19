@@ -133,7 +133,11 @@
 }
 
 @media (max-width: 900px) {
-  .bottle-wrap {
-    visibility: hidden;
+  .sign-in-page .popcorn-wrap {
+    display: none;
+  }
+
+  .sign-in-page .form-section {
+    justify-content: center;
   }
 }
