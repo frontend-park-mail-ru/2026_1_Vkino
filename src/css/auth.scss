@@ -21,9 +21,6 @@
   --auth-close-tooltip-text-hover: var(--text-primary);
   --auth-close-line-glow: var(--accent-subtle);
   --auth-close-focus-ring: var(--accent-subtle);
-}
-
-.auth-styles body {
   background:
     radial-gradient(
       ellipse at 30% 60%,
@@ -36,21 +33,26 @@
       transparent 50%
     ),
     var(--bg-page);
+  width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
   overflow: hidden;
 }
 
 /* ---- Фоновые пятна ---- */
 .auth-styles .container-main {
   display: flex;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   align-items: center;
   justify-content: center;
   position: relative;
+  overflow: hidden;
 }
 
 .auth-styles .bg-dot {
@@ -280,12 +282,19 @@
 }
 
 @media (max-width: 900px) {
+  .auth-styles {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
   .auth-styles .container-main {
     width: 100%;
     height: auto;
     min-height: 100vh;
+    min-height: 100dvh;
     padding: 24px 16px;
     box-sizing: border-box;
+    overflow: visible;
   }
 
   .auth-styles .form-section {
