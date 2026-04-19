@@ -5,6 +5,8 @@ import { router } from "../../router/index.js";
 import { resolveAvatarUrl } from "../../utils/avatar.js";
 import { getDisplayNameFromEmail } from "../../utils/user.js";
 
+const PENDING_SCROLL_TARGET_KEY = "vkino_pending_scroll_target";
+
 /**
  * Компонент header
  * Отображает навигацию, информацию о пользователе и кнопки авторизации/выхода + войти/зарегистрироваться.
@@ -68,6 +70,10 @@ export default class HeaderComponent extends BaseComponent {
       '[data-action="close-all-menus"]',
       this._onCloseAllMenusClick,
     );
+    this._bindNodeList(
+      '[data-action="scroll-to-section"]',
+      this._onScrollToSectionClick,
+    );
     this._bindSubmitForm('[data-menu="search"]', this._onSearchSubmit);
     document.addEventListener("click", this._onDocumentClickBound);
     window.addEventListener("scroll", this._onWindowScrollBound, {
@@ -102,6 +108,10 @@ export default class HeaderComponent extends BaseComponent {
       '[data-action="close-all-menus"]',
       this._onCloseAllMenusClick,
     );
+    this._unbindNodeList(
+      '[data-action="scroll-to-section"]',
+      this._onScrollToSectionClick,
+    );
     this._unbindSubmitForm('[data-menu="search"]', this._onSearchSubmit);
     document.removeEventListener("click", this._onDocumentClickBound);
     window.removeEventListener("scroll", this._onWindowScrollBound);
@@ -132,6 +142,26 @@ export default class HeaderComponent extends BaseComponent {
 
   _onCloseAllMenusClick = () => {
     this.closeAllMenus();
+  };
+
+  _onScrollToSectionClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const target = e.currentTarget.dataset.scrollTarget;
+    if (!target) {
+      return;
+    }
+
+    this.closeAllMenus();
+
+    if (window.location.pathname !== "/") {
+      sessionStorage.setItem(PENDING_SCROLL_TARGET_KEY, target);
+      router.go("/");
+      return;
+    }
+
+    scrollToMainSection(target);
   };
 
   _onSearchSubmit = (e) => {
@@ -325,4 +355,33 @@ export default class HeaderComponent extends BaseComponent {
 
     node.removeEventListener("submit", handler);
   }
+}
+
+function scrollToMainSection(target) {
+  const escapedTarget = window.CSS?.escape ? window.CSS.escape(target) : target;
+  const section = document.querySelector(
+    `[data-scroll-id="${escapedTarget}"]`,
+  );
+
+  if (!section) {
+    return false;
+  }
+
+  section.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+
+  return true;
+}
+
+export function consumePendingMainScrollTarget() {
+  const target = sessionStorage.getItem(PENDING_SCROLL_TARGET_KEY);
+
+  if (!target) {
+    return "";
+  }
+
+  sessionStorage.removeItem(PENDING_SCROLL_TARGET_KEY);
+  return target;
 }

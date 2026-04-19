@@ -9,6 +9,7 @@ import { userService } from "../../js/UserService.js";
 import { router } from "../../router/index.js";
 import { authStore } from "../../store/authStore.js";
 import { resolveAvatarUrl } from "../../utils/avatar.js";
+import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
 import { formatBirthdate, getDisplayNameFromEmail } from "../../utils/user.js";
 
 /**
@@ -337,17 +338,17 @@ function normalizeMovie(movie = {}, index = 0) {
   const fallbackMovie = FALLBACK_MOVIES[index % FALLBACK_MOVIES.length];
   const title = movie.title || movie.name || fallbackMovie.title;
   const posterUrl =
+    movie.img_url ||
     movie.posterUrl ||
     movie.poster_url ||
-    movie.img_url ||
     movie.backdropUrl ||
     movie.backdrop_url ||
     fallbackMovie.posterUrl;
   const backdropUrl =
+    movie.poster_url ||
     movie.backdropUrl ||
     movie.backdrop_url ||
     movie.posterUrl ||
-    movie.poster_url ||
     movie.img_url ||
     fallbackMovie.backdropUrl;
   const genres = normalizeGenres(
@@ -357,8 +358,8 @@ function normalizeMovie(movie = {}, index = 0) {
   return {
     id: movieId,
     title,
-    posterUrl: resolveMediaUrl(posterUrl),
-    backdropUrl: resolveMediaUrl(backdropUrl),
+    posterUrl: resolveMediaUrl(posterUrl, MEDIA_BUCKETS.cards),
+    backdropUrl: resolveMediaUrl(backdropUrl, MEDIA_BUCKETS.posters),
     href: `/movie/${encodeURIComponent(movieId)}`,
     meta: genres.join(" • ") || fallbackMovie.meta,
   };
@@ -383,32 +384,6 @@ function normalizeGenres(genres) {
   }
 
   return [];
-}
-
-/**
- * Нормализует относительные пути к медиа-ресурсам.
- *
- * @param {string} url путь или абсолютный URL медиа
- * @returns {string} нормализованный URL
- */
-function resolveMediaUrl(url) {
-  const normalized = String(url || "").trim();
-
-  if (!normalized) {
-    return "";
-  }
-
-  if (
-    normalized.startsWith("/") ||
-    normalized.startsWith("http://") ||
-    normalized.startsWith("https://") ||
-    normalized.startsWith("data:") ||
-    normalized.startsWith("blob:")
-  ) {
-    return normalized;
-  }
-
-  return `/${normalized.replace(/^\/+/, "")}`;
 }
 
 /**
@@ -453,57 +428,57 @@ const FALLBACK_MOVIES = [
   {
     id: "dune-fallback",
     title: "Дюна",
-    posterUrl: "/img/image_10.jpg",
-    backdropUrl: "/img/image_10.jpg",
+    posterUrl: "/img/cards/interstellar.webp",
+    backdropUrl: "/img/cards/interstellar.webp",
     meta: "Фантастика • Эпос",
   },
   {
     id: "interstellar-fallback",
     title: "Интерстеллар",
-    posterUrl: "/img/image_11.jpg",
-    backdropUrl: "/img/image_11.jpg",
+    posterUrl: "/img/cards/gladiator.webp",
+    backdropUrl: "/img/cards/gladiator.webp",
     meta: "Фантастика • Драма",
   },
   {
     id: "noir-fallback",
     title: "Неоновый город",
-    posterUrl: "/img/image_12.jpg",
-    backdropUrl: "/img/image_12.jpg",
+    posterUrl: "/img/cards/inception.webp",
+    backdropUrl: "/img/cards/inception.webp",
     meta: "Триллер • Неонуар",
   },
   {
     id: "romance-fallback",
     title: "Полночь у моря",
-    posterUrl: "/img/1.jpg",
-    backdropUrl: "/img/1.jpg",
+    posterUrl: "/img/cards/luca.webp",
+    backdropUrl: "/img/cards/luca.webp",
     meta: "Мелодрама • Приключение",
   },
   {
     id: "pulse-fallback",
     title: "Импульс",
-    posterUrl: "/img/2.jpeg",
-    backdropUrl: "/img/2.jpeg",
+    posterUrl: "/img/cards/matrix.webp",
+    backdropUrl: "/img/cards/matrix.webp",
     meta: "Боевик • Драма",
   },
   {
     id: "sonic-fallback",
     title: "Соник 3",
-    posterUrl: "/img/3.jpg",
-    backdropUrl: "/img/3.jpg",
+    posterUrl: "/img/cards/up.webp",
+    backdropUrl: "/img/cards/up.webp",
     meta: "Экшен • Семейный",
   },
   {
     id: "legacy-fallback",
     title: "Последний рейс",
-    posterUrl: "/img/4.jpg",
-    backdropUrl: "/img/4.jpg",
+    posterUrl: "/img/cards/whiplash.webp",
+    backdropUrl: "/img/cards/whiplash.webp",
     meta: "Триллер • Детектив",
   },
   {
     id: "ember-fallback",
     title: "Пепел и свет",
-    posterUrl: "/img/5.jpg",
-    backdropUrl: "/img/5.jpg",
+    posterUrl: "/img/cards/coco.webp",
+    backdropUrl: "/img/cards/coco.webp",
     meta: "Драма • Приключение",
   },
 ];

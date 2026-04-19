@@ -2,11 +2,18 @@
 
 <div class="main">
   <div class="main-content" id="main-content">
-    <section class="main-hero-slot" id="hero-carousel"></section>
+    <section
+      class="main-hero-slot"
+      id="hero-carousel"
+      data-scroll-id="Новинки"
+    ></section>
 
     <div class="selection-carousels">
       {{#each selectionEntries}}
-        <section class="selection-carousel-slot">
+        <section
+          class="selection-carousel-slot"
+          data-scroll-id="{{this.title}}"
+        >
           <div
             class="selection-carousel-slot__content"
             data-selection-slot="{{this.slotKey}}"

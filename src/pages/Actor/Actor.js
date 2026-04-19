@@ -4,6 +4,7 @@ import "./Actor.precompiled.js";
 import { movieService } from "../../js/MovieService.js";
 import HeaderComponent from "../../components/Header/Header.js";
 import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
+import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
 
 /**
  * Старница актера
@@ -253,28 +254,11 @@ export default class ActorPage extends BasePage {
    * @returns {string}
    */
   _normalizeImageUrl(value) {
-    const normalizedPath = String(value ?? "").trim();
+    return resolveMediaUrl(value, MEDIA_BUCKETS.actors);
+  }
 
-    if (!normalizedPath) {
-      return "";
-    }
-
-    if (
-      normalizedPath.startsWith("http://") ||
-      normalizedPath.startsWith("https://") ||
-      normalizedPath.startsWith("data:") ||
-      normalizedPath.startsWith("blob:")
-    ) {
-      return normalizedPath;
-    }
-
-    if (normalizedPath.startsWith("img/")) {
-      return `/${normalizedPath}`;
-    }
-
-    return normalizedPath.startsWith("/")
-      ? normalizedPath
-      : `/${normalizedPath}`;
+  _normalizeCardImageUrl(value) {
+    return resolveMediaUrl(value, MEDIA_BUCKETS.cards);
   }
 
   /**
@@ -456,13 +440,13 @@ export default class ActorPage extends BasePage {
       .map((movie) => {
         const movieId = movie.id ?? movie.ID ?? movie.movie_id ?? movie.MovieID;
         const imageUrl =
-          this._normalizeImageUrl(
+          this._normalizeCardImageUrl(
             movie?.img_url ||
-              movie?.posterUrl ||
               movie?.poster_url ||
+              movie?.posterUrl ||
               movie?.picture_src ||
               movie?.PictureFileKey,
-          ) || "/img/image_10.jpg";
+          ) || "/img/cards/interstellar.webp";
         const title = movie.title ?? movie.Title ?? movie.name ?? movie.Name;
 
         return {

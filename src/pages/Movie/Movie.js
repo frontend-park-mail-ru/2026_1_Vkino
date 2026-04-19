@@ -4,8 +4,9 @@ import HeaderComponent from "../../components/Header/Header.js";
 import { movieService } from "../../js/MovieService.js";
 import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
 import MoviePlayerComponent from "../../components/MoviePlayer/MoviePlayer.js";
+import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
 
-const DEFAULT_POSTER_URL = "img/3.jpg";
+const DEFAULT_POSTER_URL = "/img/cards/interstellar.webp";
 
 const COUNTRY_BY_ID = {
   1: "Россия",
@@ -328,8 +329,13 @@ function mapMovieDtoToViewModel(dto) {
   }
 
   const fallbackMovie = createEmptyMovieData(dto.id);
-  const posterUrl = normalizeImageUrl(dto.img_url) || fallbackMovie.posterUrl;
+  const posterUrl =
+    normalizeImageUrl(dto.img_url) ||
+    normalizePosterImageUrl(dto.poster_url) ||
+    fallbackMovie.posterUrl;
   const trailerPreviewUrl =
+      normalizePosterImageUrl(dto.poster_url) ||
+  normalizeImageUrl(dto.img_url) ||
     normalizeEpisodePreviewUrl(dto.episodes) ||
     posterUrl ||
     fallbackMovie.trailerPreviewUrl;
@@ -470,8 +476,9 @@ function mapActors(value) {
         id: normalizeString(actor.id),
         title: name,
         name,
-        posterUrl: normalizeImageUrl(actor.img_url) || "/img/user-avatar.png",
-        imgUrl: normalizeImageUrl(actor.img_url) || "/img/user-avatar.png",
+        posterUrl:
+          normalizeActorImageUrl(actor.img_url) || "/img/user-avatar.png",
+        imgUrl: normalizeActorImageUrl(actor.img_url) || "/img/user-avatar.png",
         href: `/actor/${encodeURIComponent(normalizeString(actor.id))}`,
         actionText: "Об актере",
       };
@@ -525,35 +532,15 @@ function mapReleaseYear(value) {
 }
 
 function normalizeImageUrl(value) {
-  const normalizedPath = normalizeString(value);
+  return resolveMediaUrl(normalizeString(value), MEDIA_BUCKETS.cards);
+}
 
-  if (!normalizedPath) {
-    return "";
-  }
+function normalizePosterImageUrl(value) {
+  return resolveMediaUrl(normalizeString(value), MEDIA_BUCKETS.posters);
+}
 
-  if (
-    normalizedPath.startsWith("http://") ||
-    normalizedPath.startsWith("https://") ||
-    normalizedPath.startsWith("data:") ||
-    normalizedPath.startsWith("blob:")
-  ) {
-    return normalizedPath;
-  }
-
-  if (normalizedPath.startsWith("img/")) {
-    return `/${normalizedPath}`;
-  }
-
-  const path = normalizedPath.startsWith("/")
-    ? normalizedPath
-    : `/${normalizedPath}`;
-  const baseUrl = window.APP_CONFIG?.BASE_URL || window.location.origin;
-
-  try {
-    return new URL(path, baseUrl).href;
-  } catch {
-    return normalizedPath;
-  }
+function normalizeActorImageUrl(value) {
+  return resolveMediaUrl(normalizeString(value), MEDIA_BUCKETS.actors);
 }
 
 function normalizeString(value) {
