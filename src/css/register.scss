@@ -14,16 +14,6 @@
   max-height: 500px;
 }
 
-@media (max-width: 900px) {
-  .bottle-wrap {
-    visibility: hidden;
-  }
-
-  .bottle-wrap {
-    width: 100%;
-  }
-}
-
 .sign-up-page #scene {
   position: relative;
   height: min(70vh, 600px);
@@ -174,5 +164,16 @@
   100% {
     transform: translateX(-50%) scaleX(1.6);
     opacity: 0.22;
+  }
+}
+
+@media (max-width: 900px) {
+  .sign-up-page .bottle-wrap,
+  .sign-up-page #fx {
+    display: none;
+  }
+
+  .sign-up-page .form-section {
+    justify-content: center;
   }
 }

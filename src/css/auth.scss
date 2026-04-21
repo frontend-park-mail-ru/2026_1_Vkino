@@ -21,9 +21,6 @@
   --auth-close-tooltip-text-hover: var(--text-primary);
   --auth-close-line-glow: var(--accent-subtle);
   --auth-close-focus-ring: var(--accent-subtle);
-}
-
-.auth-styles body {
   background:
     radial-gradient(
       ellipse at 30% 60%,
@@ -36,21 +33,26 @@
       transparent 50%
     ),
     var(--bg-page);
+  width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
   overflow: hidden;
 }
 
 /* ---- Фоновые пятна ---- */
 .auth-styles .container-main {
   display: flex;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   align-items: center;
   justify-content: center;
   position: relative;
+  overflow: hidden;
 }
 
 .auth-styles .bg-dot {
@@ -280,8 +282,32 @@
 }
 
 @media (max-width: 900px) {
+  .auth-styles {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .auth-styles .container-main {
+    width: 100%;
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 24px 16px;
+    box-sizing: border-box;
+    overflow: visible;
+  }
+
   .auth-styles .form-section {
-    padding-top: 88px;
+    width: min(420px, 100%);
+    justify-content: center;
+    padding: 88px 24px 28px;
+  }
+
+  .auth-styles .form-wrap {
+    min-width: 0;
+    width: 100%;
+    max-width: 360px;
+    margin: 0 auto;
   }
 
   .auth-styles .auth-close-link {
@@ -291,6 +317,15 @@
 }
 
 @media (max-width: 640px) {
+  .auth-styles .container-main {
+    padding: 16px;
+  }
+
+  .auth-styles .form-section {
+    width: 100%;
+    padding: 72px 18px 24px;
+  }
+
   .auth-styles .auth-close-link {
     width: 34px;
     height: 34px;
@@ -299,6 +334,19 @@
 
   .auth-styles .auth-close-tooltip {
     display: none;
+  }
+
+  .auth-styles .logo {
+    font-size: 36px;
+  }
+
+  .auth-styles .logo img {
+    height: 32px;
+  }
+
+  .auth-styles input,
+  .auth-styles .btn {
+    font-size: 16px;
   }
 }
 
