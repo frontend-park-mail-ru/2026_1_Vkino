@@ -5,6 +5,7 @@ import { movieService } from "../../js/MovieService.js";
 import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
 import MoviePlayerComponent from "../../components/MoviePlayer/MoviePlayer.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
+import { extractMovie } from "../../utils/apiResponse.js";
 
 const DEFAULT_POSTER_URL = "/img/cards/interstellar.webp";
 
@@ -78,8 +79,7 @@ export default class MoviePage extends BasePage {
       return;
     }
 
-    const { ok, status, resp, error } =
-      await movieService.getMovieById(movieId);
+    const { ok, status, resp, error } = await movieService.getMovieById(movieId);
 
     if (!ok) {
       this._contextLoaded = true;
@@ -93,13 +93,15 @@ export default class MoviePage extends BasePage {
       return;
     }
 
+    const moviePayload = extractMovie(resp);
+
     this._contextLoaded = true;
     this.refresh({
       ...this.context,
       loading: false,
       hasError: false,
       errorText: "",
-      movie: mapMovieDtoToViewModel(resp),
+      movie: mapMovieDtoToViewModel(moviePayload || {}),
     });
 
     this._syncPlayerWithLocation();

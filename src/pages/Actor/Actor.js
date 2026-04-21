@@ -5,6 +5,10 @@ import { movieService } from "../../js/MovieService.js";
 import HeaderComponent from "../../components/Header/Header.js";
 import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
+import {
+  extractActor,
+  extractSelections,
+} from "../../utils/apiResponse.js";
 
 /**
  * Старница актера
@@ -72,12 +76,14 @@ export default class ActorPage extends BasePage {
       movieService.getActorById(actorId),
       movieService.getAllSelections(),
     ]);
-    const actorSource = this._extractActorPayload(actorResult.resp);
+
+    const actorSource = actorResult.ok ? extractActor(actorResult.resp) : null;
+    const selections = selectionsResult.ok
+      ? extractSelections(selectionsResult.resp)
+      : [];
+
     const selectionMovies = actorResult.ok
-      ? this._getMoviesFromSelections(
-          selectionsResult.ok ? selectionsResult.resp : [],
-          actorSource,
-        )
+      ? this._getMoviesFromSelections(selections, actorSource)
       : [];
 
     const newContext = {
@@ -88,9 +94,10 @@ export default class ActorPage extends BasePage {
     };
 
     if (!actorResult.ok || !newContext.actor) {
-      console.log("ActorPage: не удалось загрузить данные актера", {
+      console.error("ActorPage: не удалось загрузить данные актера", {
         actorId,
-        resp: actorResult.resp,
+        actorResp: actorResult.resp,
+        selectionsResp: selectionsResult.resp,
       });
     }
 
