@@ -52,7 +52,9 @@ export class Router {
    */
   go(path) {
     const normalizedPath = this._formatPath(path);
-    if (window.location.pathname === normalizedPath) {
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+
+    if (currentPath === normalizedPath) {
       return;
     }
     window.history.pushState({}, "", normalizedPath);

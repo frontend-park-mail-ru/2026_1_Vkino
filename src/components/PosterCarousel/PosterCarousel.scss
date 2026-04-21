@@ -11,6 +11,10 @@
   margin-bottom: 16px;
 }
 
+.poster-carousel__title-link {
+  color: inherit;
+}
+
 .poster-carousel__title {
   display: inline-flex;
   align-items: center;
@@ -18,6 +22,9 @@
   font-size: 22px;
   font-weight: 700;
   color: #e6ccab;
+  transition:
+    color var(--duration-fast) var(--ease-default),
+    transform var(--duration-fast) var(--ease-default);
 }
 
 .poster-carousel__title::before {
@@ -35,6 +42,12 @@
   border-top: 8px solid transparent;
   border-bottom: 8px solid transparent;
   border-left: 16px solid #ff5a1e;
+}
+
+.poster-carousel__title-link:hover .poster-carousel__title--interactive,
+.poster-carousel__title-link:focus-visible .poster-carousel__title--interactive {
+  color: #fff4e6;
+  transform: translateX(2px);
 }
 
 .poster-carousel__viewport-wrap {

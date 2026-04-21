@@ -1,0 +1,54 @@
+<div class="page page_catalog">
+  <header id="header"></header>
+
+  <main class="catalog-page">
+    <section class="catalog-page__hero">
+      <header class="poster-carousel__header catalog-page__heading">
+        <h1 class="poster-carousel__title catalog-page__title">{{title}}</h1>
+      </header>
+    </section>
+
+    {{#if isLoading}}
+      <section class="catalog-page__grid catalog-page__grid--loading">
+        {{#each skeletonItems}}
+          <div class="catalog-page__skeleton"></div>
+        {{/each}}
+      </section>
+    {{else}}
+      {{#if hasError}}
+        <div class="catalog-page__banner" role="status">
+          <span>{{errorMessage}}</span>
+          <button
+            type="button"
+            class="catalog-page__banner-button"
+            data-action="retry-catalog"
+          >
+            Повторить
+          </button>
+        </div>
+      {{else}}
+        {{#if posterItems.length}}
+          <section class="catalog-page__grid">
+            {{#each posterItems}}
+              <div
+                class="catalog-page__card"
+                data-catalog-poster="{{slotKey}}"
+              ></div>
+            {{/each}}
+          </section>
+        {{else}}
+          <section class="catalog-page__empty">
+            <h2 class="catalog-page__empty-title">Ничего не найдено</h2>
+            <p class="catalog-page__empty-text">
+              В этом разделе пока нет карточек для отображения.
+            </p>
+          </section>
+        {{/if}}
+
+        {{#if pagination.shouldRender}}
+          <div class="catalog-page__pagination" id="catalog-pagination"></div>
+        {{/if}}
+      {{/if}}
+    {{/if}}
+  </main>
+</div>
