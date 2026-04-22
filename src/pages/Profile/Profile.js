@@ -11,6 +11,10 @@ import { authStore } from "../../store/authStore.js";
 import { resolveAvatarUrl } from "../../utils/avatar.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
 import { formatBirthdate, getDisplayNameFromEmail } from "../../utils/user.js";
+import {
+  extractProfile,
+  extractSelections,
+} from "../../utils/apiResponse.js";
 
 /**
  * Страница профиля текущего пользователя.
@@ -126,16 +130,18 @@ export default class ProfilePage extends BasePage {
     }
 
     const profile = profileResult.ok
-      ? profileResult.resp || {}
+      ? extractProfile(profileResult.resp) || {}
       : fallbackProfile;
 
     if (profileResult.ok) {
       authStore.updateUserProfile(profile);
     }
 
-    const movieCollections = buildMovieCollections(
-      selectionsResult.ok ? selectionsResult.resp : [],
-    );
+    const selections = selectionsResult.ok
+      ? extractSelections(selectionsResult.resp)
+      : [];
+
+    const movieCollections = buildMovieCollections(selections);
 
     this.refresh({
       ...this.context,

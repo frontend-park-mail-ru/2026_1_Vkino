@@ -1,6 +1,7 @@
 import BasePage from "../BasePage.js";
 import "./Main.precompiled.js";
 
+import { extractSelections } from "../../utils/apiResponse.js";
 import { consumePendingMainScrollTarget } from "../../components/Header/Header.js";
 import { movieService } from "../../js/MovieService.js";
 import HeaderComponent from "../../components/Header/Header.js";
@@ -63,8 +64,9 @@ export default class MainPage extends BasePage {
    * @returns {Promise<void>}
    */
   async loadContext() {
-    const { ok, resp } = await movieService.getAllSelections();
-    const selections = ok ? buildSelectionEntries(resp) : [];
+    const { ok, resp, status, error } = await movieService.getAllSelections();
+    const rawSelections = ok ? extractSelections(resp) : [];
+    const selections = buildSelectionEntries(rawSelections);
 
     const newContext = {
       ...this.context,
@@ -73,7 +75,11 @@ export default class MainPage extends BasePage {
     };
 
     if (!ok) {
-      console.log("Фильмы не прилетели с бэка");
+      console.error("MainPage: не удалось загрузить подборки", {
+        status,
+        error,
+        resp,
+      });
     }
 
     this._contextLoaded = true;
@@ -211,10 +217,14 @@ export default class MainPage extends BasePage {
 }
 
 function buildSelectionEntries(selections = []) {
+  if (!Array.isArray(selections)) {
+    return [];
+  }
+
   return selections.map((selection, index) => ({
-    title: selection.title || `Подборка ${index + 1}`,
+    title: selection.title || selection.Title || `Подборка ${index + 1}`,
     slotKey: `selection-${index}`,
-    movies: normalizeMovies(selection.movies),
+    movies: normalizeMovies(selection.movies || selection.Movies || []),
   }));
 }
 
