@@ -1,0 +1,308 @@
+<div class="page page_watch-party">
+  <header id="header"></header>
+
+  <main class="watch-party-page">
+    <div class="watch-party-page__inner">
+      {{#if isLoading}}
+        <div class="watch-party__status" role="status">
+          Загружаем данные комнаты...
+        </div>
+      {{/if}}
+
+      {{#if errorMessage}}
+        <div class="watch-party__status watch-party__status--error" role="alert">
+          <span>{{errorMessage}}</span>
+          <button
+            class="watch-party__button watch-party__button--ghost"
+            type="button"
+            data-action="retry-overview"
+          >
+            Повторить
+          </button>
+        </div>
+      {{/if}}
+
+      {{#if statusMessage}}
+        <div
+          class="watch-party__status watch-party__status--{{statusTone}}"
+          role="status"
+        >
+          {{statusMessage}}
+        </div>
+      {{/if}}
+
+      <section class="watch-party__hero">
+        <div class="watch-party__hero-copy">
+          <div class="watch-party__eyebrow">{{heroEyebrow}}</div>
+          <h1 class="watch-party__title">{{heroTitle}}</h1>
+          <p class="watch-party__subtitle">{{heroSubtitle}}</p>
+          <p class="watch-party__description">{{heroDescription}}</p>
+
+          <div class="watch-party__hero-actions">
+            <button
+              class="watch-party__button watch-party__button--accent"
+              type="button"
+              data-action="scroll-to-section"
+              data-target="create-room-section"
+            >
+              Создать комнату
+            </button>
+            <button
+              class="watch-party__button watch-party__button--ghost"
+              type="button"
+              data-action="scroll-to-section"
+              data-target="join-room-section"
+            >
+              Войти по ссылке
+            </button>
+          </div>
+        </div>
+
+        <div class="watch-party__poster-stack" aria-label="Подборка для совместного просмотра">
+          {{#each heroPosters}}
+            <article class="watch-party__poster-card">
+              <img src="{{this.imageUrl}}" alt="{{this.title}}" />
+              <div class="watch-party__poster-overlay">
+                <span class="watch-party__poster-chip">{{this.label}}</span>
+                <span class="watch-party__poster-play" aria-hidden="true"></span>
+              </div>
+            </article>
+          {{/each}}
+        </div>
+      </section>
+
+      <section class="watch-party__section" id="create-room-section">
+        <div class="watch-party__section-heading">
+          <div>
+            <p class="watch-party__section-kicker">Быстрый старт</p>
+            <h2 class="watch-party__section-title">Настройте комнату под свой сеанс</h2>
+          </div>
+        </div>
+
+        <div class="watch-party__actions-grid">
+          <article class="watch-party__action-card watch-party__action-card--accent">
+            <div class="watch-party__action-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 8v8M8 12h8"></path>
+              </svg>
+            </div>
+            <h3>Создать комнату</h3>
+            <p>
+              Укажите название, выберите режим доступа и сразу получите основу
+              для комнаты.
+            </p>
+
+            <form class="watch-party__form" data-action="create-room">
+              <label class="watch-party__field">
+                <span>Название комнаты</span>
+                <input
+                  class="watch-party__input"
+                  name="roomName"
+                  type="text"
+                  placeholder="Например, Пятничный кинопросмотр"
+                />
+              </label>
+
+              <label class="watch-party__field">
+                <span>Доступ</span>
+                <select class="watch-party__input watch-party__input--select" name="visibility">
+                  {{#each visibilityOptions}}
+                    <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>
+                      {{this.label}}
+                    </option>
+                  {{/each}}
+                </select>
+              </label>
+
+              <button
+                class="watch-party__button watch-party__button--accent watch-party__button--full"
+                type="submit"
+              >
+                Создать комнату
+              </button>
+            </form>
+          </article>
+
+          <article
+            class="watch-party__action-card watch-party__action-card--muted"
+            id="join-room-section"
+          >
+            <div class="watch-party__action-icon watch-party__action-icon--muted" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M10 7H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h4"></path>
+                <path d="M13 8l5 4-5 4"></path>
+                <path d="M18 12h-9"></path>
+              </svg>
+            </div>
+            <h3>Войти по ссылке</h3>
+            <p>
+              Если друг уже создал комнату, вставьте приглашение и переходите
+              к просмотру без лишних шагов.
+            </p>
+
+            <form class="watch-party__join-form" data-action="join-room">
+              <label class="watch-party__field watch-party__field--grow">
+                <span>Ссылка-приглашение</span>
+                <input
+                  class="watch-party__input"
+                  name="inviteLink"
+                  type="url"
+                  placeholder="https://vkino.ru/watch-party/..."
+                />
+              </label>
+              <button class="watch-party__button watch-party__button--ghost" type="submit">
+                Войти
+              </button>
+            </form>
+          </article>
+        </div>
+      </section>
+
+      <section class="watch-party__section">
+        <div class="watch-party__section-heading">
+          <div>
+            <p class="watch-party__section-kicker">Сейчас онлайн</p>
+            <h2 class="watch-party__section-title">Друзья смотрят прямо сейчас</h2>
+          </div>
+          {{#if featuredRooms.length}}
+            <span class="watch-party__badge">{{featuredRoomsOnlineLabel}}</span>
+          {{/if}}
+        </div>
+
+        {{#if featuredRooms.length}}
+          <div class="watch-party__room-grid">
+            {{#each featuredRooms}}
+              <article class="watch-party__room-card">
+                <div class="watch-party__room-media">
+                  <img src="{{this.imageUrl}}" alt="{{this.title}}" />
+
+                  <div class="watch-party__room-tags">
+                    {{#if this.isLive}}
+                      <span class="watch-party__room-tag watch-party__room-tag--live">LIVE</span>
+                    {{/if}}
+                    <span class="watch-party__room-tag watch-party__room-tag--secondary">
+                      {{this.viewersLabel}}
+                    </span>
+                  </div>
+
+                  <span class="watch-party__poster-play watch-party__poster-play--solid" aria-hidden="true"></span>
+                </div>
+
+                <div class="watch-party__room-body">
+                  <h3>{{this.title}}</h3>
+                  <p class="watch-party__room-host">
+                    Хозяин: <span>{{this.hostName}}</span>
+                  </p>
+
+                  <div
+                    class="watch-party__progress"
+                    role="progressbar"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    aria-valuenow="{{this.progress}}"
+                  >
+                    <span style="width: {{this.progress}}%;"></span>
+                  </div>
+
+                  <div class="watch-party__room-actions">
+                    <button
+                      class="watch-party__button watch-party__button--accent"
+                      type="button"
+                      data-action="join-featured-room"
+                      data-room-title="{{this.title}}"
+                    >
+                      Присоединиться
+                    </button>
+                    <button
+                      class="watch-party__button watch-party__button--ghost"
+                      type="button"
+                      data-action="copy-link"
+                      data-link="{{this.roomLink}}"
+                    >
+                      Копировать ссылку
+                    </button>
+                  </div>
+                </div>
+              </article>
+            {{/each}}
+          </div>
+        {{else}}
+          <div class="watch-party__empty-state">
+            <h3>Данные недоступны</h3>
+            <p>{{featuredRoomsUnavailableText}}</p>
+          </div>
+        {{/if}}
+      </section>
+
+      <section class="watch-party__section">
+        <div class="watch-party__section-heading">
+          <div>
+            <p class="watch-party__section-kicker">Под рукой</p>
+            <h2 class="watch-party__section-title">Мои комнаты</h2>
+          </div>
+          <span class="watch-party__badge">{{myRoomsCountLabel}}</span>
+        </div>
+
+        {{#if myRooms.length}}
+          <div class="watch-party__my-rooms">
+            {{#each myRooms}}
+              <article class="watch-party__my-room-card">
+                <img
+                  class="watch-party__my-room-thumb"
+                  src="{{this.imageUrl}}"
+                  alt="{{this.title}}"
+                />
+
+                <div class="watch-party__my-room-content">
+                  <span
+                    class="watch-party__state-badge watch-party__state-badge--{{this.statusTone}}"
+                  >
+                    {{this.statusLabel}}
+                  </span>
+                  <h3>{{this.title}}</h3>
+                  <p>{{this.meta}}</p>
+
+                  <div class="watch-party__room-actions">
+                    <button
+                      class="watch-party__button watch-party__button--accent"
+                      type="button"
+                      data-action="open-my-room"
+                      data-room-title="{{this.title}}"
+                    >
+                      Войти
+                    </button>
+                    <button
+                      class="watch-party__button watch-party__button--ghost"
+                      type="button"
+                      data-action="copy-link"
+                      data-link="{{this.roomLink}}"
+                    >
+                      Поделиться
+                    </button>
+                    <button
+                      class="watch-party__button watch-party__button--ghost watch-party__button--danger"
+                      type="button"
+                      data-action="delete-room"
+                      data-room-id="{{this.id}}"
+                      data-room-title="{{this.title}}"
+                    >
+                      Удалить
+                    </button>
+                  </div>
+                </div>
+              </article>
+            {{/each}}
+          </div>
+        {{else}}
+          <div class="watch-party__empty-state">
+            <h3>Пока нет созданных комнат</h3>
+            <p>
+              Настройте первую комнату выше, и она сразу появится в этом списке.
+            </p>
+          </div>
+        {{/if}}
+      </section>
+    </div>
+  </main>
+</div>

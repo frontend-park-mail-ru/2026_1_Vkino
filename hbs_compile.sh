@@ -11,3 +11,4 @@ handlebars ./src/pages/SignUp/SignUp.hbs -f ./src/pages/SignUp/SignUp.precompile
 handlebars ./src/pages/Profile/Profile.hbs -f ./src/pages/Profile/Profile.precompiled.js
 handlebars ./src/pages/Settings/Settings.hbs -f ./src/pages/Settings/Settings.precompiled.js
 handlebars ./src/pages/Actor/Actor.hbs -f ./src/pages/Actor/Actor.precompiled.js
+handlebars ./src/pages/WatchParty/WatchParty.hbs -f ./src/pages/WatchParty/WatchParty.precompiled.js
