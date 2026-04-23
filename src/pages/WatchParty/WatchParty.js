@@ -1,16 +1,16 @@
-import BasePage from "../BasePage.js";
-import "./WatchParty.precompiled.js";
-import "../../css/watch-party.scss";
+import BasePage from "@/pages/BasePage.js";
+import "@/pages/WatchParty/WatchParty.precompiled.js";
+import "@/css/watch-party.scss";
 
-import HeaderComponent from "../../components/Header/Header.js";
+import HeaderComponent from "@/components/Header/Header.js";
 import {
   buildWatchPartyFallbackOverview,
   watchPartyService,
-} from "../../js/WatchPartyService.js";
+} from "@/js/WatchPartyService.js";
 import {
   extractWatchPartyOverview,
   extractWatchPartyRoom,
-} from "../../utils/apiResponse.js";
+} from "@/utils/apiResponse.js";
 
 const HERO_COPY = {
   heroEyebrow: "Совместный просмотр",
