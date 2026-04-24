@@ -2,6 +2,7 @@
 @use "../components/Header/Header";
 @use "../components/MoviePoster/MoviePoster";
 @use "../components/MoviePlayer/MoviePlayer";
+@use "../components/Pagination/Pagination";
 @use "../components/PosterCarousel/PosterCarousel";
 @use "./home";
 @use "./movie";
