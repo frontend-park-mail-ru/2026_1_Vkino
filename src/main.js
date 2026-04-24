@@ -7,6 +7,7 @@ import ProfilePage from "./pages/Profile/Profile.js";
 import SettingsPage from "./pages/Settings/Settings.js";
 import ActorPage from "./pages/Actor/Actor.js";
 import CatalogPage from "./pages/Catalog/Catalog.js";
+import WatchPartyPage from "./pages/WatchParty/WatchParty.js";
 
 import "./css/index.scss";
 
@@ -87,6 +88,7 @@ async function start() {
       "/selection/:title",
       (root) => new CatalogPage({ catalogKey: "selection" }, null, root),
     )
+    .registerRoute("/watch-party", (root) => new WatchPartyPage({}, null, root))
     .registerRoute("/movie/:id", (root) => new MoviePage({}, null, root))
     .registerRoute("/actor/:id", (root) => new ActorPage({}, null, root));
 

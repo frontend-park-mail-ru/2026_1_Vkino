@@ -42,7 +42,13 @@
       </form>
     {{else}}
       <nav class="vk-header__nav" aria-label="Основная навигация">
-        <a href="/">Совместный просмотр</a>
+        <a
+          class="{{#if isWatchPartyActive}}is-active{{/if}}"
+          href="/watch-party"
+          router-link
+        >
+          Совместный просмотр
+        </a>
         <a href="/">Избранное</a>
         <button
           class="vk-header__search"
@@ -102,6 +108,15 @@
   data-menu="burger"
 >
   <nav class="vk-header__drawer-nav" aria-label="Категории">
+    <a
+      class="{{#if isWatchPartyActive}}is-active{{/if}}"
+      href="/watch-party"
+      router-link
+      data-action="close-all-menus"
+    >
+      Совместный просмотр
+    </a>
+    <a href="/" router-link data-action="close-all-menus">Главная</a>
     <a href="/" data-action="scroll-to-section" data-scroll-target="Новинки">Новинки</a>
     <a href="/movies" router-link data-action="close-all-menus">Фильмы</a>
     <a href="/cartoons" router-link data-action="close-all-menus">Мультфильмы</a>

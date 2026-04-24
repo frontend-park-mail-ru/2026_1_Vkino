@@ -253,11 +253,13 @@ export default class HeaderComponent extends BaseComponent {
   _buildContext(state, currentContext = {}) {
     const isAuthorized = state.status === "authenticated";
     const avatarUrl = resolveAvatarUrl(state.user?.avatar_url);
+    const currentPath = window.location.pathname;
     const nextContext = {
       ...currentContext,
       isAuthorized,
       userName: getDisplayNameFromEmail(state.user?.email),
       avatarUrl,
+      isWatchPartyActive: currentPath === "/watch-party",
       isBurgerMenuOpen: currentContext.isBurgerMenuOpen ?? false,
       isSearchOpen: currentContext.isSearchOpen ?? false,
       isProfileMenuOpen: isAuthorized

@@ -127,3 +127,54 @@ export function extractProfile(payload) {
 
   return {};
 }
+
+export function extractWatchPartyOverview(payload) {
+  const unwrapped = unwrapPayload(payload);
+
+  if (!unwrapped || typeof unwrapped !== "object" || Array.isArray(unwrapped)) {
+    return {};
+  }
+
+  const candidates = [
+    unwrapped.overview,
+    unwrapped.Overview,
+    unwrapped.watchParty,
+    unwrapped.watch_party,
+    unwrapped.page,
+    unwrapped.Page,
+    unwrapped,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  return {};
+}
+
+export function extractWatchPartyRoom(payload) {
+  const unwrapped = unwrapPayload(payload);
+
+  if (!unwrapped || typeof unwrapped !== "object" || Array.isArray(unwrapped)) {
+    return null;
+  }
+
+  const candidates = [
+    unwrapped.room,
+    unwrapped.Room,
+    unwrapped.createdRoom,
+    unwrapped.created_room,
+    unwrapped.item,
+    unwrapped.Item,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}

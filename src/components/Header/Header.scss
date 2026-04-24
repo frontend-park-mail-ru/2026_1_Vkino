@@ -130,6 +130,28 @@
   line-height: 1.2;
 }
 
+.vk-header__nav a,
+.vk-header__drawer-nav a {
+  position: relative;
+}
+
+.vk-header__nav a.is-active,
+.vk-header__drawer-nav a.is-active {
+  color: #ff6a2a;
+}
+
+.vk-header__nav a.is-active::after,
+.vk-header__drawer-nav a.is-active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
 .vk-header__nav a:hover,
 .vk-header__nav button:hover,
 .vk-header__search-submit:hover,
@@ -307,6 +329,10 @@
   display: block;
   font-size: 18px;
   font-weight: 700;
+}
+
+.vk-header__drawer-nav a.is-active::after {
+  bottom: -3px;
 }
 
 @media (max-width: 900px) {
