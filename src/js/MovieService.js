@@ -39,7 +39,58 @@ export class MovieService {
    * @returns {string} return.error сообщение об ошибке (если есть)
    */
   async getSelectionByTitle(title) {
-    return this.api.get(`/selection/${title}`);
+    const normalizedTitle = String(title ?? "").trim();
+
+    if (!normalizedTitle) {
+      return {
+        ok: false,
+        status: 0,
+        resp: null,
+        error: "MovieService: не передано название подборки",
+      };
+    }
+
+    return this.api.get(`/selection/${encodeURIComponent(normalizedTitle)}`);
+  }
+
+  /**
+   * Получает набор подборок по их названиям.
+   * Если список названий пустой, возвращает все подборки.
+   * @async
+   * @param {string[]} [titles=[]] названия подборок
+   * @returns {Promise<Object>} результат запроса с массивом подборок
+   */
+  async getSelectionsByTitles(titles = []) {
+    const normalizedTitles = normalizeSelectionTitles(titles);
+
+    if (!normalizedTitles.length) {
+      return this.getAllSelections();
+    }
+
+    const results = await Promise.all(
+      normalizedTitles.map((title) => this.getSelectionByTitle(title)),
+    );
+    const selections = results.flatMap((result, index) =>
+      normalizeSelectionResponse(result.resp, normalizedTitles[index]),
+    );
+
+    if (selections.length) {
+      return {
+        ok: true,
+        status: 200,
+        resp: selections,
+        error: "",
+      };
+    }
+
+    const firstFailedResult = results.find((result) => !result.ok);
+
+    return {
+      ok: false,
+      status: firstFailedResult?.status || 0,
+      resp: null,
+      error: firstFailedResult?.error || "Не удалось загрузить подборки",
+    };
   }
 
   /**
@@ -94,3 +145,41 @@ export class MovieService {
  * @type {MovieService}
  */
 export const movieService = new MovieService(apiService);
+
+function normalizeSelectionTitles(titles = []) {
+  if (!Array.isArray(titles)) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      titles.map((title) => String(title ?? "").trim()).filter(Boolean),
+    ),
+  );
+}
+
+function normalizeSelectionResponse(resp, requestedTitle = "") {
+  if (Array.isArray(resp)) {
+    return resp
+      .map((selection) => normalizeSelection(selection, requestedTitle))
+      .filter(Boolean);
+  }
+
+  const normalizedSelection = normalizeSelection(resp, requestedTitle);
+
+  return normalizedSelection ? [normalizedSelection] : [];
+}
+
+function normalizeSelection(selection, requestedTitle = "") {
+  if (!selection || typeof selection !== "object") {
+    return null;
+  }
+
+  return {
+    ...selection,
+    title:
+      String(selection.title || "").trim() ||
+      String(selection.name || "").trim() ||
+      String(requestedTitle || "").trim(),
+  };
+}

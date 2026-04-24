@@ -6,6 +6,8 @@ import SignUpPage from "./pages/SignUp/SignUp.js";
 import ProfilePage from "./pages/Profile/Profile.js";
 import SettingsPage from "./pages/Settings/Settings.js";
 import ActorPage from "./pages/Actor/Actor.js";
+import CatalogPage from "./pages/Catalog/Catalog.js";
+import WatchPartyPage from "./pages/WatchParty/WatchParty.js";
 
 import "./css/index.scss";
 
@@ -45,6 +47,48 @@ async function start() {
     )
     .registerRoute("/profile", (root) => new ProfilePage({}, null, root))
     .registerRoute("/settings", (root) => new SettingsPage({}, null, root))
+    .registerRoute(
+      "/genres",
+      (root) => new CatalogPage({ catalogKey: "genres" }, null, root),
+    )
+    .registerRoute(
+      "/movies",
+      (root) =>
+        new CatalogPage(
+          {
+            catalogKey: "movies",
+          },
+          null,
+          root,
+        ),
+    )
+    .registerRoute(
+      "/serials",
+      (root) =>
+        new CatalogPage(
+          {
+            catalogKey: "serials",
+          },
+          null,
+          root,
+        ),
+    )
+    .registerRoute(
+      "/cartoons",
+      (root) =>
+        new CatalogPage(
+          {
+            catalogKey: "cartoons",
+          },
+          null,
+          root,
+        ),
+    )
+    .registerRoute(
+      "/selection/:title",
+      (root) => new CatalogPage({ catalogKey: "selection" }, null, root),
+    )
+    .registerRoute("/watch-party", (root) => new WatchPartyPage({}, null, root))
     .registerRoute("/movie/:id", (root) => new MoviePage({}, null, root))
     .registerRoute("/actor/:id", (root) => new ActorPage({}, null, root));
 
