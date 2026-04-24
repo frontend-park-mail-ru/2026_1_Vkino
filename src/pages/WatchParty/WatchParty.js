@@ -269,14 +269,17 @@ export default class WatchPartyPage extends BasePage {
   }
 
   async _deleteRoom(roomId, roomTitle) {
-    const nextRooms = this._pageData.myRooms.filter((room) => room.id !== roomId);
+    const normalizedRoomId = normalizeText(roomId);
+    const nextRooms = this._pageData.myRooms.filter((room) => {
+      return normalizeText(room?.id) !== normalizedRoomId;
+    });
 
     if (nextRooms.length === this._pageData.myRooms.length) {
       this._setStatus("Комната уже удалена или недоступна.", "error");
       return;
     }
 
-    const result = await watchPartyService.deleteRoom(roomId);
+    const result = await watchPartyService.deleteRoom(normalizedRoomId);
 
     this._pageData = {
       ...this._pageData,

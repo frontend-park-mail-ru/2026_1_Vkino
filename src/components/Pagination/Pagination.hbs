@@ -1,0 +1,50 @@
+<nav class="catalog-pagination" aria-label="Пагинация каталога">
+  {{#if hasPrevPage}}
+    <a
+      class="catalog-pagination__control"
+      href="{{prevHref}}"
+      router-link
+    >
+      Назад
+    </a>
+  {{else}}
+    <span class="catalog-pagination__control is-disabled" aria-disabled="true">
+      Назад
+    </span>
+  {{/if}}
+
+  <div class="catalog-pagination__list">
+    {{#each pageItems}}
+      {{#if isEllipsis}}
+        <span class="catalog-pagination__ellipsis" aria-hidden="true">…</span>
+      {{else}}
+        {{#if isCurrent}}
+          <span
+            class="catalog-pagination__link is-current"
+            aria-current="page"
+          >
+            {{label}}
+          </span>
+        {{else}}
+          <a class="catalog-pagination__link" href="{{href}}" router-link>
+            {{label}}
+          </a>
+        {{/if}}
+      {{/if}}
+    {{/each}}
+  </div>
+
+  {{#if hasNextPage}}
+    <a
+      class="catalog-pagination__control"
+      href="{{nextHref}}"
+      router-link
+    >
+      Вперед
+    </a>
+  {{else}}
+    <span class="catalog-pagination__control is-disabled" aria-disabled="true">
+      Вперед
+    </span>
+  {{/if}}
+</nav>

@@ -3,7 +3,15 @@
 >
   {{#if title}}
     <header class="poster-carousel__header">
-      <h2 class="poster-carousel__title">{{title}}</h2>
+      {{#if titleHref}}
+        <a class="poster-carousel__title-link" href="{{titleHref}}" router-link>
+          <h2 class="poster-carousel__title poster-carousel__title--interactive">
+            {{title}}
+          </h2>
+        </a>
+      {{else}}
+        <h2 class="poster-carousel__title">{{title}}</h2>
+      {{/if}}
     </header>
   {{/if}}
 

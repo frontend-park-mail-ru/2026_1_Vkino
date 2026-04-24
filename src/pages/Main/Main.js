@@ -8,6 +8,14 @@ import HeaderComponent from "../../components/Header/Header.js";
 import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
 
+const HOME_SELECTION_TITLES = [
+  "Новинки",
+  "Популярные",
+  "Фильмы",
+  "Мультфильмы",
+  "Сериалы",
+];
+
 /**
  * Главная страница приложения с подборками фильмов.
  * @class
@@ -64,14 +72,16 @@ export default class MainPage extends BasePage {
    * @returns {Promise<void>}
    */
   async loadContext() {
-    const { ok, resp, status, error } = await movieService.getAllSelections();
+    const { ok, resp, status, error } =
+      await movieService.getSelectionsByTitles(HOME_SELECTION_TITLES);
     const rawSelections = ok ? extractSelections(resp) : [];
     const selections = buildSelectionEntries(rawSelections);
+    const heroEntry = buildHeroEntry(selections);
 
     const newContext = {
       ...this.context,
       selectionEntries: selections,
-      heroMovies: buildHeroMovies(selections),
+      heroEntry,
     };
 
     if (!ok) {
@@ -133,10 +143,13 @@ export default class MainPage extends BasePage {
 
   _setupHeroCarousel() {
     const heroSlot = this.el.querySelector("#hero-carousel");
+    const heroEntry = this.context.heroEntry;
+
     if (
       !heroSlot ||
-      !Array.isArray(this.context.heroMovies) ||
-      !this.context.heroMovies.length
+      !heroEntry ||
+      !Array.isArray(heroEntry.movies) ||
+      !heroEntry.movies.length
     ) {
       return;
     }
@@ -146,7 +159,9 @@ export default class MainPage extends BasePage {
       new PosterCarouselComponent(
         {
           slug: "hero",
-          movies: this.context.heroMovies,
+          title: heroEntry.title,
+          titleHref: heroEntry.titleHref,
+          movies: heroEntry.movies,
           posterVariant: "default",
           posterSize: "medium",
           centeredHero: true,
@@ -177,6 +192,7 @@ export default class MainPage extends BasePage {
           {
             slug: selection.slotKey,
             title: selection.title,
+            titleHref: selection.titleHref,
             movies: selection.movies,
             posterVariant: "default",
             posterSize: "medium",
@@ -223,20 +239,31 @@ function buildSelectionEntries(selections = []) {
 
   return selections.map((selection, index) => ({
     title: selection.title || selection.Title || `Подборка ${index + 1}`,
+    titleHref: buildSelectionHref(selection.title || `Подборка ${index + 1}`),
     slotKey: `selection-${index}`,
     movies: normalizeMovies(selection.movies || selection.Movies || []),
   }));
 }
 
-function buildHeroMovies(selectionEntries = []) {
-  const movies = selectionEntries.flatMap((selection) => selection.movies);
-  const heroMovies = movies.slice(0, 3);
+function buildHeroEntry(selectionEntries = []) {
+  const featuredSelection =
+    findSelectionEntryByTitle(selectionEntries, "Новинки") ||
+    selectionEntries[0] ||
+    null;
 
-  if (!heroMovies.length) {
-    return buildFallbackHeroMovies();
+  if (!featuredSelection?.movies?.length) {
+    return {
+      title: "Новинки",
+      titleHref: buildSelectionHref("Новинки"),
+      movies: buildFallbackHeroMovies(),
+    };
   }
 
-  return heroMovies;
+  return {
+    title: featuredSelection.title,
+    titleHref: featuredSelection.titleHref,
+    movies: featuredSelection.movies.slice(0, 3),
+  };
 }
 
 function normalizeMovies(movies = []) {
@@ -324,4 +351,29 @@ function buildFallbackHeroMovies() {
       href: "/movie/fallback-hero-3",
     },
   ];
+}
+
+function buildSelectionHref(title = "") {
+  const normalizedTitle = String(title || "").trim();
+
+  return normalizedTitle
+    ? `/selection/${encodeURIComponent(normalizedTitle)}`
+    : "/selection";
+}
+
+function findSelectionEntryByTitle(selectionEntries = [], title = "") {
+  const normalizedTitle = String(title || "").trim().toLowerCase();
+
+  if (!normalizedTitle) {
+    return null;
+  }
+
+  return (
+    selectionEntries.find(
+      (selection) =>
+        String(selection?.title || "")
+          .trim()
+          .toLowerCase() === normalizedTitle,
+    ) || null
+  );
 }
