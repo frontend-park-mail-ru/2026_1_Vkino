@@ -6,6 +6,8 @@ const initialState = {
   user: null,
   error: null,
 };
+const SESSION_RECOVERY_DEFERRED_ERROR =
+  "Сессия сохранена, но backend временно недоступен";
 
 class AuthStore {
   /**
@@ -98,6 +100,16 @@ class AuthStore {
           return;
         }
       }
+
+      if (isTransientAuthFailure(refreshResult.status)) {
+        this._setGuest(SESSION_RECOVERY_DEFERRED_ERROR);
+        return;
+      }
+    }
+
+    if (isTransientAuthFailure(meResult.status)) {
+      this._setGuest(SESSION_RECOVERY_DEFERRED_ERROR);
+      return;
     }
 
     userService.clearAccessToken();
@@ -212,3 +224,7 @@ class AuthStore {
  * @type {AuthStore}
  */
 export const authStore = new AuthStore();
+
+function isTransientAuthFailure(status) {
+  return status === 0 || status >= 500;
+}
