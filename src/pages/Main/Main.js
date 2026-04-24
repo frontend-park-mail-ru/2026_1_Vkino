@@ -1,6 +1,7 @@
 import BasePage from "../BasePage.js";
 import "./Main.precompiled.js";
 
+import { getCacheFallbackNotice } from "../../utils/apiMeta.js";
 import { extractSelections } from "../../utils/apiResponse.js";
 import { consumePendingMainScrollTarget } from "../../components/Header/Header.js";
 import { movieService } from "../../js/MovieService.js";
@@ -27,7 +28,16 @@ export default class MainPage extends BasePage {
       throw new Error("Main: не передан корневой элемент для MainPage");
     }
 
-    super(context, Handlebars.templates["Main.hbs"], parent, el, "MainPage");
+    super(
+      {
+        cacheMessage: "",
+        ...context,
+      },
+      Handlebars.templates["Main.hbs"],
+      parent,
+      el,
+      "MainPage",
+    );
 
     /**
      * Флаг загрузки контекста.
@@ -64,12 +74,14 @@ export default class MainPage extends BasePage {
    * @returns {Promise<void>}
    */
   async loadContext() {
-    const { ok, resp, status, error } = await movieService.getAllSelections();
+    const selectionsResult = await movieService.getAllSelections();
+    const { ok, resp, status, error } = selectionsResult;
     const rawSelections = ok ? extractSelections(resp) : [];
     const selections = buildSelectionEntries(rawSelections);
 
     const newContext = {
       ...this.context,
+      cacheMessage: getCacheFallbackNotice(selectionsResult),
       selectionEntries: selections,
       heroMovies: buildHeroMovies(selections),
     };

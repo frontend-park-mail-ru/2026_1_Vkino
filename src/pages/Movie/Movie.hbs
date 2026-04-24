@@ -15,6 +15,12 @@
         </section>
       {{/if}}
 
+      {{#if cacheMessage}}
+        <div class="page-status-banner page-status-banner_warning" role="status">
+          <span>{{cacheMessage}}</span>
+        </div>
+      {{/if}}
+
       <section class="movie-hero">
         <div class="movie-poster-wrap">
           <img

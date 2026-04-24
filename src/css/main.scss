@@ -226,3 +226,21 @@ ol {
 }
 
 /* Потом добавить сюда повторяющиеся кнопки и прочие переиспользуемые часто стили */
+
+.page-status-banner {
+  margin-bottom: var(--space-5);
+  padding: 0.95rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-radius: 18px;
+  border: 1px solid transparent;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.page-status-banner_warning {
+  background: rgba(255, 184, 112, 0.1);
+  border-color: rgba(255, 184, 112, 0.22);
+  color: #ffe0b8;
+}

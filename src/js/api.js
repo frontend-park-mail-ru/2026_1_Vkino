@@ -2,6 +2,8 @@
  * Сервис для выполнения HTTP-запросов к API backend.
  * Управляет базовым URL, пространством имен эндпоинтов и токеном авторизации.
  */
+const RESPONSE_SOURCE_HEADER = "x-vkino-response-source";
+
 export class ApiService {
   /**
    * Конструирует экземпляр ApiService.
@@ -83,6 +85,7 @@ export class ApiService {
    * @returns {number} return.status HTTP статус ответа
    * @returns {Object|null} return.resp ответ сервера
    * @returns {string} return.error сообщение об ошибке (если есть)
+   * @returns {{source: string, servedFromCache: boolean}} return.meta мета-информация об источнике ответа
    */
   async request(endpoint, { method = "GET", data = null, headers = {} } = {}) {
     const url = this.buildUrl(endpoint);
@@ -120,6 +123,7 @@ export class ApiService {
         status: 0,
         resp: null,
         error: error.message || "Network error",
+        meta: createResponseMeta("network-error"),
       };
     }
 
@@ -140,6 +144,7 @@ export class ApiService {
       status: response.status,
       resp: parsedBody,
       error: extractErrorMessage(parsedBody),
+      meta: extractResponseMeta(response),
     };
   }
 
@@ -192,6 +197,21 @@ export class ApiService {
 function extractErrorMessage(resp) {
   if (!resp || typeof resp !== "object") return "";
   return resp.Error || resp.error || resp.message || "";
+}
+
+function extractResponseMeta(response) {
+  const source =
+    String(response.headers.get(RESPONSE_SOURCE_HEADER) || "network").trim() ||
+    "network";
+
+  return createResponseMeta(source);
+}
+
+function createResponseMeta(source) {
+  return {
+    source,
+    servedFromCache: source === "cache-fallback",
+  };
 }
 
 // читаем baseUrl из .env (с сервера) или ставим дефолтный для dev

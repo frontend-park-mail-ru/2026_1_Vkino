@@ -14,6 +14,7 @@ const APP_SHELL_URLS = [
 ];
 const STATIC_DESTINATIONS = new Set(["script", "style", "image", "font"]);
 const API_TIMEOUT_MS = 8000;
+const RESPONSE_SOURCE_HEADER = "X-Vkino-Response-Source";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(precacheAppShell());
@@ -165,12 +166,17 @@ async function handleApiRequest(request) {
     }
 
     if (response.status >= 500 && cachedResponse) {
-      return cachedResponse;
+      return tagResponseSource(cachedResponse, "cache-fallback");
     }
 
     return response;
   } catch {
-    return cachedResponse || createApiFallbackResponse();
+    return (
+      (cachedResponse && tagResponseSource(cachedResponse, "cache-fallback")) ||
+      createApiFallbackResponse(
+        "Сервер временно недоступен, а подходящих данных в кеше для этого запроса нет",
+      )
+    );
   }
 }
 
@@ -256,20 +262,31 @@ async function fetchWithTimeout(request, timeoutMs) {
   }
 }
 
-function createApiFallbackResponse() {
+function createApiFallbackResponse(errorMessage) {
   return new Response(
     JSON.stringify({
-      error:
-        "Сервер временно недоступен, а подходящих данных в кеше для этого запроса нет",
+      error: errorMessage,
     }),
     {
       status: 503,
       headers: {
         "Content-Type": "application/json; charset=utf-8",
         "Cache-Control": "no-store",
+        [RESPONSE_SOURCE_HEADER]: "fallback-miss",
       },
     },
   );
+}
+
+function tagResponseSource(response, source) {
+  const headers = new Headers(response.headers);
+  headers.set(RESPONSE_SOURCE_HEADER, source);
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
 
 function createOfflineDocumentResponse() {
