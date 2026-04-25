@@ -12,13 +12,6 @@
       {{/unless}}
 
       <section class="{{cardClass}}">
-        <div
-          class="support-create__status"
-          id="support-create-status"
-          role="status"
-          aria-live="polite"
-        ></div>
-
         <form
           class="support-create__form"
           data-support-form="create-ticket"
@@ -42,21 +35,42 @@
 
           <label class="support-create__field" for="support-category">
             <span class="support-create__label">Категория</span>
-            <select
-              class="support-create__input support-create__input--select"
-              id="support-category"
-              name="category"
-              required
-            >
-              <option value="" disabled selected>Выберите категорию</option>
-              {{#each categoryGroups}}
-                <optgroup label="{{this.label}}">
-                  {{#each this.options}}
-                    <option value="{{this.value}}">{{this.label}}</option>
-                  {{/each}}
-                </optgroup>
-              {{/each}}
-            </select>
+            <div class="support-create__category" data-support-category>
+              <input
+                id="support-category"
+                name="category"
+                type="hidden"
+              />
+              <button
+                class="support-create__input support-create__category-trigger"
+                type="button"
+                aria-expanded="false"
+                aria-controls="support-category-menu"
+                data-support-category-trigger
+              >
+                <span
+                  class="support-create__category-trigger-label"
+                  data-support-category-label
+                >Выберите категорию</span>
+              </button>
+              <div
+                class="support-create__category-menu"
+                id="support-category-menu"
+                data-support-category-menu
+                hidden
+              >
+                {{#each categoryOptions}}
+                  <button
+                    class="support-create__category-option"
+                    type="button"
+                    data-support-category-option
+                    data-value="{{this.value}}"
+                  >
+                    {{this.label}}
+                  </button>
+                {{/each}}
+              </div>
+            </div>
             <span
               class="support-create__error"
               id="support-category-error"
@@ -70,7 +84,7 @@
               id="support-message"
               name="message"
               placeholder="Что произошло, где и при каких условиях?"
-              rows="8"
+              rows="2"
               required
             ></textarea>
             <span
@@ -88,6 +102,13 @@
               type="file"
               accept="image/*,.pdf,application/pdf"
             />
+            <span class="support-create__file-trigger">
+              <span class="support-create__file-button">Выберите файл</span>
+              <span
+                class="support-create__file-name"
+                id="support-attachment-name"
+              ></span>
+            </span>
             <span class="support-create__hint">
               Только изображения или PDF-документы
             </span>
@@ -96,6 +117,13 @@
               id="support-attachment-error"
             ></span>
           </label>
+
+          <div
+            class="support-create__status"
+            id="support-create-status"
+            role="status"
+            aria-live="polite"
+          ></div>
 
           <button class="support-create__button" type="submit">
             Создать обращение

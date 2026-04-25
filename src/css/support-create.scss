@@ -127,7 +127,7 @@
 
 .support-create__card--embed {
   min-height: 0;
-  padding: 1rem;
+  padding: 0.85rem 1rem 1rem;
   border: 0;
   border-radius: 0;
   box-shadow: none;
@@ -136,7 +136,7 @@
 
 .support-create__status {
   min-height: 0;
-  margin-bottom: var(--space-4);
+  margin-top: -0.15rem;
 }
 
 .support-create__status:empty {
@@ -145,22 +145,22 @@
 
 .support-create__status--success {
   display: block;
-  padding: 0.95rem 1rem;
+  padding: 0.75rem 0.9rem;
   border: 1px solid rgba(74, 210, 117, 0.28);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: rgba(74, 210, 117, 0.12);
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
 }
 
 .support-create__status--error {
   display: block;
-  padding: 0.95rem 1rem;
-  border: 1px solid rgba(255, 123, 110, 0.28);
-  border-radius: var(--radius-lg);
-  background: rgba(255, 123, 110, 0.12);
-  color: #ffd0ca;
-  font-size: var(--text-sm);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #ff7b6e;
+  font-size: var(--text-xs);
 }
 
 .support-create__form {
@@ -168,9 +168,17 @@
   gap: var(--space-2);
 }
 
+.support-create__card--embed .support-create__form {
+  gap: 0.45rem;
+}
+
 .support-create__field {
   display: grid;
   gap: var(--space-2);
+}
+
+.support-create__card--embed .support-create__field {
+  gap: 0.35rem;
 }
 
 .support-create__label {
@@ -179,6 +187,7 @@
 }
 
 .support-create__input {
+  box-sizing: border-box;
   width: 100%;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -197,39 +206,166 @@
   background: var(--input-bg-focus);
 }
 
-.support-create__input--select {
-  appearance: none;
+.support-create__category {
+  position: relative;
+}
+
+.support-create__category-trigger {
+  position: relative;
+  justify-content: flex-start;
+  padding-right: 2.9rem;
+  text-align: left;
+}
+
+.support-create__category-trigger::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 1.05rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-right: 2px solid rgba(230, 204, 171, 0.9);
+  border-bottom: 2px solid rgba(230, 204, 171, 0.9);
+  transform: translateY(-65%) rotate(45deg);
+  transition: transform var(--duration-fast) var(--ease-default);
+}
+
+.support-create__category.is-open .support-create__category-trigger {
+  border-color: var(--border-focus);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.support-create__category.is-open .support-create__category-trigger::after {
+  transform: translateY(-35%) rotate(-135deg);
+}
+
+.support-create__category-trigger-label {
+  color: var(--text-primary);
+}
+
+.support-create__category-menu {
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  padding: 0.55rem 0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 7, 3, 0.98) 0%,
+    rgba(28, 13, 7, 0.98) 100%
+  );
+  border: 1px solid rgba(217, 104, 45, 0.28);
+  border-top: none;
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 14px;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.38);
+}
+
+.support-create__category-option {
+  width: 100%;
+  padding: 0.5rem 0.95rem;
+  color: #f0dfc9;
+  font-size: 1rem;
+  text-align: left;
+  transition:
+    color var(--duration-fast) var(--ease-default),
+    background-color var(--duration-fast) var(--ease-default);
+}
+
+.support-create__category-option:hover,
+.support-create__category-option:focus-visible {
+  outline: none;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff5e8;
 }
 
 .support-create__input--textarea {
-  min-height: 180px;
-  resize: vertical;
+  min-height: 5.8rem;
+  resize: none;
+  line-height: 1.35;
+  overflow-y: hidden;
+}
+
+.support-create__card--embed .support-create__input--textarea {
+  min-height: 5.2rem;
 }
 
 .support-create__input--file {
-  padding: 0.75rem;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
-.support-create__input--file::file-selector-button {
-  margin-right: var(--space-3);
+.support-create__file-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 3.1rem;
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--input-bg);
+  transition:
+    border-color var(--duration-fast) var(--ease-default),
+    background-color var(--duration-fast) var(--ease-default);
+}
+
+.support-create__file-trigger:hover,
+.support-create__field:focus-within .support-create__file-trigger {
+  border-color: var(--border-focus);
+  background: var(--input-bg-focus);
+}
+
+.support-create__file-button {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 10.5rem;
+  min-height: 2.2rem;
   padding: 0.55rem 0.9rem;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   background: rgba(230, 204, 171, 0.06);
   color: var(--text-primary);
   font: inherit;
+  white-space: nowrap;
   cursor: pointer;
   transition:
     border-color var(--duration-fast) var(--ease-default),
     background-color var(--duration-fast) var(--ease-default);
 }
 
-.support-create__input--file::file-selector-button:hover {
+.support-create__file-trigger:hover .support-create__file-button,
+.support-create__field:focus-within .support-create__file-button {
   border-color: rgba(255, 87, 31, 0.35);
   background: rgba(255, 87, 31, 0.08);
 }
 
+.support-create__file-name {
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .support-create__input.is-error {
+  border-color: #ff7b6e;
+}
+
+.support-create__file-trigger.is-error {
   border-color: #ff7b6e;
 }
 
@@ -276,6 +412,10 @@
   transform: none;
 }
 
+.support-create__field + .support-create__status {
+  margin-top: -1.5rem;
+}
+
 .support-create__detach {
   flex-shrink: 0;
   display: inline-flex;
@@ -314,10 +454,14 @@
     border-radius: var(--radius-lg);
   }
 
-  .support-create__input--file::file-selector-button {
+  .support-create__file-trigger {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .support-create__file-button {
     width: 100%;
-    margin-right: 0;
-    margin-bottom: var(--space-2);
+    min-width: 0;
   }
 
   .support-create__hero--embed {

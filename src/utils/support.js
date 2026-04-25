@@ -320,8 +320,9 @@ export function resolveSupportCategory(source) {
     };
   }
 
+  const normalizedCategory = String(rawCategory).trim();
   const [categoryPrimary = "", categorySecondary = ""] =
-    String(rawCategory).split(":");
+    normalizedCategory.split(":");
 
   return {
     categoryPrimary,
@@ -329,7 +330,7 @@ export function resolveSupportCategory(source) {
     categoryKey:
       categoryPrimary && categorySecondary
         ? `${categoryPrimary}:${categorySecondary}`
-        : rawCategory,
+        : normalizedCategory,
   };
 }
 

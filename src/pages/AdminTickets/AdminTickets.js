@@ -30,7 +30,7 @@ export default class AdminTicketsPage extends BasePage {
         isLoading: true,
         searchQuery: "",
         statusOptions: [],
-        categoryGroups: [],
+        categoryOptions: [],
         statisticsCards: [],
         tickets: [],
         selectedTicket: null,
@@ -392,13 +392,10 @@ export default class AdminTicketsPage extends BasePage {
         ...option,
         selectedAttr: option.value === snapshot.statusFilter ? " selected" : "",
       })),
-      categoryGroups: (snapshot.categoryGroups || []).map((group) => ({
-        label: group.label,
-        options: group.options.map((option) => ({
-          ...option,
-          selectedAttr:
-            option.value === snapshot.categoryFilter ? " selected" : "",
-        })),
+      categoryOptions: (snapshot.categoryOptions || []).map((option) => ({
+        ...option,
+        selectedAttr:
+          option.value === snapshot.categoryFilter ? " selected" : "",
       })),
       statisticsCards: snapshot.statisticsCards || [],
       tickets: (snapshot.filteredTickets || []).map((ticket) =>
@@ -565,7 +562,8 @@ function buildSelectedTicketView(ticket, messages = []) {
     subject: ticket.subject,
     userEmail: ticket.userEmail,
     createdAtLabel: formatFullDate(ticket.createdAt),
-    categoryLabel: `${ticket.categoryPrimary || "category"} / ${ticket.categorySecondary || "other"}`,
+    categoryLabel:
+      ticket.categoryPrimary || ticket.categoryKey || ticket.categorySecondary || "other",
     statusLabel: statusMeta.label,
     statusClass: `support-tickets__status-badge support-tickets__status-badge--${statusMeta.tone}`,
     closeButtonDisabledAttr: ticket.status === "resolved" ? " disabled" : "",

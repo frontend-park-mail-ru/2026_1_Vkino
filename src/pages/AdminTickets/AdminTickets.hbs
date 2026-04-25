@@ -58,14 +58,10 @@
                   <span>Категория</span>
                   <select class="support-tickets__select" name="categoryFilter">
                     <option value="all">Все категории</option>
-                    {{#each categoryGroups}}
-                      <optgroup label="{{this.label}}">
-                        {{#each this.options}}
-                          <option value="{{this.value}}" {{this.selectedAttr}}>
-                            {{this.label}}
-                          </option>
-                        {{/each}}
-                      </optgroup>
+                    {{#each categoryOptions}}
+                      <option value="{{this.value}}" {{this.selectedAttr}}>
+                        {{this.label}}
+                      </option>
                     {{/each}}
                   </select>
                 </label>

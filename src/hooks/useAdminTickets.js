@@ -13,28 +13,12 @@ const STATUS_OPTIONS = [
   { value: "resolved", label: "Закрытые" },
 ];
 
-const CATEGORY_GROUPS = [
-  {
-    label: "bug",
-    options: [
-      { value: "bug:other", label: "other" },
-      { value: "bug:feature", label: "feature" },
-    ],
-  },
-  {
-    label: "complaint",
-    options: [
-      { value: "complaint:other", label: "other" },
-      { value: "complaint:feature", label: "feature" },
-    ],
-  },
-  {
-    label: "question",
-    options: [
-      { value: "question:other", label: "other" },
-      { value: "question:feature", label: "feature" },
-    ],
-  },
+const CATEGORY_OPTIONS = [
+  { value: "bug", label: "bug" },
+  { value: "feature", label: "feature" },
+  { value: "complaint", label: "complaint" },
+  { value: "question", label: "question" },
+  { value: "other", label: "other" },
 ];
 
 const STATUS_META = {
@@ -238,7 +222,7 @@ export function useAdminTickets(currentAdmin = {}) {
       statusFilter: state.statusFilter,
       categoryFilter: state.categoryFilter,
       statusOptions: STATUS_OPTIONS,
-      categoryGroups: CATEGORY_GROUPS,
+      categoryOptions: CATEGORY_OPTIONS,
       filteredTickets,
       selectedTicket,
       selectedMessages: state.selectedMessages,
