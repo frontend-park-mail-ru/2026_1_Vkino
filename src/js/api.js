@@ -54,11 +54,12 @@ export class ApiService {
   }
 
   /**
-   * Формирует полный URL для запроса с учетом namespace и endpoint.
+   * Формирует полный URL для запроса с учетом namespace, endpoint и query-параметров.
    * @param {string} [endpoint=""] конечная точка API
+   * @param {Object|URLSearchParams|null} [query=null] query-параметры запроса
    * @returns {string} сформированный URL
    */
-  buildUrl(endpoint = "") {
+  buildUrl(endpoint = "", query = null) {
     const normalizedNamespace = this.namespace
       ? `/${String(this.namespace).replace(/^\/+|\/+$/g, "")}`
       : "";
@@ -67,7 +68,10 @@ export class ApiService {
       ? `/${String(endpoint).replace(/^\/+/, "")}`
       : "";
 
-    return `${this.baseUrl}${normalizedNamespace}${normalizedEndpoint}`;
+    return appendQueryParams(
+      `${this.baseUrl}${normalizedNamespace}${normalizedEndpoint}`,
+      query,
+    );
   }
 
   /**
@@ -77,6 +81,7 @@ export class ApiService {
    * @param {Object} [options] параметры запроса
    * @param {string} [options.method="GET"] HTTP метод
    * @param {Object|null} [options.data=null] данные для отправки в теле запроса
+   * @param {Object|URLSearchParams|null} [options.query=null] query-параметры запроса
    * @param {Object} [options.headers={}] дополнительные заголовки
    * @returns {Promise<Object>} результат запроса
    * @returns {boolean} return.ok успешен ли запрос
@@ -86,11 +91,20 @@ export class ApiService {
    */
   async request(
     endpoint,
-    { method = "GET", data = null, headers = {}, signal = null } = {},
+    {
+      method = "GET",
+      data = null,
+      query = null,
+      headers = {},
+      signal = null,
+    } = {},
   ) {
-    return this._performRequest(this.buildUrl(endpoint), {
-      method: String(method || "GET").toUpperCase(),
-      data,
+    const normalizedMethod = String(method || "GET").toUpperCase();
+    const bodyAllowed = normalizedMethod !== "GET" && normalizedMethod !== "HEAD";
+
+    return this._performRequest(this.buildUrl(endpoint, query), {
+      method: normalizedMethod,
+      data: bodyAllowed ? data : null,
       headers,
       signal,
     });
@@ -100,6 +114,15 @@ export class ApiService {
     url,
     { method = "GET", data = null, headers = {}, signal = null } = {},
   ) {
+    const accessToken = this.getAccessToken();
+
+    const fetchParams = {
+      method,
+      credentials: "include",
+      signal: signal || undefined,
+      headers: {
+        Accept: "application/json",
+        ...headers,
       },
     };
 
@@ -152,15 +175,24 @@ export class ApiService {
     };
   }
 
-  _performRequestViaXhr(
-    url,
-    { method = "GET", data = null, headers = {}, signal = null } = {},
-  ) {
-    return new Promise((resolve) => {
-      const accessToken = this.getAccessToken();
-      const xhr = new XMLHttpRequest();
-      let isSettled = false;
-
+  /**
+   * Выполняет GET запрос.
+   * @async
+   * @param {string} endpoint конечная точка API
+   * @param {Object} [options={}] дополнительные параметры запроса
+   * @param {Object|URLSearchParams|null} [options.query=null] query-параметры
+   * @param {Object} [options.headers={}] дополнительные заголовки
+   * @param {AbortSignal|null} [options.signal=null] сигнал отмены запроса
+   * @returns {Promise<Object>} результат запроса
+   */
+  get(endpoint, { query = null, headers = {}, signal = null } = {}) {
+    return this.request(endpoint, {
+      method: "GET",
+      query,
+      headers,
+      signal,
+    });
+  }
 
   /**
    * Выполняет POST запрос.
@@ -212,6 +244,48 @@ export class ApiService {
 function extractErrorMessage(resp) {
   if (!resp || typeof resp !== "object") return "";
   return resp.Error || resp.error || resp.message || "";
+}
+
+function appendQueryParams(url, query = null) {
+  if (!query) {
+    return url;
+  }
+
+  const params =
+    query instanceof URLSearchParams ? new URLSearchParams(query) : new URLSearchParams();
+
+  if (!(query instanceof URLSearchParams)) {
+    Object.entries(query).forEach(([key, value]) => {
+      appendQueryValue(params, key, value);
+    });
+  }
+
+  const queryString = params.toString();
+
+  if (!queryString) {
+    return url;
+  }
+
+  return `${url}${url.includes("?") ? "&" : "?"}${queryString}`;
+}
+
+function appendQueryValue(params, key, value) {
+  if (value === null || value === undefined) {
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => appendQueryValue(params, key, item));
+    return;
+  }
+
+  const normalizedValue = typeof value === "string" ? value.trim() : value;
+
+  if (normalizedValue === "") {
+    return;
+  }
+
+  params.append(key, String(normalizedValue));
 }
 
 // читаем baseUrl из .env (с сервера) или ставим дефолтный для dev

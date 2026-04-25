@@ -35,17 +35,33 @@ export class SupportService {
     supportLine = null,
     signal = null,
   } = {}) {
-    return this.api.request("/tickets", {
-      method: "GET",
-      data: {
-        role: String(role || "").trim(),
-        status: String(status || "").trim(),
-        category: String(category || "").trim(),
-        support_line:
-          Number.isFinite(Number(supportLine)) && Number(supportLine) > 0
-            ? Number(supportLine)
-            : 0,
-      },
+    const query = {};
+    const normalizedRole = String(role || "").trim();
+    const normalizedStatus = String(status || "").trim();
+    const normalizedCategory = String(category || "").trim();
+    const normalizedSupportLine = Number(supportLine);
+
+    if (normalizedRole) {
+      query.role = normalizedRole;
+    }
+
+    if (normalizedStatus) {
+      query.status = normalizedStatus;
+    }
+
+    if (normalizedCategory) {
+      query.category = normalizedCategory;
+    }
+
+    if (
+      Number.isFinite(normalizedSupportLine) &&
+      normalizedSupportLine > 0
+    ) {
+      query.support_line = normalizedSupportLine;
+    }
+
+    return this.api.get("/tickets", {
+      query,
       signal,
     });
   }
