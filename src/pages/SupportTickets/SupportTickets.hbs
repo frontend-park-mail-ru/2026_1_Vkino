@@ -279,68 +279,66 @@
               {{/if}}
             </div>
 
-            {{#unless isAdmin}}
-              <form
-                class="support-tickets__reply-form"
-                data-action="reply-ticket"
-              >
-                <label class="support-tickets__reply-field" for="support-reply">
-                  <textarea
-                    class="support-tickets__textarea"
-                    id="support-reply"
-                    name="reply"
-                    rows="4"
-                    placeholder="Напишите ответ..."
-                  >{{replyDraft}}</textarea>
+            <form
+              class="support-tickets__reply-form"
+              data-action="reply-ticket"
+            >
+              <label class="support-tickets__reply-field" for="support-reply">
+                <textarea
+                  class="support-tickets__textarea"
+                  id="support-reply"
+                  name="reply"
+                  rows="4"
+                  placeholder="Напишите ответ..."
+                >{{replyDraft}}</textarea>
+              </label>
+
+              <div class="support-tickets__reply-actions">
+                <label
+                  class="support-tickets__attach-button"
+                  for="support-reply-file"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M8.5 12.5L14 7a2.8 2.8 0 1 1 4 4l-7.2 7.2a4.5 4.5 0 1 1-6.4-6.4L12 4.2"
+                    ></path>
+                  </svg>
+                  <span>Прикрепить файл</span>
                 </label>
 
-                <div class="support-tickets__reply-actions">
-                  <label
-                    class="support-tickets__attach-button"
-                    for="support-reply-file"
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path
-                        d="M8.5 12.5L14 7a2.8 2.8 0 1 1 4 4l-7.2 7.2a4.5 4.5 0 1 1-6.4-6.4L12 4.2"
-                      ></path>
-                    </svg>
-                    <span>Прикрепить файл</span>
-                  </label>
+                <input
+                  class="support-tickets__reply-file"
+                  id="support-reply-file"
+                  name="replyFile"
+                  type="file"
+                  accept="image/*,.pdf,application/pdf"
+                />
 
-                  <input
-                    class="support-tickets__reply-file"
-                    id="support-reply-file"
-                    name="replyFile"
-                    type="file"
-                    accept="image/*,.pdf,application/pdf"
-                  />
+                <button class="support-tickets__send-button" type="submit">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 12L20 4L14 20L11.5 13L4 12Z"></path>
+                  </svg>
+                  <span>Ответить</span>
+                </button>
+              </div>
 
-                  <button class="support-tickets__send-button" type="submit">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M4 12L20 4L14 20L11.5 13L4 12Z"></path>
-                    </svg>
-                    <span>Ответить</span>
-                  </button>
+              <div class="support-tickets__reply-footer">
+                <div
+                  class="support-tickets__reply-file-meta"
+                  id="support-reply-file-meta"
+                  aria-live="polite"
+                >
+                  Можно приложить изображение или PDF
                 </div>
 
-                <div class="support-tickets__reply-footer">
-                  <div
-                    class="support-tickets__reply-file-meta"
-                    id="support-reply-file-meta"
-                    aria-live="polite"
-                  >
-                    Можно приложить изображение или PDF
-                  </div>
-
-                  <div
-                    class="support-tickets__reply-error"
-                    id="support-reply-error"
-                  >
-                    {{replyError}}
-                  </div>
+                <div
+                  class="support-tickets__reply-error"
+                  id="support-reply-error"
+                >
+                  {{replyError}}
                 </div>
-              </form>
-            {{/unless}}
+              </div>
+            </form>
           {{else}}
             <div class="support-tickets__empty-chat">
               <div class="support-tickets__empty-state">
