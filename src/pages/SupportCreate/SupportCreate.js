@@ -3,6 +3,7 @@ import "./SupportCreate.precompiled.js";
 import "../../css/support-create.scss";
 import { supportService } from "../../js/SupportService.js";
 import { router } from "../../router/index.js";
+import { authStore } from "../../store/authStore.js";
 import { extractSupportTicket } from "../../utils/support.js";
 
 const SUPPORT_CATEGORY_OPTIONS = [
@@ -29,6 +30,11 @@ export default class SupportCreatePage extends BasePage {
     }
 
     const isEmbedded = resolveEmbeddedMode(context);
+    const authState = authStore.getState();
+    const isNotAuthorized = authState.status !== "authenticated";
+    const userEmail = isNotAuthorized
+      ? String(authState.user?.email || "").trim()
+      : "";
 
     super(
       {
@@ -36,6 +42,8 @@ export default class SupportCreatePage extends BasePage {
         ...context,
         ...buildSupportCreateViewContext(isEmbedded),
         isEmbedded,
+        isNotAuthorized,
+        userEmail,
       },
       Handlebars.templates["SupportCreate.hbs"],
       parent,
@@ -154,6 +162,7 @@ export default class SupportCreatePage extends BasePage {
 
     try {
       result = await supportService.createTicket({
+        email: this._getField("email")?.value,
         subject: this._getField("subject")?.value,
         category: this._getField("category")?.value,
         message: this._getField("message")?.value,

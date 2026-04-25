@@ -7,6 +7,7 @@ export class SupportService {
 
   async createTicket(payload = {}, requestOptions = {}) {
     const normalizedPayload = {
+      user_email: String(payload.email).trim(),
       title: String(payload.subject || payload.title || "").trim(),
       category: String(payload.category || "").trim(),
       description: String(payload.message || payload.description || "").trim(),
