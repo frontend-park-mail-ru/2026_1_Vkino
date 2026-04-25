@@ -28,17 +28,24 @@ export class SupportService {
     });
   }
 
-  async getTickets({ admin = false, signal = null } = {}) {
-    const params = new URLSearchParams();
-
-    if (admin) {
-      params.set("admin", "true");
-    }
-
-    const suffix = params.toString() ? `?${params.toString()}` : "";
-
-    return this.api.request(`/tickets${suffix}`, {
+  async getTickets({
+    role = "",
+    status = "",
+    category = "",
+    supportLine = null,
+    signal = null,
+  } = {}) {
+    return this.api.request("/tickets", {
       method: "GET",
+      data: {
+        role: String(role || "").trim(),
+        status: String(status || "").trim(),
+        category: String(category || "").trim(),
+        support_line:
+          Number.isFinite(Number(supportLine)) && Number(supportLine) > 0
+            ? Number(supportLine)
+            : 0,
+      },
       signal,
     });
   }
@@ -88,6 +95,7 @@ export class SupportService {
 
   async createTicketMessage(ticketId, payload = {}, requestOptions = {}) {
     const normalizedTicketId = String(ticketId || "").trim();
+    const normalizedContent = String(payload.message || "").trim();
 
     if (!normalizedTicketId) {
       return {
@@ -98,19 +106,24 @@ export class SupportService {
       };
     }
 
-    const formData = new FormData();
-
-    formData.append("message", String(payload.message || "").trim());
-
-    if (payload.attachment instanceof File) {
-      formData.append("attachment", payload.attachment);
+    if (!normalizedContent) {
+      return {
+        ok: false,
+        status: 400,
+        resp: null,
+        error: "Введите текст сообщения",
+      };
     }
 
     return this.api.request(
       `/tickets/${encodeURIComponent(normalizedTicketId)}/messages`,
       {
         method: "POST",
-        data: formData,
+        data: {
+          content: normalizedContent,
+          // API gateway сейчас принимает только file key, не бинарный файл.
+          content_file_key: "",
+        },
         signal: requestOptions.signal || null,
       },
     );

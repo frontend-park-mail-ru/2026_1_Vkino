@@ -100,15 +100,6 @@ export class ApiService {
     url,
     { method = "GET", data = null, headers = {}, signal = null } = {},
   ) {
-    const accessToken = this.getAccessToken();
-
-    const fetchParams = {
-      method,
-      credentials: "include",
-      signal: signal || undefined,
-      headers: {
-        Accept: "application/json",
-        ...headers,
       },
     };
 
@@ -161,15 +152,15 @@ export class ApiService {
     };
   }
 
-  /**
-   * Выполняет GET запрос.
-   * @async
-   * @param {string} endpoint конечная точка API
-   * @returns {Promise<Object>} результат запроса
-   */
-  get(endpoint) {
-    return this.request(endpoint, { method: "GET" });
-  }
+  _performRequestViaXhr(
+    url,
+    { method = "GET", data = null, headers = {}, signal = null } = {},
+  ) {
+    return new Promise((resolve) => {
+      const accessToken = this.getAccessToken();
+      const xhr = new XMLHttpRequest();
+      let isSettled = false;
+
 
   /**
    * Выполняет POST запрос.

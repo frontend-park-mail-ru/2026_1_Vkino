@@ -4,6 +4,7 @@ import {
   extractSupportMessages,
   extractSupportStatistics,
   extractSupportTickets,
+  SUPPORT_CATEGORY_OPTIONS,
 } from "../utils/support.js";
 
 const STATUS_OPTIONS = [
@@ -13,13 +14,7 @@ const STATUS_OPTIONS = [
   { value: "resolved", label: "Закрытые" },
 ];
 
-const CATEGORY_OPTIONS = [
-  { value: "bug", label: "bug" },
-  { value: "feature", label: "feature" },
-  { value: "complaint", label: "complaint" },
-  { value: "question", label: "question" },
-  { value: "other", label: "other" },
-];
+const CATEGORY_OPTIONS = SUPPORT_CATEGORY_OPTIONS;
 
 const STATUS_META = {
   new: {
@@ -78,7 +73,10 @@ export function useAdminTickets(currentAdmin = {}) {
       : "";
     const requestSignal = signal || createContextSignal();
     const [ticketsResult, statisticsResult] = await Promise.all([
-      supportService.getTickets({ admin: true, signal: requestSignal }),
+      supportService.getTickets({
+        role: currentAdmin.role || "admin",
+        signal: requestSignal,
+      }),
       supportService.getStatistics({ signal: requestSignal }),
     ]);
 

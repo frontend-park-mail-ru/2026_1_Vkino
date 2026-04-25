@@ -12,7 +12,10 @@ import { supportRealtimeService } from "../../js/SupportRealtimeService.js";
 import { router } from "../../router/index.js";
 import { authStore } from "../../store/authStore.js";
 import { getDisplayNameFromEmail } from "../../utils/user.js";
-import { shouldSyncSupportRealtimePayload } from "../../utils/support.js";
+import {
+  getSupportCategoryLabel,
+  shouldSyncSupportRealtimePayload,
+} from "../../utils/support.js";
 
 /**
  * Нативная страница администратора со всеми обращениями системы.
@@ -444,6 +447,7 @@ export default class AdminTicketsPage extends BasePage {
 
     this._ticketsHook = useAdminTickets({
       email: user?.email || "admin@vkino.tech",
+      role: user?.role || "admin",
       displayName:
         getDisplayNameFromEmail(user?.email || "") || "Администратор VKino",
     });
@@ -563,7 +567,9 @@ function buildSelectedTicketView(ticket, messages = []) {
     userEmail: ticket.userEmail,
     createdAtLabel: formatFullDate(ticket.createdAt),
     categoryLabel:
-      ticket.categoryPrimary || ticket.categoryKey || ticket.categorySecondary || "other",
+      getSupportCategoryLabel(
+        ticket.categoryPrimary || ticket.categoryKey || ticket.categorySecondary,
+      ),
     statusLabel: statusMeta.label,
     statusClass: `support-tickets__status-badge support-tickets__status-badge--${statusMeta.tone}`,
     closeButtonDisabledAttr: ticket.status === "resolved" ? " disabled" : "",

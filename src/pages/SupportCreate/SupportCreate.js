@@ -5,14 +5,7 @@ import { supportService } from "../../js/SupportService.js";
 import { router } from "../../router/index.js";
 import { authStore } from "../../store/authStore.js";
 import { extractSupportTicket } from "../../utils/support.js";
-
-const SUPPORT_CATEGORY_OPTIONS = [
-  { value: "bug", label: "bug" },
-  { value: "feature", label: "feature" },
-  { value: "complaint", label: "complaint" },
-  { value: "question", label: "question" },
-  { value: "other", label: "other" },
-];
+import { SUPPORT_CATEGORY_OPTIONS } from "../../utils/support.js";
 const SUPPORT_WIDGET_EVENTS = {
   closeRequest: "vkino:support-widget-close-request",
   ticketCreated: "vkino:support-ticket-created",
@@ -219,6 +212,10 @@ export default class SupportCreatePage extends BasePage {
         ? `Обращение #${createdTicket.id} отправлено в поддержку.`
         : "Обращение отправлено в поддержку.",
     });
+
+    if (!this._isEmbedded) {
+      router.go("/support");
+    }
   }
 
   _onEmbeddedKeyDown = (event) => {
