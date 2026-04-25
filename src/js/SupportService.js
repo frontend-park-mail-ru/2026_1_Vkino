@@ -7,24 +7,48 @@ export class SupportService {
   }
 
   async createTicket(payload = {}, requestOptions = {}) {
-    const formData = new FormData();
     const category = resolveSupportCategory({ category: payload.category });
-
-    formData.append("subject", String(payload.subject || "").trim());
-    formData.append("category", String(payload.category || "").trim());
-    formData.append("message", String(payload.message || "").trim());
+    const normalizedPayload = {
+      subject: String(payload.subject || "").trim(),
+      category: String(payload.category || "").trim(),
+      message: String(payload.message || "").trim(),
+      attachment: null,
+    };
 
     if (category.categoryPrimary) {
-      formData.append("category_primary", category.categoryPrimary);
+      normalizedPayload.category_primary = category.categoryPrimary;
     }
 
     if (category.categorySecondary) {
-      formData.append("category_secondary", category.categorySecondary);
+      normalizedPayload.category_secondary = category.categorySecondary;
     }
 
-    if (payload.attachment instanceof File) {
-      formData.append("attachment", payload.attachment);
+    if (!(payload.attachment instanceof File)) {
+      return this.api.request("/tickets", {
+        method: "POST",
+        data: normalizedPayload,
+        signal: requestOptions.signal || null,
+      });
     }
+
+    const formData = new FormData();
+
+    formData.append("subject", normalizedPayload.subject);
+    formData.append("category", normalizedPayload.category);
+    formData.append("message", normalizedPayload.message);
+
+    if (normalizedPayload.category_primary) {
+      formData.append("category_primary", normalizedPayload.category_primary);
+    }
+
+    if (normalizedPayload.category_secondary) {
+      formData.append(
+        "category_secondary",
+        normalizedPayload.category_secondary,
+      );
+    }
+
+    formData.append("attachment", payload.attachment);
 
     return this.api.request("/tickets", {
       method: "POST",
