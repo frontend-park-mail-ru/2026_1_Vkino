@@ -83,14 +83,15 @@ class AuthStore {
       return;
     }
 
-    /*
-   
+    
+   /*
     this._setAuthenticated({
       email: "mock-admin@vkino.tech",
       role: "admin",
     });
     return;
     */
+    
    
 
     let meResult = await userService.me();

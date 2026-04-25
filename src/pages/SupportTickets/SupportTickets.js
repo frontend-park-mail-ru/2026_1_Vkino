@@ -22,13 +22,6 @@ const STATUS_FILTER_OPTIONS = [
   { value: "resolved", label: "Решено" },
 ];
 
-const TICKET_ACTION_OPTIONS = [
-  { value: "in_progress", label: "Перевести в работу" },
-  { value: "waiting", label: "Пометить «Ждёт ответа»" },
-  { value: "resolved", label: "Закрыть обращение" },
-  { value: "new", label: "Переоткрыть обращение" },
-];
-
 const STATUS_META = {
   new: {
     label: "Новый",
@@ -50,7 +43,6 @@ const STATUS_META = {
 
 const SUPPORT_REQUESTS_BLOCKED_MESSAGE =
   "Сервис обращений пока недоступен. Перезагрузите страницу после появления ручки.";
-const ENABLE_SUPPORT_CHAT_MOCK = true;
 
 /**
  * Нативная страница со списком обращений пользователя и историей диалога.
@@ -186,24 +178,6 @@ export default class SupportTicketsPage extends BasePage {
   }
 
   async loadContext({ preserveSelection = true, showLoading = false } = {}) {
-    if (ENABLE_SUPPORT_CHAT_MOCK) {
-      const previousSelectedTicketId = preserveSelection
-        ? this._selectedTicketId
-        : "";
-      this._tickets = buildMockSupportTickets();
-      this._selectedTicketId = this._resolveSelectedTicketId(
-        previousSelectedTicketId,
-      );
-      this._selectedMessages = buildMockSupportMessages(
-        this._selectedTicketId,
-        this._currentUser.email,
-      );
-      this._noticeMessage = "Показаны мок-данные чата (временный режим фронта).";
-      this._noticeTone = "info";
-      this._refreshView();
-      return;
-    }
-
     if (!this._canRequest()) {
       return;
     }
@@ -215,7 +189,9 @@ export default class SupportTicketsPage extends BasePage {
     const previousSelectedTicketId = preserveSelection
       ? this._selectedTicketId
       : "";
-    const ticketsResult = await supportService.getTickets();
+    const ticketsResult = await supportService.getTickets({
+      role: this._currentUser.role,
+    });
 
     if (await this._handleUnauthorized(ticketsResult)) {
       return;
@@ -261,6 +237,19 @@ export default class SupportTicketsPage extends BasePage {
   }
 
   _onClick = async (event) => {
+    const actionButton = event.target.closest("[data-ticket-action]");
+
+    if (actionButton) {
+      const actionValue = String(actionButton.dataset.ticketAction || "").trim();
+
+      if (!actionValue || actionButton.disabled) {
+        return;
+      }
+
+      await this._applyTicketAction(actionValue);
+      return;
+    }
+
     const ticketCard = event.target.closest("[data-ticket-id]");
 
     if (!ticketCard) {
@@ -325,22 +314,6 @@ export default class SupportTicketsPage extends BasePage {
       return;
     }
 
-    if (event.target.matches('[name="ticketAction"]')) {
-      if (this._currentUser.isAdmin) {
-        event.target.value = "";
-        return;
-      }
-
-      const actionValue = String(event.target.value || "").trim();
-
-      if (!actionValue) {
-        return;
-      }
-
-      await this._applyTicketAction(actionValue);
-      return;
-    }
-
     if (event.target.matches('[name="replyFile"]')) {
       this._replyError = "";
       this._renderReplyState();
@@ -377,10 +350,6 @@ export default class SupportTicketsPage extends BasePage {
   };
 
   async _handleReplySubmit(form) {
-    if (this._currentUser.isAdmin) {
-      return;
-    }
-
     const selectedTicket = this._getSelectedTicket();
 
     if (!selectedTicket) {
@@ -394,8 +363,17 @@ export default class SupportTicketsPage extends BasePage {
         ? formData.get("replyFile")
         : null;
 
-    if (!replyText && !(replyFile instanceof File && replyFile.size)) {
-      this._replyError = "Напишите ответ или прикрепите файл";
+    if (!replyText) {
+      this._replyError = "Напишите ответ";
+      this._noticeMessage = "";
+      this._noticeTone = "";
+      this._renderReplyState();
+      return;
+    }
+
+    if (replyFile instanceof File && replyFile.size) {
+      this._replyError =
+        "Вложения в ответе пока не поддерживаются API. Отправьте текст.";
       this._noticeMessage = "";
       this._noticeTone = "";
       this._renderReplyState();
@@ -456,13 +434,13 @@ export default class SupportTicketsPage extends BasePage {
   }
 
   async _applyTicketAction(nextStatus) {
-    if (this._currentUser.isAdmin) {
-      return;
-    }
-
     const selectedTicket = this._getSelectedTicket();
 
     if (!selectedTicket || !STATUS_META[nextStatus]) {
+      return;
+    }
+
+    if (!canApplyActionByRole(this._currentUser.isAdmin, nextStatus)) {
       return;
     }
 
@@ -528,20 +506,6 @@ export default class SupportTicketsPage extends BasePage {
   }
 
   async _loadSelectedMessages({ showError = true } = {}) {
-    if (ENABLE_SUPPORT_CHAT_MOCK) {
-      this._selectedMessages = buildMockSupportMessages(
-        this._selectedTicketId,
-        this._currentUser.email,
-      );
-
-      return {
-        ok: true,
-        status: 200,
-        resp: this._selectedMessages,
-        error: "",
-      };
-    }
-
     if (!this._selectedTicketId) {
       this._selectedMessages = [];
 
@@ -623,7 +587,11 @@ export default class SupportTicketsPage extends BasePage {
         buildTicketCardView(ticket, this._selectedTicketId),
       ),
       selectedTicket: selectedTicket
-        ? buildSelectedTicketView(selectedTicket, this._selectedMessages)
+        ? buildSelectedTicketView(
+            selectedTicket,
+            this._selectedMessages,
+            this._currentUser.isAdmin,
+          )
         : null,
       noticeMessage: this._noticeMessage,
       noticeClass: buildNoticeClass(this._noticeTone),
@@ -880,8 +848,9 @@ function buildFilterOptions(selectedStatus) {
   }));
 }
 
-function buildSelectedTicketView(ticket, messages = []) {
+function buildSelectedTicketView(ticket, messages = [], isAdmin = false) {
   const statusMeta = getStatusMeta(ticket.status);
+  const actionButtons = buildTicketActionButtons(ticket.status, isAdmin);
 
   return {
     id: ticket.id,
@@ -902,10 +871,8 @@ function buildSelectedTicketView(ticket, messages = []) {
       attachmentName: message.attachmentName,
       isOutgoing: message.isFromCurrentUser,
     })),
-    actionOptions: TICKET_ACTION_OPTIONS.map((option) => ({
-      ...option,
-      disabledAttr: option.value === ticket.status ? " disabled" : "",
-    })),
+    actionButtons,
+    hasActionButtons: Boolean(actionButtons.length),
   };
 }
 
@@ -1002,113 +969,37 @@ function buildEmptyListMessage(selectedStatus) {
   return `По статусу «${getFilterLabel(selectedStatus)}» обращений пока нет. Попробуйте другой фильтр или создайте новое обращение.`;
 }
 
-function buildMockSupportTickets() {
+function buildTicketActionButtons(status, isAdmin) {
+  if (isAdmin) {
+    return [
+      {
+        value: "waiting",
+        label: "Ждёт ответа",
+        disabledAttr: status === "waiting" ? " disabled" : "",
+      },
+      {
+        value: "resolved",
+        label: "Закрыть",
+        disabledAttr: status === "resolved" ? " disabled" : "",
+      },
+    ];
+  }
+
   return [
     {
-      id: "1024",
-      subject: "Не работает оплата подписки",
-      status: "in_progress",
-      createdAt: "2026-04-23T10:14:00.000Z",
-      updatedAt: "2026-04-25T11:40:00.000Z",
-    },
-    {
-      id: "1021",
-      subject: "Ошибка при входе в аккаунт после смены пароля",
-      status: "waiting",
-      createdAt: "2026-04-22T08:05:00.000Z",
-      updatedAt: "2026-04-25T08:22:00.000Z",
-    },
-    {
-      id: "1007",
-      subject: "Верните звук в плеере для сериала",
-      status: "resolved",
-      createdAt: "2026-04-20T13:33:00.000Z",
-      updatedAt: "2026-04-24T16:11:00.000Z",
+      value: "new",
+      label: "Переоткрыть обращение",
+      disabledAttr: status !== "resolved" ? " disabled" : "",
     },
   ];
 }
 
-function buildMockSupportMessages(ticketId, currentUserEmail) {
-  const normalizedTicketId = String(ticketId || "");
-
-  if (!normalizedTicketId) {
-    return [];
+function canApplyActionByRole(isAdmin, nextStatus) {
+  if (isAdmin) {
+    return nextStatus === "waiting" || nextStatus === "resolved";
   }
 
-  const mockMessagesByTicket = {
-    "1024": [
-      {
-        id: "m-1024-1",
-        senderName: "Вы",
-        senderEmail: currentUserEmail,
-        sentAt: "2026-04-25T10:15:00.000Z",
-        text: "Здравствуйте! Оплата прошла в банке, но подписка не активировалась.",
-        attachmentName: "",
-      },
-      {
-        id: "m-1024-2",
-        senderName: "Поддержка VKino",
-        senderEmail: "support@vkino.tech",
-        sentAt: "2026-04-25T10:26:00.000Z",
-        text: "Проверяем транзакцию. Подскажите, пожалуйста, последние 4 цифры карты и время платежа.",
-        attachmentName: "",
-      },
-      {
-        id: "m-1024-3",
-        senderName: "Вы",
-        senderEmail: currentUserEmail,
-        sentAt: "2026-04-25T10:34:00.000Z",
-        text: "Карта 8391, время примерно 13:31. Скрин чека прикрепил.",
-        attachmentName: "receipt-0425.pdf",
-      },
-    ],
-    "1021": [
-      {
-        id: "m-1021-1",
-        senderName: "Вы",
-        senderEmail: currentUserEmail,
-        sentAt: "2026-04-25T07:10:00.000Z",
-        text: "После смены пароля не могу войти со смартфона, пишет 'session expired'.",
-        attachmentName: "",
-      },
-      {
-        id: "m-1021-2",
-        senderName: "Поддержка VKino",
-        senderEmail: "support@vkino.tech",
-        sentAt: "2026-04-25T07:22:00.000Z",
-        text: "Спасибо! Уже обновили сессию на сервере. Проверьте вход ещё раз.",
-        attachmentName: "",
-      },
-    ],
-    "1007": [
-      {
-        id: "m-1007-1",
-        senderName: "Вы",
-        senderEmail: currentUserEmail,
-        sentAt: "2026-04-24T14:18:00.000Z",
-        text: "В 3-й серии нет звука после 12-й минуты.",
-        attachmentName: "",
-      },
-      {
-        id: "m-1007-2",
-        senderName: "Поддержка VKino",
-        senderEmail: "support@vkino.tech",
-        sentAt: "2026-04-24T15:02:00.000Z",
-        text: "Проблему исправили, уже доступна обновлённая дорожка. Спасибо за репорт!",
-        attachmentName: "",
-      },
-    ],
-  };
-
-  const sourceMessages = mockMessagesByTicket[normalizedTicketId] || [];
-
-  return sourceMessages.map((message) => ({
-    ...message,
-    isFromAdmin: /support|admin/i.test(String(message.senderEmail || "")),
-    isFromCurrentUser:
-      String(message.senderEmail || "").toLowerCase() ===
-      String(currentUserEmail || "").toLowerCase(),
-  }));
+  return nextStatus === "new";
 }
 
 function buildNoticeClass(tone) {

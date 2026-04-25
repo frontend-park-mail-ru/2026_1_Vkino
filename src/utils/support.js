@@ -1,5 +1,13 @@
 import { unwrapPayload } from "./apiResponse.js";
 
+export const SUPPORT_CATEGORY_OPTIONS = [
+  { value: "bug", label: "Ошибка" },
+  { value: "feature", label: "Новая функция" },
+  { value: "complaint", label: "Жалоба" },
+  { value: "question", label: "Вопрос" },
+  { value: "other", label: "Другое" },
+];
+
 const REALTIME_IGNORED_ACTIONS = new Set([
   "subscribe",
   "subscribed",
@@ -332,6 +340,25 @@ export function resolveSupportCategory(source) {
         ? `${categoryPrimary}:${categorySecondary}`
         : normalizedCategory,
   };
+}
+
+export function getSupportCategoryLabel(rawCategory = "") {
+  const normalizedCategory = String(rawCategory || "").trim().toLowerCase();
+
+  if (!normalizedCategory) {
+    return "Другое";
+  }
+
+  const categoryKey = normalizedCategory.split(":")[0] || normalizedCategory;
+  const matchedCategory = SUPPORT_CATEGORY_OPTIONS.find(
+    (option) => option.value === categoryKey,
+  );
+
+  if (matchedCategory) {
+    return matchedCategory.label;
+  }
+
+  return "Другое";
 }
 
 export function normalizeSupportStatus(value = "") {

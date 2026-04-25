@@ -92,7 +92,13 @@
 
             {{#unless isAdmin}}
               <div class="support-tickets__section-controls">
-     
+                <a
+                  class="support-tickets__mini-link"
+                  href="/support/new"
+                  router-link
+                >
+                  Новое обращение
+                </a>
 
                 <label class="support-tickets__filter">
                   <span>Статус</span>
@@ -206,16 +212,20 @@
                   {{selectedTicket.statusLabel}}
                 </span>
 
-                {{#unless isAdmin}}
-                  <select class="support-tickets__select" name="ticketAction">
-                    <option value="">Действия</option>
-                    {{#each selectedTicket.actionOptions}}
-                      <option value="{{this.value}}" {{this.disabledAttr}}>
+                {{#if selectedTicket.hasActionButtons}}
+                  <div class="support-tickets__chat-actions">
+                    {{#each selectedTicket.actionButtons}}
+                      <button
+                        class="support-tickets__chat-action-button"
+                        type="button"
+                        data-ticket-action="{{this.value}}"
+                        {{this.disabledAttr}}
+                      >
                         {{this.label}}
-                      </option>
+                      </button>
                     {{/each}}
-                  </select>
-                {{/unless}}
+                  </div>
+                {{/if}}
               </div>
             </div>
 
