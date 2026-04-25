@@ -116,6 +116,14 @@
   gap: var(--space-4);
 }
 
+.support-tickets__hero--admin {
+  grid-template-columns: 1fr;
+}
+
+.support-tickets__hero-main--admin .support-tickets__hero-title {
+  max-width: none;
+}
+
 .support-tickets__eyebrow {
   display: inline-flex;
   align-items: center;
@@ -239,8 +247,7 @@
 }
 
 .support-tickets__layout {
-  display: grid;
-  grid-template-columns: minmax(320px, 390px) minmax(0, 1fr);
+  display: flex;
   gap: var(--space-5);
   align-items: stretch;
 }
@@ -277,15 +284,18 @@
 }
 
 .support-tickets__sidebar {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  flex: 0 0 min(390px, 100%);
+  display: flex;
+  flex-direction: column;
   min-height: max(42rem, calc(100dvh - 13rem));
   overflow: hidden;
 }
 
 .support-tickets__chat {
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   min-height: max(42rem, calc(100dvh - 13rem));
   overflow: hidden;
 }
@@ -302,6 +312,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
+  flex-wrap: wrap;
   border-bottom: 1px solid rgba(230, 204, 171, 0.1);
   background: linear-gradient(
     180deg,
@@ -315,6 +326,7 @@
   align-items: flex-start;
   gap: 0.9rem;
   min-width: 0;
+  flex: 1 1 320px;
 }
 
 .support-tickets__title-icon {
@@ -370,16 +382,21 @@
 }
 
 .support-tickets__section-controls {
-  display: grid;
-  justify-items: end;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   gap: 0.75rem;
   min-width: 220px;
+  flex: 1 1 260px;
+  max-width: 320px;
+  margin-left: auto;
 }
 
 .support-tickets__mini-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
   min-height: 2.55rem;
   padding: 0.65rem 0.95rem;
   border: 1px solid rgba(230, 204, 171, 0.16);
@@ -447,6 +464,8 @@
 
 .support-tickets__ticket-list,
 .support-tickets__messages {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
   scrollbar-gutter: stable both-edges;
 }
@@ -558,6 +577,7 @@
   color: #fff3e3;
   display: -webkit-box;
   overflow: hidden;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
@@ -955,7 +975,7 @@
 
 @media (max-width: 1100px) {
   .support-tickets__layout {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
   .support-tickets__sidebar,
@@ -1017,7 +1037,9 @@
   }
 
   .support-tickets__section-controls {
-    justify-items: stretch;
+    max-width: none;
+    width: 100%;
+    margin-left: 0;
   }
 
   .support-tickets__hero-actions {

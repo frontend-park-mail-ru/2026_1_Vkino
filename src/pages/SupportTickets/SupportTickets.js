@@ -50,6 +50,7 @@ const STATUS_META = {
 
 const SUPPORT_REQUESTS_BLOCKED_MESSAGE =
   "Сервис обращений пока недоступен. Перезагрузите страницу после появления ручки.";
+const ENABLE_SUPPORT_CHAT_MOCK = true;
 
 /**
  * Нативная страница со списком обращений пользователя и историей диалога.
@@ -100,6 +101,8 @@ export default class SupportTicketsPage extends BasePage {
     this._currentUser = {
       email: "",
       displayName: "",
+      role: "user",
+      isAdmin: false,
     };
   }
 
@@ -183,6 +186,24 @@ export default class SupportTicketsPage extends BasePage {
   }
 
   async loadContext({ preserveSelection = true, showLoading = false } = {}) {
+    if (ENABLE_SUPPORT_CHAT_MOCK) {
+      const previousSelectedTicketId = preserveSelection
+        ? this._selectedTicketId
+        : "";
+      this._tickets = buildMockSupportTickets();
+      this._selectedTicketId = this._resolveSelectedTicketId(
+        previousSelectedTicketId,
+      );
+      this._selectedMessages = buildMockSupportMessages(
+        this._selectedTicketId,
+        this._currentUser.email,
+      );
+      this._noticeMessage = "Показаны мок-данные чата (временный режим фронта).";
+      this._noticeTone = "info";
+      this._refreshView();
+      return;
+    }
+
     if (!this._canRequest()) {
       return;
     }
@@ -305,6 +326,11 @@ export default class SupportTicketsPage extends BasePage {
     }
 
     if (event.target.matches('[name="ticketAction"]')) {
+      if (this._currentUser.isAdmin) {
+        event.target.value = "";
+        return;
+      }
+
       const actionValue = String(event.target.value || "").trim();
 
       if (!actionValue) {
@@ -351,6 +377,10 @@ export default class SupportTicketsPage extends BasePage {
   };
 
   async _handleReplySubmit(form) {
+    if (this._currentUser.isAdmin) {
+      return;
+    }
+
     const selectedTicket = this._getSelectedTicket();
 
     if (!selectedTicket) {
@@ -426,6 +456,10 @@ export default class SupportTicketsPage extends BasePage {
   }
 
   async _applyTicketAction(nextStatus) {
+    if (this._currentUser.isAdmin) {
+      return;
+    }
+
     const selectedTicket = this._getSelectedTicket();
 
     if (!selectedTicket || !STATUS_META[nextStatus]) {
@@ -494,6 +528,20 @@ export default class SupportTicketsPage extends BasePage {
   }
 
   async _loadSelectedMessages({ showError = true } = {}) {
+    if (ENABLE_SUPPORT_CHAT_MOCK) {
+      this._selectedMessages = buildMockSupportMessages(
+        this._selectedTicketId,
+        this._currentUser.email,
+      );
+
+      return {
+        ok: true,
+        status: 200,
+        resp: this._selectedMessages,
+        error: "",
+      };
+    }
+
     if (!this._selectedTicketId) {
       this._selectedMessages = [];
 
@@ -562,6 +610,7 @@ export default class SupportTicketsPage extends BasePage {
 
     return {
       isLoading: false,
+      isAdmin: this._currentUser.isAdmin,
       filterOptions: buildFilterOptions(this._selectedStatus),
       overviewCards: buildOverviewCards(this._tickets),
       ticketsSummary: buildTicketsSummary(
@@ -703,10 +752,13 @@ export default class SupportTicketsPage extends BasePage {
 
   _resolveCurrentUser(user = authStore.getState().user || {}) {
     const email = String(user?.email || "user@vkino.tech").trim();
+    const role = String(user?.role || "user").trim().toLowerCase() || "user";
 
     return {
       email,
       displayName: getDisplayNameFromEmail(email) || "Вы",
+      role,
+      isAdmin: isAdminRole(role),
     };
   }
 
@@ -950,6 +1002,115 @@ function buildEmptyListMessage(selectedStatus) {
   return `По статусу «${getFilterLabel(selectedStatus)}» обращений пока нет. Попробуйте другой фильтр или создайте новое обращение.`;
 }
 
+function buildMockSupportTickets() {
+  return [
+    {
+      id: "1024",
+      subject: "Не работает оплата подписки",
+      status: "in_progress",
+      createdAt: "2026-04-23T10:14:00.000Z",
+      updatedAt: "2026-04-25T11:40:00.000Z",
+    },
+    {
+      id: "1021",
+      subject: "Ошибка при входе в аккаунт после смены пароля",
+      status: "waiting",
+      createdAt: "2026-04-22T08:05:00.000Z",
+      updatedAt: "2026-04-25T08:22:00.000Z",
+    },
+    {
+      id: "1007",
+      subject: "Верните звук в плеере для сериала",
+      status: "resolved",
+      createdAt: "2026-04-20T13:33:00.000Z",
+      updatedAt: "2026-04-24T16:11:00.000Z",
+    },
+  ];
+}
+
+function buildMockSupportMessages(ticketId, currentUserEmail) {
+  const normalizedTicketId = String(ticketId || "");
+
+  if (!normalizedTicketId) {
+    return [];
+  }
+
+  const mockMessagesByTicket = {
+    "1024": [
+      {
+        id: "m-1024-1",
+        senderName: "Вы",
+        senderEmail: currentUserEmail,
+        sentAt: "2026-04-25T10:15:00.000Z",
+        text: "Здравствуйте! Оплата прошла в банке, но подписка не активировалась.",
+        attachmentName: "",
+      },
+      {
+        id: "m-1024-2",
+        senderName: "Поддержка VKino",
+        senderEmail: "support@vkino.tech",
+        sentAt: "2026-04-25T10:26:00.000Z",
+        text: "Проверяем транзакцию. Подскажите, пожалуйста, последние 4 цифры карты и время платежа.",
+        attachmentName: "",
+      },
+      {
+        id: "m-1024-3",
+        senderName: "Вы",
+        senderEmail: currentUserEmail,
+        sentAt: "2026-04-25T10:34:00.000Z",
+        text: "Карта 8391, время примерно 13:31. Скрин чека прикрепил.",
+        attachmentName: "receipt-0425.pdf",
+      },
+    ],
+    "1021": [
+      {
+        id: "m-1021-1",
+        senderName: "Вы",
+        senderEmail: currentUserEmail,
+        sentAt: "2026-04-25T07:10:00.000Z",
+        text: "После смены пароля не могу войти со смартфона, пишет 'session expired'.",
+        attachmentName: "",
+      },
+      {
+        id: "m-1021-2",
+        senderName: "Поддержка VKino",
+        senderEmail: "support@vkino.tech",
+        sentAt: "2026-04-25T07:22:00.000Z",
+        text: "Спасибо! Уже обновили сессию на сервере. Проверьте вход ещё раз.",
+        attachmentName: "",
+      },
+    ],
+    "1007": [
+      {
+        id: "m-1007-1",
+        senderName: "Вы",
+        senderEmail: currentUserEmail,
+        sentAt: "2026-04-24T14:18:00.000Z",
+        text: "В 3-й серии нет звука после 12-й минуты.",
+        attachmentName: "",
+      },
+      {
+        id: "m-1007-2",
+        senderName: "Поддержка VKino",
+        senderEmail: "support@vkino.tech",
+        sentAt: "2026-04-24T15:02:00.000Z",
+        text: "Проблему исправили, уже доступна обновлённая дорожка. Спасибо за репорт!",
+        attachmentName: "",
+      },
+    ],
+  };
+
+  const sourceMessages = mockMessagesByTicket[normalizedTicketId] || [];
+
+  return sourceMessages.map((message) => ({
+    ...message,
+    isFromAdmin: /support|admin/i.test(String(message.senderEmail || "")),
+    isFromCurrentUser:
+      String(message.senderEmail || "").toLowerCase() ===
+      String(currentUserEmail || "").toLowerCase(),
+  }));
+}
+
 function buildNoticeClass(tone) {
   if (!tone) {
     return "support-tickets__notice";
@@ -1060,4 +1221,8 @@ function buildLocalReplyMessage({
     isFromAdmin: false,
     isFromCurrentUser: true,
   };
+}
+
+function isAdminRole(role = "") {
+  return String(role || "").trim().toLowerCase() === "admin";
 }

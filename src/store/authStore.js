@@ -1,5 +1,6 @@
 import { createStore } from "./createStore.js";
 import { userService } from "../js/UserService.js";
+import { extractProfile } from "../utils/apiResponse.js";
 
 const initialState = {
   status: "idle",
@@ -55,9 +56,11 @@ class AuthStore {
    * @param {User} user - Объект данных пользователя.
    */
   _setAuthenticated(user) {
+    const normalizedUser = normalizeAuthUser(user);
+
     this._setState({
       status: "authenticated",
-      user,
+      user: normalizedUser,
       error: null,
     });
   }
@@ -80,10 +83,21 @@ class AuthStore {
       return;
     }
 
+    /*
+   
+    this._setAuthenticated({
+      email: "mock-admin@vkino.tech",
+      role: "admin",
+    });
+    return;
+    */
+   
+
     let meResult = await userService.me();
 
+
     if (meResult.ok) {
-      this._setAuthenticated(meResult.resp);
+      this._setAuthenticated(extractProfile(meResult.resp));
       return;
     }
 
@@ -94,7 +108,7 @@ class AuthStore {
         meResult = await userService.me();
 
         if (meResult.ok) {
-          this._setAuthenticated(meResult.resp);
+          this._setAuthenticated(extractProfile(meResult.resp));
           return;
         }
       }
@@ -125,7 +139,7 @@ class AuthStore {
     const meResult = await userService.me();
 
     if (meResult.ok) {
-      this._setAuthenticated(meResult.resp);
+      this._setAuthenticated(extractProfile(meResult.resp));
       return signInResult;
     }
 
@@ -162,7 +176,7 @@ class AuthStore {
     const meResult = await userService.me();
 
     if (meResult.ok) {
-      this._setAuthenticated(meResult.resp);
+      this._setAuthenticated(extractProfile(meResult.resp));
       return signUpResult;
     }
 
@@ -198,13 +212,32 @@ class AuthStore {
       return;
     }
 
+    const normalizedProfile = normalizeAuthUser(profile, {
+      roleFallback: state.user.role,
+    });
+
     this._setState({
       user: {
         ...state.user,
-        ...profile,
+        ...normalizedProfile,
       },
     });
   }
+}
+
+function normalizeAuthUser(user = {}, { roleFallback = "user" } = {}) {
+  if (!user || typeof user !== "object") {
+    return {
+      role: roleFallback,
+    };
+  }
+
+  const role = String(user.role || roleFallback || "user").trim() || "user";
+
+  return {
+    ...user,
+    role,
+  };
 }
 
 /**
