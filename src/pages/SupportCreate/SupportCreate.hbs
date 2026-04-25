@@ -17,6 +17,23 @@
           data-support-form="create-ticket"
           novalidate
         >
+          {{#if isNotAuthorized}}
+            <label class="support-create__field" for="support-email">
+              <span class="support-create__label">Ваша почта</span>
+              <input
+                class="support-create__input"
+                id="support-email"
+                name="email"
+                type="email"
+                placeholder="email@mail.ru"
+              />
+              <span
+                class="support-create__error"
+                id="support-email-error"
+              ></span>
+            </label>
+          {{/if}}
+
           <label class="support-create__field" for="support-subject">
             <span class="support-create__label">Тема обращения</span>
             <input

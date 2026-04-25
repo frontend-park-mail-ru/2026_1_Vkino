@@ -1,5 +1,4 @@
 import { apiService } from "./api.js";
-import { resolveSupportCategory } from "../utils/support.js";
 
 export class SupportService {
   constructor(apiServiceInstance) {
@@ -7,16 +6,19 @@ export class SupportService {
   }
 
   async createTicket(payload = {}, requestOptions = {}) {
-    const category = resolveSupportCategory({ category: payload.category });
     const normalizedPayload = {
-      category:
-        category.categoryPrimary ||
-        String(payload.category || "").trim() ||
-        "other",
-      title: String(payload.subject || "").trim(),
-      description: String(payload.message || "").trim(),
-      // API gateway сейчас принимает только file key, не бинарный файл.
-      attachment_file_key: "",
+      user_email: String(payload.email).trim(),
+      title: String(payload.subject || payload.title || "").trim(),
+      category: String(payload.category || "").trim(),
+      description: String(payload.message || payload.description || "").trim(),
+      attachment_file_key:
+        payload.attachmentFileKey === null ||
+        payload.attachment_file_key === null ||
+        !(payload.attachment instanceof File)
+          ? null
+          : String(
+              payload.attachmentFileKey || payload.attachment_file_key || "",
+            ).trim() || null,
     };
 
     return this.api.request("/tickets", {
