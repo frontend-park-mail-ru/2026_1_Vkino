@@ -1,0 +1,267 @@
+<div class="page page_support-tickets page_admin-tickets">
+  <header id="header"></header>
+
+  <main class="support-tickets-page admin-tickets-page">
+    {{#if isLoading}}
+      <div class="support-tickets__loading" role="status">
+        Загружаем обращения...
+      </div>
+    {{else}}
+      <div class="support-tickets__layout">
+        <aside class="support-tickets__sidebar admin-tickets__sidebar">
+          <div
+            class="support-tickets__section-header admin-tickets__section-header"
+          >
+            <div class="support-tickets__title-wrap">
+              <span class="support-tickets__title-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M5 6.5h14"></path>
+                  <path d="M5 12h14"></path>
+                  <path d="M5 17.5h9"></path>
+                </svg>
+              </span>
+
+              <div class="admin-tickets__title-copy">
+                <div class="admin-tickets__eyebrow">Панель администратора</div>
+                <h1 class="support-tickets__title">Обращения</h1>
+              </div>
+            </div>
+
+            <div class="admin-tickets__filters">
+              <label
+                class="admin-tickets__filter admin-tickets__filter--search"
+              >
+                <span>Поиск</span>
+                <input
+                  class="admin-tickets__search-input"
+                  name="ticketSearch"
+                  type="search"
+                  value="{{searchQuery}}"
+                  placeholder="ID обращения или Email"
+                  autocomplete="off"
+                />
+              </label>
+
+              <div class="admin-tickets__filter-row">
+                <label class="support-tickets__filter">
+                  <span>Статус</span>
+                  <select class="support-tickets__select" name="statusFilter">
+                    {{#each statusOptions}}
+                      <option value="{{this.value}}" {{this.selectedAttr}}>
+                        {{this.label}}
+                      </option>
+                    {{/each}}
+                  </select>
+                </label>
+
+                <label class="support-tickets__filter">
+                  <span>Категория</span>
+                  <select class="support-tickets__select" name="categoryFilter">
+                    <option value="all">Все категории</option>
+                    {{#each categoryGroups}}
+                      <optgroup label="{{this.label}}">
+                        {{#each this.options}}
+                          <option value="{{this.value}}" {{this.selectedAttr}}>
+                            {{this.label}}
+                          </option>
+                        {{/each}}
+                      </optgroup>
+                    {{/each}}
+                  </select>
+                </label>
+              </div>
+
+              <div class="admin-tickets__stats">
+                {{#each statisticsCards}}
+                  <article class="admin-tickets__stat-card">
+                    <span class="admin-tickets__stat-label">{{this.label}}</span>
+                    <strong class="admin-tickets__stat-value">{{this.value}}</strong>
+                  </article>
+                {{/each}}
+              </div>
+            </div>
+          </div>
+
+          <div class="support-tickets__ticket-list admin-tickets__ticket-list">
+            {{#if hasTickets}}
+              {{#each tickets}}
+                <button
+                  class="{{this.cardClass}}"
+                  type="button"
+                  data-ticket-id="{{this.id}}"
+                >
+                  <div class="support-tickets__ticket-top">
+                    <strong class="support-tickets__ticket-subject">
+                      {{this.subject}}
+                    </strong>
+                    <span class="{{this.statusClass}}">
+                      {{this.statusLabel}}
+                    </span>
+                  </div>
+
+                  <div
+                    class="admin-tickets__ticket-email"
+                  >{{this.userEmail}}</div>
+
+                  <div class="support-tickets__ticket-meta">
+                    <span>#{{this.id}}</span>
+                    <time>{{this.createdAtLabel}}</time>
+                  </div>
+                </button>
+              {{/each}}
+            {{else}}
+              <div class="support-tickets__empty-list">
+                По выбранным фильтрам обращений не найдено.
+              </div>
+            {{/if}}
+          </div>
+        </aside>
+
+        <section class="support-tickets__chat admin-tickets__chat">
+          {{#if selectedTicket}}
+            <div
+              class="support-tickets__chat-header admin-tickets__chat-header"
+            >
+              <div
+                class="support-tickets__chat-heading admin-tickets__chat-heading"
+              >
+                <h2 class="support-tickets__chat-title">Диалог</h2>
+                <p class="support-tickets__chat-subtitle">
+                  {{selectedTicket.subject}}
+                </p>
+
+                <div class="admin-tickets__chat-meta">
+                  <span class="admin-tickets__meta-pill">
+                    #{{selectedTicket.id}}
+                  </span>
+                  <span class="admin-tickets__meta-pill">
+                    {{selectedTicket.userEmail}}
+                  </span>
+                  <span class="admin-tickets__meta-pill">
+                    {{selectedTicket.categoryLabel}}
+                  </span>
+                  <span class="admin-tickets__meta-pill">
+                    {{selectedTicket.createdAtLabel}}
+                  </span>
+                </div>
+              </div>
+
+              <div
+                class="support-tickets__chat-controls admin-tickets__chat-controls"
+              >
+                <span class="{{selectedTicket.statusClass}}">
+                  {{selectedTicket.statusLabel}}
+                </span>
+
+                <button
+                  class="{{selectedTicket.closeButtonClass}}"
+                  type="button"
+                  data-action="close-ticket"
+                  {{selectedTicket.closeButtonDisabledAttr}}
+                >
+                  Закрыть обращение
+                </button>
+              </div>
+            </div>
+
+            <div
+              class="{{noticeClass}}"
+              id="admin-tickets-notice"
+              role="status"
+            >
+              {{noticeMessage}}
+            </div>
+
+            <div class="support-tickets__messages admin-tickets__messages">
+              {{#each selectedTicket.messages}}
+                <article class="{{this.messageClass}}">
+                  <div class="support-tickets__bubble">
+                    <div class="support-tickets__bubble-meta">
+                      <span>{{this.senderLabel}}</span>
+                      <time>{{this.sentAtLabel}}</time>
+                    </div>
+
+                    <div class="admin-tickets__message-email">
+                      {{this.senderEmail}}
+                    </div>
+
+                    <p class="support-tickets__bubble-text">{{this.text}}</p>
+
+                    {{#if this.attachmentName}}
+                      <div class="support-tickets__bubble-attachment">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M8.5 12.5L14 7a2.8 2.8 0 1 1 4 4l-7.2 7.2a4.5 4.5 0 1 1-6.4-6.4L12 4.2"
+                          ></path>
+                        </svg>
+                        <span>{{this.attachmentName}}</span>
+                      </div>
+                    {{/if}}
+                  </div>
+                </article>
+              {{/each}}
+            </div>
+
+            <form
+              class="support-tickets__reply-form"
+              data-action="reply-ticket"
+            >
+              <label
+                class="support-tickets__reply-field"
+                for="admin-ticket-reply"
+              >
+                <textarea
+                  class="support-tickets__textarea"
+                  id="admin-ticket-reply"
+                  name="reply"
+                  rows="4"
+                  placeholder="Напишите ответ..."
+                ></textarea>
+              </label>
+
+              <div class="support-tickets__reply-actions">
+                <label
+                  class="support-tickets__attach-button"
+                  for="admin-ticket-reply-file"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M8.5 12.5L14 7a2.8 2.8 0 1 1 4 4l-7.2 7.2a4.5 4.5 0 1 1-6.4-6.4L12 4.2"
+                    ></path>
+                  </svg>
+                  <span>Прикрепить файл</span>
+                </label>
+
+                <input
+                  class="support-tickets__reply-file"
+                  id="admin-ticket-reply-file"
+                  name="replyFile"
+                  type="file"
+                  accept="image/*,.pdf,application/pdf"
+                />
+
+                <button class="support-tickets__send-button" type="submit">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 12L20 4L14 20L11.5 13L4 12Z"></path>
+                  </svg>
+                  <span>Ответить</span>
+                </button>
+              </div>
+
+              <div
+                class="support-tickets__reply-error"
+                id="admin-tickets-reply-error"
+              >
+                {{replyError}}
+              </div>
+            </form>
+          {{else}}
+            <div class="support-tickets__empty-chat">
+              Выберите обращение слева, чтобы открыть историю переписки.
+            </div>
+          {{/if}}
+        </section>
+      </div>
+    {{/if}}
+  </main>
+</div>

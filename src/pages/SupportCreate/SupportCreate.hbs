@@ -1,0 +1,107 @@
+<div class="{{pageClass}}">
+  <main class="{{mainClass}}">
+    <div class="support-create-page__inner">
+      {{#unless isEmbedded}}
+        <section class="{{heroClass}}">
+          <div class="support-create__hero-copy">
+            <div class="support-create__eyebrow">Техническая поддержка</div>
+            <h1 class="support-create__title">{{titleText}}</h1>
+            <p class="support-create__description">{{descriptionText}}</p>
+          </div>
+        </section>
+      {{/unless}}
+
+      <section class="{{cardClass}}">
+        <div
+          class="support-create__status"
+          id="support-create-status"
+          role="status"
+          aria-live="polite"
+        ></div>
+
+        <form
+          class="support-create__form"
+          data-support-form="create-ticket"
+          novalidate
+        >
+          <label class="support-create__field" for="support-subject">
+            <span class="support-create__label">Тема обращения</span>
+            <input
+              class="support-create__input"
+              id="support-subject"
+              name="subject"
+              type="text"
+              placeholder="Кратко опишите суть обращения"
+              required
+            />
+            <span
+              class="support-create__error"
+              id="support-subject-error"
+            ></span>
+          </label>
+
+          <label class="support-create__field" for="support-category">
+            <span class="support-create__label">Категория</span>
+            <select
+              class="support-create__input support-create__input--select"
+              id="support-category"
+              name="category"
+              required
+            >
+              <option value="" disabled selected>Выберите категорию</option>
+              {{#each categoryGroups}}
+                <optgroup label="{{this.label}}">
+                  {{#each this.options}}
+                    <option value="{{this.value}}">{{this.label}}</option>
+                  {{/each}}
+                </optgroup>
+              {{/each}}
+            </select>
+            <span
+              class="support-create__error"
+              id="support-category-error"
+            ></span>
+          </label>
+
+          <label class="support-create__field" for="support-message">
+            <span class="support-create__label">Текст сообщения</span>
+            <textarea
+              class="support-create__input support-create__input--textarea"
+              id="support-message"
+              name="message"
+              placeholder="Что произошло, где и при каких условиях?"
+              rows="8"
+              required
+            ></textarea>
+            <span
+              class="support-create__error"
+              id="support-message-error"
+            ></span>
+          </label>
+
+          <label class="support-create__field" for="support-attachment">
+            <span class="support-create__label">Файл</span>
+            <input
+              class="support-create__input support-create__input--file"
+              id="support-attachment"
+              name="attachment"
+              type="file"
+              accept="image/*,.pdf,application/pdf"
+            />
+            <span class="support-create__hint">
+              Только изображения или PDF-документы
+            </span>
+            <span
+              class="support-create__error"
+              id="support-attachment-error"
+            ></span>
+          </label>
+
+          <button class="support-create__button" type="submit">
+            Создать обращение
+          </button>
+        </form>
+      </section>
+    </div>
+  </main>
+</div>

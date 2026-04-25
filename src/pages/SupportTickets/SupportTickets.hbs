@@ -1,0 +1,348 @@
+<div class="page page_support-tickets">
+  <header id="header"></header>
+
+  <main class="support-tickets-page">
+    {{#if isLoading}}
+      <div class="support-tickets__loading" role="status">
+        Загружаем обращения...
+      </div>
+    {{else}}
+      <section class="support-tickets__hero">
+        <div class="support-tickets__hero-main">
+          <div class="support-tickets__eyebrow">Центр поддержки</div>
+          <h1 class="support-tickets__hero-title">
+            Все обращения, статусы и ответы в одном окне
+          </h1>
+          <p class="support-tickets__hero-description">
+            Следите за диалогами, не теряйте контекст переписки и создавайте
+            новые обращения без лишних переходов.
+          </p>
+
+          <div class="support-tickets__hero-actions">
+            <a
+              class="support-tickets__hero-button support-tickets__hero-button--accent"
+              href="/support/new"
+              router-link
+            >
+              Создать обращение
+            </a>
+
+            <a class="support-tickets__hero-button" href="#support-ticket-list">
+              Открыть список диалогов
+            </a>
+          </div>
+        </div>
+
+        <div class="support-tickets__hero-stats">
+          {{#each overviewCards}}
+            <article class="support-tickets__hero-stat">
+              <span
+                class="support-tickets__hero-stat-label"
+              >{{this.label}}</span>
+              <strong class="support-tickets__hero-stat-value">
+                {{this.value}}
+              </strong>
+              <span class="support-tickets__hero-stat-caption">
+                {{this.caption}}
+              </span>
+            </article>
+          {{/each}}
+        </div>
+      </section>
+
+      <div class="support-tickets__layout">
+        <aside class="support-tickets__sidebar">
+          <div class="support-tickets__section-header">
+            <div class="support-tickets__title-wrap">
+              <span class="support-tickets__title-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M5 6.5h14"></path>
+                  <path d="M5 12h14"></path>
+                  <path d="M5 17.5h9"></path>
+                </svg>
+              </span>
+
+              <div class="support-tickets__title-copy">
+                <div
+                  class="support-tickets__eyebrow support-tickets__eyebrow--compact"
+                >
+                  Ваши диалоги
+                </div>
+                <h2 class="support-tickets__title">Обращения</h2>
+                <p
+                  class="support-tickets__section-caption"
+                >{{ticketsSummary}}</p>
+              </div>
+            </div>
+
+            <div class="support-tickets__section-controls">
+              <a
+                class="support-tickets__mini-link"
+                href="/support/new"
+                router-link
+              >
+                Новое обращение
+              </a>
+
+              <label class="support-tickets__filter">
+                <span>Статус</span>
+                <select class="support-tickets__select" name="statusFilter">
+                  {{#each filterOptions}}
+                    <option value="{{this.value}}" {{this.selectedAttr}}>
+                      {{this.label}}
+                    </option>
+                  {{/each}}
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div class="support-tickets__ticket-list" id="support-ticket-list">
+            {{#if hasTickets}}
+              {{#each tickets}}
+                <button
+                  class="{{this.cardClass}}"
+                  type="button"
+                  data-ticket-id="{{this.id}}"
+                >
+                  <div class="support-tickets__ticket-top">
+                    <strong class="support-tickets__ticket-subject">
+                      {{this.subject}}
+                    </strong>
+                    <span
+                      class="support-tickets__status-badge support-tickets__status-badge--{{this.statusTone}}"
+                    >
+                      {{this.statusLabel}}
+                    </span>
+                  </div>
+
+                  <div class="support-tickets__ticket-meta">
+                    <span>{{this.metaLabel}}</span>
+                    <time>{{this.updatedAtLabel}}</time>
+                  </div>
+                </button>
+              {{/each}}
+            {{else}}
+              <div class="support-tickets__empty-list">
+                <div class="support-tickets__empty-state">
+                  <span class="support-tickets__empty-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M5 6.5h14"></path>
+                      <path d="M5 12h14"></path>
+                      <path d="M5 17.5h9"></path>
+                    </svg>
+                  </span>
+                  <strong class="support-tickets__empty-title">
+                    Пока пусто
+                  </strong>
+                  <p
+                    class="support-tickets__empty-text"
+                  >{{emptyListMessage}}</p>
+                  <a
+                    class="support-tickets__empty-action"
+                    href="/support/new"
+                    router-link
+                  >
+                    Создать обращение
+                  </a>
+                </div>
+              </div>
+            {{/if}}
+          </div>
+        </aside>
+
+        <section class="support-tickets__chat">
+          <div
+            class="{{noticeClass}}"
+            id="support-tickets-notice"
+            role="status"
+          >
+            {{noticeMessage}}
+          </div>
+
+          {{#if selectedTicket}}
+            <div class="support-tickets__chat-header">
+              <div class="support-tickets__chat-heading">
+                <div
+                  class="support-tickets__eyebrow support-tickets__eyebrow--compact"
+                >
+                  История переписки
+                </div>
+                <h2 class="support-tickets__chat-title">Диалог</h2>
+                <p class="support-tickets__chat-subtitle">
+                  {{selectedTicket.subtitle}}
+                </p>
+
+                <div class="support-tickets__chat-pills">
+                  <span class="support-tickets__chat-pill">
+                    #{{selectedTicket.id}}
+                  </span>
+                  <span class="support-tickets__chat-pill">
+                    {{selectedTicket.updatedAtLabel}}
+                  </span>
+                  <span class="support-tickets__chat-pill">
+                    {{selectedTicket.messagesCountLabel}}
+                  </span>
+                </div>
+              </div>
+
+              <div class="support-tickets__chat-controls">
+                <span
+                  class="support-tickets__status-badge support-tickets__status-badge--{{selectedTicket.statusTone}}"
+                >
+                  {{selectedTicket.statusLabel}}
+                </span>
+
+                <select class="support-tickets__select" name="ticketAction">
+                  <option value="">Действия</option>
+                  {{#each selectedTicket.actionOptions}}
+                    <option value="{{this.value}}" {{this.disabledAttr}}>
+                      {{this.label}}
+                    </option>
+                  {{/each}}
+                </select>
+              </div>
+            </div>
+
+            <div class="support-tickets__messages">
+              {{#if selectedTicket.hasMessages}}
+                {{#each selectedTicket.messages}}
+                  <article class="{{this.messageClass}}">
+                    <div class="support-tickets__bubble">
+                      <div class="support-tickets__bubble-meta">
+                        <span>{{this.senderLabel}}</span>
+                        <time>{{this.sentAtLabel}}</time>
+                      </div>
+
+                      <p class="support-tickets__bubble-text">{{this.text}}</p>
+
+                      {{#if this.attachmentName}}
+                        <div class="support-tickets__bubble-attachment">
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path
+                              d="M8.5 12.5L14 7a2.8 2.8 0 1 1 4 4l-7.2 7.2a4.5 4.5 0 1 1-6.4-6.4L12 4.2"
+                            ></path>
+                          </svg>
+                          <span>{{this.attachmentName}}</span>
+                        </div>
+                      {{/if}}
+                    </div>
+                  </article>
+                {{/each}}
+              {{else}}
+                <div class="support-tickets__empty-messages">
+                  <div class="support-tickets__empty-state">
+                    <span
+                      class="support-tickets__empty-icon"
+                      aria-hidden="true"
+                    >
+                      <svg viewBox="0 0 24 24">
+                        <path
+                          d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v7A2.5 2.5 0 0 1 17.5 17h-6l-4.5 3v-3H6.5A2.5 2.5 0 0 1 4 14.5z"
+                        ></path>
+                      </svg>
+                    </span>
+                    <strong class="support-tickets__empty-title">
+                      Диалог пока пуст
+                    </strong>
+                    <p class="support-tickets__empty-text">
+                      Напишите первое сообщение в это обращение, чтобы поддержка
+                      увидела детали быстрее.
+                    </p>
+                  </div>
+                </div>
+              {{/if}}
+            </div>
+
+            <form
+              class="support-tickets__reply-form"
+              data-action="reply-ticket"
+            >
+              <label class="support-tickets__reply-field" for="support-reply">
+                <textarea
+                  class="support-tickets__textarea"
+                  id="support-reply"
+                  name="reply"
+                  rows="4"
+                  placeholder="Напишите ответ..."
+                >{{replyDraft}}</textarea>
+              </label>
+
+              <div class="support-tickets__reply-actions">
+                <label
+                  class="support-tickets__attach-button"
+                  for="support-reply-file"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M8.5 12.5L14 7a2.8 2.8 0 1 1 4 4l-7.2 7.2a4.5 4.5 0 1 1-6.4-6.4L12 4.2"
+                    ></path>
+                  </svg>
+                  <span>Прикрепить файл</span>
+                </label>
+
+                <input
+                  class="support-tickets__reply-file"
+                  id="support-reply-file"
+                  name="replyFile"
+                  type="file"
+                  accept="image/*,.pdf,application/pdf"
+                />
+
+                <button class="support-tickets__send-button" type="submit">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 12L20 4L14 20L11.5 13L4 12Z"></path>
+                  </svg>
+                  <span>Ответить</span>
+                </button>
+              </div>
+
+              <div class="support-tickets__reply-footer">
+                <div
+                  class="support-tickets__reply-file-meta"
+                  id="support-reply-file-meta"
+                  aria-live="polite"
+                >
+                  Можно приложить изображение или PDF
+                </div>
+
+                <div
+                  class="support-tickets__reply-error"
+                  id="support-reply-error"
+                >
+                  {{replyError}}
+                </div>
+              </div>
+            </form>
+          {{else}}
+            <div class="support-tickets__empty-chat">
+              <div class="support-tickets__empty-state">
+                <span class="support-tickets__empty-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v7A2.5 2.5 0 0 1 17.5 17h-6l-4.5 3v-3H6.5A2.5 2.5 0 0 1 4 14.5z"
+                    ></path>
+                  </svg>
+                </span>
+                <strong class="support-tickets__empty-title">
+                  Выберите диалог
+                </strong>
+                <p class="support-tickets__empty-text">
+                  Откройте обращение слева, чтобы увидеть историю переписки и
+                  продолжить диалог с поддержкой.
+                </p>
+                <a
+                  class="support-tickets__empty-action"
+                  href="/support/new"
+                  router-link
+                >
+                  Создать обращение
+                </a>
+              </div>
+            </div>
+          {{/if}}
+        </section>
+      </div>
+    {{/if}}
+  </main>
+</div>

@@ -84,13 +84,28 @@ export class ApiService {
    * @returns {Object|null} return.resp ответ сервера
    * @returns {string} return.error сообщение об ошибке (если есть)
    */
-  async request(endpoint, { method = "GET", data = null, headers = {} } = {}) {
-    const url = this.buildUrl(endpoint);
+  async request(
+    endpoint,
+    { method = "GET", data = null, headers = {}, signal = null } = {},
+  ) {
+    return this._performRequest(this.buildUrl(endpoint), {
+      method: String(method || "GET").toUpperCase(),
+      data,
+      headers,
+      signal,
+    });
+  }
+
+  async _performRequest(
+    url,
+    { method = "GET", data = null, headers = {}, signal = null } = {},
+  ) {
     const accessToken = this.getAccessToken();
 
     const fetchParams = {
       method,
       credentials: "include",
+      signal: signal || undefined,
       headers: {
         Accept: "application/json",
         ...headers,
@@ -119,7 +134,9 @@ export class ApiService {
         ok: false,
         status: 0,
         resp: null,
-        error: error.message || "Network error",
+        error:
+          error?.name === "AbortError" ? "" : error.message || "Network error",
+        aborted: error?.name === "AbortError",
       };
     }
 
@@ -140,6 +157,7 @@ export class ApiService {
       status: response.status,
       resp: parsedBody,
       error: extractErrorMessage(parsedBody),
+      aborted: false,
     };
   }
 
@@ -171,6 +189,17 @@ export class ApiService {
    */
   put(endpoint, data = null) {
     return this.request(endpoint, { method: "PUT", data });
+  }
+
+  /**
+   * Выполняет PATCH запрос.
+   * @async
+   * @param {string} endpoint конечная точка API
+   * @param {Object|FormData|null} data данные для обновления
+   * @returns {Promise<Object>} результат запроса
+   */
+  patch(endpoint, data = null) {
+    return this.request(endpoint, { method: "PATCH", data });
   }
 
   /**
