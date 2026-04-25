@@ -1,5 +1,4 @@
 import { apiService } from "./api.js";
-import { resolveSupportCategory } from "../utils/support.js";
 
 export class SupportService {
   constructor(apiServiceInstance) {
@@ -7,52 +6,23 @@ export class SupportService {
   }
 
   async createTicket(payload = {}, requestOptions = {}) {
-    const category = resolveSupportCategory({ category: payload.category });
     const normalizedPayload = {
-      subject: String(payload.subject || "").trim(),
+      title: String(payload.subject || payload.title || "").trim(),
       category: String(payload.category || "").trim(),
-      message: String(payload.message || "").trim(),
-      attachment: null,
+      description: String(payload.message || payload.description || "").trim(),
+      attachment_file_key:
+        payload.attachmentFileKey === null ||
+        payload.attachment_file_key === null ||
+        !(payload.attachment instanceof File)
+          ? null
+          : String(
+              payload.attachmentFileKey || payload.attachment_file_key || "",
+            ).trim() || null,
     };
-
-    if (category.categoryPrimary) {
-      normalizedPayload.category_primary = category.categoryPrimary;
-    }
-
-    if (category.categorySecondary) {
-      normalizedPayload.category_secondary = category.categorySecondary;
-    }
-
-    if (!(payload.attachment instanceof File)) {
-      return this.api.request("/tickets", {
-        method: "POST",
-        data: normalizedPayload,
-        signal: requestOptions.signal || null,
-      });
-    }
-
-    const formData = new FormData();
-
-    formData.append("subject", normalizedPayload.subject);
-    formData.append("category", normalizedPayload.category);
-    formData.append("message", normalizedPayload.message);
-
-    if (normalizedPayload.category_primary) {
-      formData.append("category_primary", normalizedPayload.category_primary);
-    }
-
-    if (normalizedPayload.category_secondary) {
-      formData.append(
-        "category_secondary",
-        normalizedPayload.category_secondary,
-      );
-    }
-
-    formData.append("attachment", payload.attachment);
 
     return this.api.request("/tickets", {
       method: "POST",
-      data: formData,
+      data: normalizedPayload,
       signal: requestOptions.signal || null,
     });
   }
