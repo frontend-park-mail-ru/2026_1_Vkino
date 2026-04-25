@@ -9,6 +9,7 @@ import { authStore } from "../../store/authStore.js";
 import { router } from "../../router/index.js";
 import HeaderComponent from "../../components/Header/Header.js";
 import { resolveAvatarUrl } from "../../utils/avatar.js";
+import { extractProfile } from "../../utils/apiResponse.js";
 
 export default class SettingsPage extends BasePage {
   constructor(context = {}, parent = null, el = null) {
@@ -471,7 +472,8 @@ export default class SettingsPage extends BasePage {
       return;
     }
 
-    this._renderAvatar(profileResult.resp?.avatar_url);
+    const normalizedProfile = extractProfile(profileResult.resp) || {};
+    this._renderAvatar(normalizedProfile.avatar_url);
 
     this._pendingAvatarFile = null;
     const avatarInput = this.el.querySelector("#avatarInput");
@@ -479,15 +481,15 @@ export default class SettingsPage extends BasePage {
     this._setAvatarError("");
     this._setProfileSaveError("");
 
-    authStore.updateUserProfile(profileResult.resp || {});
+    authStore.updateUserProfile(normalizedProfile);
 
-    if (profileResult.resp?.birthdate !== undefined) {
-      this._originalValues.birthdate = profileResult.resp.birthdate || "";
+    if (normalizedProfile.birthdate !== undefined) {
+      this._originalValues.birthdate = normalizedProfile.birthdate || "";
     }
 
-    if (profileResult.resp?.avatar_url !== undefined) {
+    if (normalizedProfile.avatar_url !== undefined) {
       this.context.userData.avatarUrl = resolveAvatarUrl(
-        profileResult.resp.avatar_url,
+        normalizedProfile.avatar_url,
       );
     }
 

@@ -222,7 +222,7 @@
   position: absolute;
   top: calc(100% + 1px);
   right: 14px;
-  width: 168px;
+  width: 196px;
   padding: 8px 0;
   display: flex;
   flex-direction: column;
@@ -360,7 +360,7 @@
 
 @media (max-width: 720px) {
   .vk-header__bar {
-    grid-template-columns: auto 1fr auto
+    grid-template-columns: auto 1fr auto;
   }
 
   .vk-header__nav {

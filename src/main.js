@@ -8,6 +8,9 @@ import SettingsPage from "./pages/Settings/Settings.js";
 import ActorPage from "./pages/Actor/Actor.js";
 import CatalogPage from "./pages/Catalog/Catalog.js";
 import WatchPartyPage from "./pages/WatchParty/WatchParty.js";
+import SupportCreatePage from "./pages/SupportCreate/SupportCreate.js";
+import SupportTicketsPage from "./pages/SupportTickets/SupportTickets.js";
+import AdminTicketsPage from "./pages/AdminTickets/AdminTickets.js";
 
 import "./css/index.scss";
 
@@ -89,6 +92,15 @@ async function start() {
       (root) => new CatalogPage({ catalogKey: "selection" }, null, root),
     )
     .registerRoute("/watch-party", (root) => new WatchPartyPage({}, null, root))
+    .registerRoute("/support", (root) => new SupportTicketsPage({}, null, root))
+    .registerRoute(
+      "/admin/support",
+      (root) => new AdminTicketsPage({}, null, root),
+    )
+    .registerRoute(
+      "/support/new",
+      (root) => new SupportCreatePage({}, null, root),
+    )
     .registerRoute("/movie/:id", (root) => new MoviePage({}, null, root))
     .registerRoute("/actor/:id", (root) => new ActorPage({}, null, root));
 

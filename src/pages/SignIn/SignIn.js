@@ -5,6 +5,7 @@ import { initPasswordToggle } from "../../js/password/eye-btn.js";
 import { initAuthValidation, setError } from "../../js/password/validation.js";
 import { router } from "../../router/index.js";
 import { authStore } from "../../store/authStore.js";
+import { SupportWidgetController } from "../../utils/supportWidget.js";
 
 /**
  * Класс страницы авторизации.
@@ -32,6 +33,7 @@ export default class SignInPage extends BasePage {
     );
     this._destroyPasswordToggle = null;
     this._destroyValidation = null;
+    this._supportWidget = null;
   }
 
   /**
@@ -60,6 +62,8 @@ export default class SignInPage extends BasePage {
     this._destroyValidation = initAuthValidation(form, {
       onSubmit: this.handleSubmit.bind(this),
     });
+
+    this._supportWidget = new SupportWidgetController(this.el).init();
   }
 
   /**
@@ -75,6 +79,11 @@ export default class SignInPage extends BasePage {
     if (this._destroyValidation) {
       this._destroyValidation();
       this._destroyValidation = null;
+    }
+
+    if (this._supportWidget) {
+      this._supportWidget.destroy();
+      this._supportWidget = null;
     }
   }
 
