@@ -47,7 +47,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (isCacheableApiRequest(request, url)) {
+  if (isApiRequest(request, url)) {
     event.respondWith(handleApiRequest(request));
     return;
   }
@@ -94,10 +94,7 @@ async function handleNavigationRequest(request) {
     const response = await fetch(request);
 
     if (response.ok) {
-      await Promise.allSettled([
-        cache.put(request, response.clone()),
-        cache.put("/index.html", response.clone()),
-      ]);
+      await cache.put("/index.html", response.clone());
       return response;
     }
 
@@ -187,25 +184,14 @@ function isCacheableStaticRequest(request, url) {
   );
 }
 
-function isCacheableApiRequest(request, url) {
+function isApiRequest(request, url) {
   if (!isHttpRequest(url.protocol) || request.destination) {
     return false;
   }
 
-  const acceptHeader = request.headers.get("accept") || "";
+  const acceptHeader = (request.headers.get("accept") || "").toLowerCase();
 
-  if (!acceptHeader.includes("application/json")) {
-    return false;
-  }
-
-  const pathSegments = getPathSegments(url);
-
-  return (
-    pathSegments.includes("movie") &&
-    !pathSegments.includes("user") &&
-    !pathSegments.includes("episode") &&
-    !pathSegments.includes("auth")
-  );
+  return acceptHeader.includes("application/json");
 }
 
 function isMediaStreamRequest(request) {
@@ -220,6 +206,7 @@ function shouldCacheStaticResponse(response) {
 }
 
 function shouldCacheApiResponse(response) {
+  // Бэкенд может запретить офлайн-кэширование для конкретного ответа через no-store.
   return response.ok && !hasNoStoreDirective(response);
 }
 
@@ -229,10 +216,6 @@ function hasNoStoreDirective(response) {
     .trim();
 
   return cacheControl.includes("no-store");
-}
-
-function getPathSegments(url) {
-  return url.pathname.toLowerCase().split("/").filter(Boolean);
 }
 
 function isHttpRequest(protocol) {
