@@ -15,6 +15,12 @@ const HOME_SELECTION_TITLES = [
   "Мультфильмы",
   "Сериалы",
 ];
+const SUPPORT_WIDGET_FRAME_PATH = "/support/new?embed=1";
+const SUPPORT_WIDGET_TOAST_DURATION = 4800;
+const SUPPORT_WIDGET_EVENTS = {
+  closeRequest: "vkino:support-widget-close-request",
+  ticketCreated: "vkino:support-ticket-created",
+};
 
 /**
  * Главная страница приложения с подборками фильмов.
@@ -45,6 +51,10 @@ export default class MainPage extends BasePage {
      */
     this._contextLoaded = false;
     this._pendingScrollTarget = consumePendingMainScrollTarget();
+    this._isSupportWidgetOpen = false;
+    this._supportWidgetToastMessage = "";
+    this._supportWidgetToastTone = "";
+    this._supportWidgetToastTimeoutId = 0;
   }
 
   /**
@@ -72,8 +82,10 @@ export default class MainPage extends BasePage {
    * @returns {Promise<void>}
    */
   async loadContext() {
-    const { ok, resp, status, error } =
-      await movieService.getSelectionsByTitles(HOME_SELECTION_TITLES);
+    const selectionsResult = await movieService.getSelectionsByTitles(
+      HOME_SELECTION_TITLES,
+    );
+    const { ok, resp, status, error } = selectionsResult;
     const rawSelections = ok ? extractSelections(resp) : [];
     const selections = buildSelectionEntries(rawSelections);
     const heroEntry = buildHeroEntry(selections);
@@ -103,6 +115,11 @@ export default class MainPage extends BasePage {
    */
   addEventListeners() {
     super.addEventListeners();
+    this.el.addEventListener("click", this._onClick);
+    document.addEventListener("click", this._onDocumentClick);
+    document.addEventListener("keydown", this._onKeyDown);
+    window.addEventListener("message", this._onSupportFrameMessage);
+    this._syncSupportWidget();
   }
 
   /**
@@ -110,7 +127,18 @@ export default class MainPage extends BasePage {
    * @override
    */
   removeEventListeners() {
+    if (this.el) {
+      this.el.removeEventListener("click", this._onClick);
+    }
+
+    document.removeEventListener("click", this._onDocumentClick);
+    document.removeEventListener("keydown", this._onKeyDown);
+    window.removeEventListener("message", this._onSupportFrameMessage);
     super.removeEventListeners();
+  }
+
+  beforeDestroy() {
+    window.clearTimeout(this._supportWidgetToastTimeoutId);
   }
 
   /**
@@ -229,6 +257,162 @@ export default class MainPage extends BasePage {
     });
 
     this._pendingScrollTarget = "";
+  }
+
+  _onClick = (event) => {
+    const actionTarget = event.target.closest("[data-action]");
+
+    if (!actionTarget) {
+      return;
+    }
+
+    if (actionTarget.dataset.action === "toggle-support-widget") {
+      event.preventDefault();
+      if (this._isSupportWidgetOpen) {
+        this._closeSupportWidget({ restoreFocus: false });
+        return;
+      }
+
+      this._openSupportWidget();
+      return;
+    }
+
+    if (actionTarget.dataset.action === "close-support-widget") {
+      event.preventDefault();
+      this._closeSupportWidget();
+    }
+  };
+
+  _onDocumentClick = (event) => {
+    if (!this._isSupportWidgetOpen || !this.el) {
+      return;
+    }
+
+    const widget = this.el.querySelector('[data-role="support-widget"]');
+
+    if (!widget || widget.contains(event.target)) {
+      return;
+    }
+
+    this._closeSupportWidget({ restoreFocus: false });
+  };
+
+  _onKeyDown = (event) => {
+    if (event.key !== "Escape" || !this._isSupportWidgetOpen) {
+      return;
+    }
+
+    this._closeSupportWidget();
+  };
+
+  _onSupportFrameMessage = (event) => {
+    if (!this.el || event.origin !== window.location.origin) {
+      return;
+    }
+
+    const frame = this.el.querySelector('[data-role="support-widget-frame"]');
+    const payload =
+      event.data && typeof event.data === "object" ? event.data : null;
+
+    if (!frame || event.source !== frame.contentWindow || !payload?.type) {
+      return;
+    }
+
+    if (payload.type === SUPPORT_WIDGET_EVENTS.closeRequest) {
+      this._closeSupportWidget();
+      return;
+    }
+
+    if (payload.type === SUPPORT_WIDGET_EVENTS.ticketCreated) {
+      this._closeSupportWidget({ restoreFocus: false });
+      this._showSupportWidgetToast(
+        payload.message || "Обращение отправлено в поддержку.",
+        "success",
+      );
+    }
+  };
+
+  _openSupportWidget() {
+    this._isSupportWidgetOpen = true;
+    this._syncSupportWidget();
+  }
+
+  _closeSupportWidget({ restoreFocus = true } = {}) {
+    this._isSupportWidgetOpen = false;
+    this._syncSupportWidget();
+
+    if (restoreFocus) {
+      this.el?.querySelector('[data-action="toggle-support-widget"]')?.focus();
+    }
+  }
+
+  _showSupportWidgetToast(message, tone = "") {
+    window.clearTimeout(this._supportWidgetToastTimeoutId);
+
+    this._supportWidgetToastMessage = String(message || "").trim();
+    this._supportWidgetToastTone = this._supportWidgetToastMessage ? tone : "";
+    this._syncSupportWidgetToast();
+
+    if (!this._supportWidgetToastMessage) {
+      return;
+    }
+
+    this._supportWidgetToastTimeoutId = window.setTimeout(() => {
+      this._supportWidgetToastMessage = "";
+      this._supportWidgetToastTone = "";
+      this._syncSupportWidgetToast();
+    }, SUPPORT_WIDGET_TOAST_DURATION);
+  }
+
+  _syncSupportWidget() {
+    if (!this.el) {
+      return;
+    }
+
+    const widget = this.el.querySelector('[data-role="support-widget"]');
+    const panel = this.el.querySelector('[data-role="support-widget-panel"]');
+    const trigger = this.el.querySelector(
+      '[data-action="toggle-support-widget"]',
+    );
+    const frame = this.el.querySelector('[data-role="support-widget-frame"]');
+
+    if (!widget || !panel || !trigger || !frame) {
+      return;
+    }
+
+    widget.classList.toggle(
+      "main-support-widget--open",
+      this._isSupportWidgetOpen,
+    );
+    panel.setAttribute("aria-hidden", String(!this._isSupportWidgetOpen));
+    trigger.setAttribute("aria-expanded", String(this._isSupportWidgetOpen));
+
+    if (this._isSupportWidgetOpen && !frame.getAttribute("src")) {
+      frame.setAttribute("src", frame.dataset.src || SUPPORT_WIDGET_FRAME_PATH);
+    }
+
+    this._syncSupportWidgetToast();
+  }
+
+  _syncSupportWidgetToast() {
+    if (!this.el) {
+      return;
+    }
+
+    const toast = this.el.querySelector('[data-role="support-widget-toast"]');
+
+    if (!toast) {
+      return;
+    }
+
+    toast.textContent = this._supportWidgetToastMessage || "";
+    toast.className = "main-support-widget__toast";
+
+    if (this._supportWidgetToastMessage && this._supportWidgetToastTone) {
+      toast.classList.add(
+        `main-support-widget__toast--${this._supportWidgetToastTone}`,
+      );
+    }
   }
 }
 
@@ -362,7 +546,9 @@ function buildSelectionHref(title = "") {
 }
 
 function findSelectionEntryByTitle(selectionEntries = [], title = "") {
-  const normalizedTitle = String(title || "").trim().toLowerCase();
+  const normalizedTitle = String(title || "")
+    .trim()
+    .toLowerCase();
 
   if (!normalizedTitle) {
     return null;

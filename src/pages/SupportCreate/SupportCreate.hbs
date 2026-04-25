@@ -1,0 +1,135 @@
+<div class="{{pageClass}}">
+  <main class="{{mainClass}}">
+    <div class="support-create-page__inner">
+      {{#unless isEmbedded}}
+        <section class="{{heroClass}}">
+          <div class="support-create__hero-copy">
+            <div class="support-create__eyebrow">Техническая поддержка</div>
+            <h1 class="support-create__title">{{titleText}}</h1>
+            <p class="support-create__description">{{descriptionText}}</p>
+          </div>
+        </section>
+      {{/unless}}
+
+      <section class="{{cardClass}}">
+        <form
+          class="support-create__form"
+          data-support-form="create-ticket"
+          novalidate
+        >
+          <label class="support-create__field" for="support-subject">
+            <span class="support-create__label">Тема обращения</span>
+            <input
+              class="support-create__input"
+              id="support-subject"
+              name="subject"
+              type="text"
+              placeholder="Кратко опишите суть обращения"
+              required
+            />
+            <span
+              class="support-create__error"
+              id="support-subject-error"
+            ></span>
+          </label>
+
+          <label class="support-create__field" for="support-category">
+            <span class="support-create__label">Категория</span>
+            <div class="support-create__category" data-support-category>
+              <input
+                id="support-category"
+                name="category"
+                type="hidden"
+              />
+              <button
+                class="support-create__input support-create__category-trigger"
+                type="button"
+                aria-expanded="false"
+                aria-controls="support-category-menu"
+                data-support-category-trigger
+              >
+                <span
+                  class="support-create__category-trigger-label"
+                  data-support-category-label
+                >Выберите категорию</span>
+              </button>
+              <div
+                class="support-create__category-menu"
+                id="support-category-menu"
+                data-support-category-menu
+                hidden
+              >
+                {{#each categoryOptions}}
+                  <button
+                    class="support-create__category-option"
+                    type="button"
+                    data-support-category-option
+                    data-value="{{this.value}}"
+                  >
+                    {{this.label}}
+                  </button>
+                {{/each}}
+              </div>
+            </div>
+            <span
+              class="support-create__error"
+              id="support-category-error"
+            ></span>
+          </label>
+
+          <label class="support-create__field" for="support-message">
+            <span class="support-create__label">Текст сообщения</span>
+            <textarea
+              class="support-create__input support-create__input--textarea"
+              id="support-message"
+              name="message"
+              placeholder="Что произошло, где и при каких условиях?"
+              rows="2"
+              required
+            ></textarea>
+            <span
+              class="support-create__error"
+              id="support-message-error"
+            ></span>
+          </label>
+
+          <label class="support-create__field" for="support-attachment">
+            <span class="support-create__label">Файл</span>
+            <input
+              class="support-create__input support-create__input--file"
+              id="support-attachment"
+              name="attachment"
+              type="file"
+              accept="image/*,.pdf,application/pdf"
+            />
+            <span class="support-create__file-trigger">
+              <span class="support-create__file-button">Выберите файл</span>
+              <span
+                class="support-create__file-name"
+                id="support-attachment-name"
+              ></span>
+            </span>
+            <span class="support-create__hint">
+              Только изображения или PDF-документы
+            </span>
+            <span
+              class="support-create__error"
+              id="support-attachment-error"
+            ></span>
+          </label>
+
+          <div
+            class="support-create__status"
+            id="support-create-status"
+            role="status"
+            aria-live="polite"
+          ></div>
+
+          <button class="support-create__button" type="submit">
+            Создать обращение
+          </button>
+        </form>
+      </section>
+    </div>
+  </main>
+</div>
