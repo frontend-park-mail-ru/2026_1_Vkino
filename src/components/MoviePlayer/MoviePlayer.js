@@ -61,8 +61,10 @@ export default class MoviePlayerComponent extends BaseComponent {
 
   addEventListeners() {
     this._bindDomEvents();
-    document.addEventListener("keydown", this._onDocumentKeyDownBound);
-    document.addEventListener("mousemove", this._onDocumentMouseMoveBound);
+    if (!this.context.isEmbedded) {
+      document.addEventListener("keydown", this._onDocumentKeyDownBound);
+      document.addEventListener("mousemove", this._onDocumentMouseMoveBound);
+    }
     document.addEventListener(
       "fullscreenchange",
       this._onFullscreenChangeBound,
@@ -88,12 +90,13 @@ export default class MoviePlayerComponent extends BaseComponent {
     this.videoEl = null;
   }
 
-  async open(movieData, initialEpisodeId = null) {
+  async open(movieData, initialEpisodeId = null, options = {}) {
     const normalizedMovie = normalizeMovieData(movieData);
     const initialEpisode = this._resolveInitialEpisode(
       normalizedMovie,
       initialEpisodeId,
     );
+    const openOptions = normalizeOpenOptions(options);
 
     this.context = {
       ...this.context,
@@ -102,7 +105,9 @@ export default class MoviePlayerComponent extends BaseComponent {
     };
 
     this._rerender();
-    this._lockBodyScroll();
+    if (!this.context.isEmbedded) {
+      this._lockBodyScroll();
+    }
     this._showControls();
 
     if (!initialEpisode) {
@@ -117,8 +122,9 @@ export default class MoviePlayerComponent extends BaseComponent {
     }
 
     await this.loadEpisode(initialEpisode.id, {
-      autoplay: true,
-      restoreProgress: true,
+      autoplay: openOptions.autoplay,
+      restoreProgress: openOptions.restoreProgress,
+      startAtSeconds: openOptions.startAtSeconds,
     });
   }
 
@@ -157,7 +163,7 @@ export default class MoviePlayerComponent extends BaseComponent {
 
   async loadEpisode(
     episodeId,
-    { autoplay = true, restoreProgress = true } = {},
+    { autoplay = true, restoreProgress = true, startAtSeconds = 0 } = {},
   ) {
     const normalizedEpisodeId = String(episodeId ?? "").trim();
 
@@ -206,8 +212,21 @@ export default class MoviePlayerComponent extends BaseComponent {
     this._lastSavedSecond = -1;
     this.updateUI();
 
-    const { ok, status, resp, error } =
-      await this.playerService.getEpisodePlayback(normalizedEpisodeId);
+    const directPlayback = resolveDirectPlaybackPayload(activeEpisode);
+    let playbackResult = {
+      ok: true,
+      status: 200,
+      resp: directPlayback,
+      error: "",
+    };
+
+    if (!directPlayback) {
+      playbackResult = await this.playerService.getEpisodePlayback(
+        normalizedEpisodeId,
+      );
+    }
+
+    const { ok, status, resp, error } = playbackResult;
 
     if (!ok) {
       this.context = {
@@ -243,9 +262,11 @@ export default class MoviePlayerComponent extends BaseComponent {
       0,
       Number(resp?.position_seconds) || 0,
     );
-    const restoredProgressSeconds = restoreProgress
-      ? await this.restoreProgress(normalizedEpisodeId, playbackPositionSeconds)
-      : 0;
+    const resolvedStartAtSeconds = Math.max(0, Number(startAtSeconds) || 0);
+    const restoredProgressSeconds =
+      restoreProgress && !activeEpisode?.isDirectPlayback
+        ? await this.restoreProgress(normalizedEpisodeId, playbackPositionSeconds)
+        : Math.max(playbackPositionSeconds, resolvedStartAtSeconds);
 
     this._pendingCurrentTime = restoredProgressSeconds;
     this._pendingAutoplay = Boolean(autoplay);
@@ -280,7 +301,7 @@ export default class MoviePlayerComponent extends BaseComponent {
     this._setVideoSource(playbackUrl);
     this.updateUI();
 
-    if (this.context.isOpen) {
+    if (this.context.isOpen && !this.context.isEmbedded) {
       this._enterFullscreen().catch(() => {
         this.context = {
           ...this.context,
@@ -360,7 +381,7 @@ export default class MoviePlayerComponent extends BaseComponent {
   }
 
   async saveProgress({ force = false, resetOnEnded = false } = {}) {
-    if (!this.context.isAuthenticated) {
+    if (!this.context.isAuthenticated || this.context.isDirectPlayback) {
       return {
         ok: true,
         skipped: true,
@@ -406,7 +427,7 @@ export default class MoviePlayerComponent extends BaseComponent {
   }
 
   async restoreProgress(episodeId, playbackPositionSeconds = 0) {
-    if (!this.context.isAuthenticated) {
+    if (!this.context.isAuthenticated || this.context.isDirectPlayback) {
       return Math.max(0, Math.floor(Number(playbackPositionSeconds) || 0));
     }
 
@@ -510,6 +531,16 @@ export default class MoviePlayerComponent extends BaseComponent {
     );
   }
 
+  getPlaybackState() {
+    return {
+      activeEpisodeId: this.context.activeEpisodeId,
+      currentTime:
+        Number(this.videoEl?.currentTime) || Number(this.context.currentTime) || 0,
+      isPlaying: Boolean(this.context.isPlaying),
+      isMuted: Boolean(this.context.isMuted),
+    };
+  }
+
   _rerender() {
     if (!this._isInitialized || !this.el) {
       return;
@@ -547,6 +578,7 @@ export default class MoviePlayerComponent extends BaseComponent {
       this._onToggleFullscreenClick,
       true,
     );
+    this._bindAction('[data-action="open-chat"]', this._onOpenChatClick, true);
     this._bindAction(
       '[data-action="select-episode"]',
       this._onSelectEpisodeClick,
@@ -591,6 +623,11 @@ export default class MoviePlayerComponent extends BaseComponent {
     this._unbindAction(
       '[data-action="toggle-fullscreen"]',
       this._onToggleFullscreenClick,
+      true,
+    );
+    this._unbindAction(
+      '[data-action="open-chat"]',
+      this._onOpenChatClick,
       true,
     );
     this._unbindAction(
@@ -664,12 +701,30 @@ export default class MoviePlayerComponent extends BaseComponent {
 
   async _enterFullscreen() {
     const shell = this.el.querySelector('[data-role="player-shell"]');
+    const fullscreenTarget = this._resolveFullscreenTarget(shell);
 
-    if (!shell || typeof shell.requestFullscreen !== "function") {
+    if (
+      !fullscreenTarget ||
+      typeof fullscreenTarget.requestFullscreen !== "function"
+    ) {
       throw new Error("Fullscreen API unavailable");
     }
 
-    await shell.requestFullscreen();
+    await fullscreenTarget.requestFullscreen();
+  }
+
+  _resolveFullscreenTarget(fallbackTarget) {
+    const selector = normalizeString(this.context.fullscreenTargetSelector);
+
+    if (!selector) {
+      return fallbackTarget;
+    }
+
+    try {
+      return this.el.closest(selector) || fallbackTarget;
+    } catch {
+      return fallbackTarget;
+    }
   }
 
   async _exitFullscreenIfNeeded() {
@@ -839,6 +894,14 @@ export default class MoviePlayerComponent extends BaseComponent {
   _onToggleFullscreenClick = async (event) => {
     event.preventDefault();
     await this.toggleFullscreen();
+  };
+
+  _onOpenChatClick = (event) => {
+    event.preventDefault();
+
+    if (typeof this.context.onChatRequested === "function") {
+      this.context.onChatRequested();
+    }
   };
 
   _onSelectEpisodeClick = async (event) => {
@@ -1089,6 +1152,15 @@ export default class MoviePlayerComponent extends BaseComponent {
 function createInitialContext() {
   return {
     isOpen: false,
+    isEmbedded: false,
+    showTopbar: true,
+    showCloseButton: true,
+    showSeekControls: true,
+    showMuteControl: true,
+    showFullscreenControl: true,
+    showChatControl: false,
+    fullscreenTargetSelector: "",
+    onChatRequested: null,
     isLoading: false,
     hasError: false,
     errorText: "",
@@ -1120,6 +1192,7 @@ function createInitialContext() {
     playButtonLabel: "Play",
     muteButtonLabel: "Выключить звук",
     playback: null,
+    isDirectPlayback: false,
   };
 }
 
@@ -1157,6 +1230,15 @@ function buildOpenContext(movieData, activeEpisodeId) {
     playButtonLabel: "Play",
     muteButtonLabel: "Выключить звук",
     playback: null,
+    isDirectPlayback: false,
+  };
+}
+
+function normalizeOpenOptions(options = {}) {
+  return {
+    autoplay: options.autoplay !== false,
+    restoreProgress: options.restoreProgress !== false,
+    startAtSeconds: Math.max(0, Number(options.startAtSeconds) || 0),
   };
 }
 
@@ -1206,6 +1288,41 @@ function normalizeEpisodeData(episode = {}, index = 0) {
     metaLabel: `S${String(seasonNumber).padStart(2, "0")} · E${String(episodeNumber).padStart(2, "0")}`,
     displayTitle: buildEpisodeDisplayTitle(title, seasonNumber, episodeNumber),
     isActive: false,
+    playbackUrl: normalizeString(episode.playbackUrl || episode.playback_url),
+    playbackPositionSeconds:
+      Number(episode.playbackPositionSeconds ?? episode.position_seconds) || 0,
+    isDirectPlayback: Boolean(
+      episode.isDirectPlayback ??
+        episode.directPlayback ??
+        episode.playbackUrl ??
+        episode.playback_url,
+    ),
+  };
+}
+
+function resolveDirectPlaybackPayload(episode = null) {
+  if (!episode?.isDirectPlayback) {
+    return null;
+  }
+
+  const playbackUrl = normalizeString(episode.playbackUrl);
+
+  if (!playbackUrl) {
+    return {
+      playback_url: "",
+      episode_id: normalizeString(episode.id),
+      title: normalizeString(episode.displayTitle || episode.title),
+      duration_seconds: Number(episode.durationSeconds) || 0,
+      position_seconds: Number(episode.playbackPositionSeconds) || 0,
+    };
+  }
+
+  return {
+    playback_url: playbackUrl,
+    episode_id: normalizeString(episode.id),
+    title: normalizeString(episode.displayTitle || episode.title),
+    duration_seconds: Number(episode.durationSeconds) || 0,
+    position_seconds: Number(episode.playbackPositionSeconds) || 0,
   };
 }
 
