@@ -4,6 +4,7 @@ import HeaderComponent from "../../components/Header/Header.js";
 import { movieService } from "../../js/MovieService.js";
 import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
 import MoviePlayerComponent from "../../components/MoviePlayer/MoviePlayer.js";
+import { getCacheFallbackNotice } from "../../utils/apiMeta.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
 import { extractMovie } from "../../utils/apiResponse.js";
 
@@ -36,6 +37,7 @@ export default class MoviePage extends BasePage {
         loading: true,
         hasError: false,
         errorText: "",
+        cacheMessage: "",
         movie: createEmptyMovieData(),
         ...context,
       },
@@ -74,12 +76,14 @@ export default class MoviePage extends BasePage {
         loading: false,
         hasError: true,
         errorText: "В URL не указан id фильма",
+        cacheMessage: "",
         movie: createEmptyMovieData(),
       });
       return;
     }
 
-    const { ok, status, resp, error } = await movieService.getMovieById(movieId);
+    const movieResult = await movieService.getMovieById(movieId);
+    const { ok, status, resp, error } = movieResult;
 
     if (!ok) {
       this._contextLoaded = true;
@@ -88,6 +92,7 @@ export default class MoviePage extends BasePage {
         loading: false,
         hasError: true,
         errorText: mapMovieLoadError(status, error),
+        cacheMessage: "",
         movie: createEmptyMovieData(movieId),
       });
       return;
@@ -101,6 +106,7 @@ export default class MoviePage extends BasePage {
       loading: false,
       hasError: false,
       errorText: "",
+      cacheMessage: getCacheFallbackNotice(movieResult),
       movie: mapMovieDtoToViewModel(moviePayload || {}),
     });
 

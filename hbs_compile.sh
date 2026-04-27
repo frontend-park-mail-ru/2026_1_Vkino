@@ -6,8 +6,7 @@ handlebars ./src/components/Pagination/Pagination.hbs -f ./src/components/Pagina
 handlebars ./src/components/SupportTicketsHero/SupportTicketsHero.hbs -f ./src/components/SupportTicketsHero/SupportTicketsHero.precompiled.js
 handlebars ./src/components/SupportTicketsSidebar/SupportTicketsSidebar.hbs -f ./src/components/SupportTicketsSidebar/SupportTicketsSidebar.precompiled.js
 handlebars ./src/components/SupportTicketsConversation/SupportTicketsConversation.hbs -f ./src/components/SupportTicketsConversation/SupportTicketsConversation.precompiled.js
-
-
+handlebars ./src/components/WatchPartyRoomChat/WatchPartyRoomChat.hbs -f ./src/components/WatchPartyRoomChat/WatchPartyRoomChat.precompiled.js
 handlebars ./src/pages/Main/Main.hbs -f ./src/pages/Main/Main.precompiled.js
 handlebars ./src/pages/Movie/Movie.hbs -f ./src/pages/Movie/Movie.precompiled.js
 handlebars ./src/pages/SignIn/SignIn.hbs -f ./src/pages/SignIn/SignIn.precompiled.js

@@ -2,6 +2,7 @@ import BasePage from "../BasePage.js";
 import "./Actor.precompiled.js";
 
 import { movieService } from "../../js/MovieService.js";
+import { getCacheFallbackNotice } from "../../utils/apiMeta.js";
 import HeaderComponent from "../../components/Header/Header.js";
 import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
@@ -29,7 +30,16 @@ export default class ActorPage extends BasePage {
       throw new Error("Actor: не передан корневой элемент для ActorPage");
     }
 
-    super(context, Handlebars.templates["Actor.hbs"], parent, el, "ActorPage");
+    super(
+      {
+        cacheMessage: "",
+        ...context,
+      },
+      Handlebars.templates["Actor.hbs"],
+      parent,
+      el,
+      "ActorPage",
+    );
 
     /**
      * Флаг загрузки контекста.
@@ -67,6 +77,7 @@ export default class ActorPage extends BasePage {
       this._contextLoaded = true;
       this.refresh({
         ...this.context,
+        cacheMessage: "",
         actor: null,
       });
       return;
@@ -88,6 +99,7 @@ export default class ActorPage extends BasePage {
 
     const newContext = {
       ...this.context,
+      cacheMessage: getCacheFallbackNotice(actorResult, selectionsResult),
       actor: actorResult.ok
         ? this._mapActor(actorSource, selectionMovies)
         : null,

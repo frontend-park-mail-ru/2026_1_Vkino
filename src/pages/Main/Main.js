@@ -1,6 +1,7 @@
 import BasePage from "../BasePage.js";
 import "./Main.precompiled.js";
 
+import { getCacheFallbackNotice } from "../../utils/apiMeta.js";
 import { extractSelections } from "../../utils/apiResponse.js";
 import { consumePendingMainScrollTarget } from "../../components/Header/Header.js";
 import { movieService } from "../../js/MovieService.js";
@@ -46,6 +47,7 @@ export default class MainPage extends BasePage {
     super(
       {
         showSupportWidget: shouldShowSupportWidget(),
+        cacheMessage: "",
         ...context,
       },
       Handlebars.templates["Main.hbs"],
@@ -104,6 +106,7 @@ export default class MainPage extends BasePage {
     const newContext = {
       ...this.context,
       showSupportWidget: shouldShowSupportWidget(),
+      cacheMessage: getCacheFallbackNotice(selectionsResult),
       selectionEntries: selections,
       heroEntry,
     };

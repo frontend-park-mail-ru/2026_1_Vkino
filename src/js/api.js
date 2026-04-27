@@ -2,6 +2,8 @@
  * Сервис для выполнения HTTP-запросов к API backend.
  * Управляет базовым URL, пространством имен эндпоинтов и токеном авторизации.
  */
+const RESPONSE_SOURCE_HEADER = "x-vkino-response-source";
+
 export class ApiService {
   /**
    * Конструирует экземпляр ApiService.
@@ -88,6 +90,7 @@ export class ApiService {
    * @returns {number} return.status HTTP статус ответа
    * @returns {Object|null} return.resp ответ сервера
    * @returns {string} return.error сообщение об ошибке (если есть)
+   * @returns {{source: string, servedFromCache: boolean}} return.meta мета-информация об источнике ответа
    */
   async request(
     endpoint,
@@ -151,6 +154,7 @@ export class ApiService {
         error:
           error?.name === "AbortError" ? "" : error.message || "Network error",
         aborted: error?.name === "AbortError",
+        meta: createResponseMeta("network-error"),
       };
     }
 
@@ -172,6 +176,7 @@ export class ApiService {
       resp: parsedBody,
       error: extractErrorMessage(parsedBody),
       aborted: false,
+      meta: extractResponseMeta(response),
     };
   }
 
@@ -286,6 +291,21 @@ function appendQueryValue(params, key, value) {
   }
 
   params.append(key, String(normalizedValue));
+}
+
+function extractResponseMeta(response) {
+  const source =
+    String(response.headers.get(RESPONSE_SOURCE_HEADER) || "network").trim() ||
+    "network";
+
+  return createResponseMeta(source);
+}
+
+function createResponseMeta(source) {
+  return {
+    source,
+    servedFromCache: source === "cache-fallback",
+  };
 }
 
 // читаем baseUrl из .env (с сервера) или ставим дефолтный для dev

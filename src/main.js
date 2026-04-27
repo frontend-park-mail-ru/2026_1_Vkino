@@ -91,6 +91,10 @@ async function start() {
       (root) => new CatalogPage({ catalogKey: "selection" }, null, root),
     )
     .registerRoute("/watch-party", (root) => new WatchPartyPage({}, null, root))
+    .registerRoute(
+      "/watch-party/:roomId",
+      (root) => new WatchPartyPage({}, null, root),
+    )
     .registerRoute("/support", (root) => new SupportTicketsPage({}, null, root))
     .registerRoute(
       "/admin/support",

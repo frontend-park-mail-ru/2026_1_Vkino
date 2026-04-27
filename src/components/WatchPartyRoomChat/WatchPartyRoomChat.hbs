@@ -1,0 +1,152 @@
+<div class="watch-room-chat__header">
+  <div class="watch-room-chat__bar"></div>
+  <div class="watch-room-chat__title">Чат</div>
+</div>
+
+<div class="watch-room-chat__messages">
+  {{#each roomMessages}}
+    {{#if this.isBet}}
+      <article class="watch-room-chat__bet">
+        <div class="watch-room-chat__bet-head">
+          <div class="watch-room-chat__bet-author">
+            <span class="watch-room-chat__name">{{this.authorName}}</span>
+            <span class="watch-room-chat__time">{{this.timeLabel}}</span>
+          </div>
+          <span class="watch-room-chat__bet-badge">Ставка</span>
+        </div>
+
+        <div class="watch-room-chat__bet-question">{{this.question}}</div>
+        <div class="watch-room-chat__bet-meta">{{this.metaText}}</div>
+
+        <div class="watch-room-chat__bet-options">
+          {{#each this.options}}
+            <button
+              class="watch-room-chat__bet-option{{#if this.isSelected}} is-selected{{/if}}{{#if ../hasSelectedOption}} is-locked{{/if}}"
+              type="button"
+              data-action="select-bet-option"
+              data-message-id="{{../id}}"
+              data-option-id="{{this.id}}"
+              {{#if ../hasSelectedOption}}disabled{{/if}}
+            >
+              <span
+                class="watch-room-chat__bet-option-bg"
+                style="{{this.widthStyle}}"
+              ></span>
+              <span class="watch-room-chat__bet-option-inner">
+                <span class="watch-room-chat__bet-option-label">{{this.label}}</span>
+                <span class="watch-room-chat__bet-option-percent">{{this.percentLabel}}</span>
+              </span>
+            </button>
+          {{/each}}
+        </div>
+
+        <div class="watch-room-chat__bet-status">
+          <span>{{this.votersText}}</span>
+          <span>{{this.selectionText}}</span>
+        </div>
+      </article>
+    {{else}}
+      <div class="watch-room-chat__message">
+        <div
+          class="watch-room-chat__avatar"
+          style="--watch-party-avatar-tint: {{this.authorTint}}"
+        >
+          {{this.authorInitial}}
+        </div>
+
+        <div class="watch-room-chat__body">
+          <div class="watch-room-chat__line">
+            <span class="watch-room-chat__name">{{this.authorName}}</span>
+            <span class="watch-room-chat__time">{{this.timeLabel}}</span>
+          </div>
+
+          <div class="watch-room-chat__text">{{this.text}}</div>
+
+          {{#if this.reactionText}}
+            <div class="watch-room-chat__reaction">{{this.reactionText}}</div>
+          {{/if}}
+        </div>
+      </div>
+    {{/if}}
+  {{/each}}
+</div>
+
+{{#if isBetComposerOpen}}
+  <form class="watch-room-chat__bet-composer" data-action="create-bet">
+    <div class="watch-room-chat__composer-label">Новая ставка</div>
+    <input
+      class="watch-room-chat__composer-input"
+      type="text"
+      name="question"
+      value="{{betQuestion}}"
+      placeholder="Вопрос — например: Кто победит?"
+    />
+
+    <div class="watch-room-chat__composer-options">
+      {{#each roomBetComposerOptions}}
+        <div class="watch-room-chat__composer-option">
+          <input
+            class="watch-room-chat__composer-input"
+            type="text"
+            name="option"
+            value="{{this.value}}"
+            placeholder="Вариант {{this.index}}"
+          />
+          <button
+            class="watch-room-chat__composer-remove"
+            type="button"
+            data-action="remove-bet-option"
+            aria-label="Удалить вариант"
+            {{#unless this.canRemove}}disabled{{/unless}}
+          >
+            ×
+          </button>
+        </div>
+      {{/each}}
+    </div>
+
+    <div class="watch-room-chat__composer-actions">
+      <button
+        class="watch-room-chat__attach watch-room-chat__attach_secondary"
+        type="button"
+        data-action="add-bet-option"
+        {{#unless canAddBetOption}}disabled{{/unless}}
+      >
+        Ещё вариант
+      </button>
+      <button
+        class="watch-room-chat__attach watch-room-chat__attach_secondary"
+        type="button"
+        data-action="close-bet-composer"
+      >
+        Отмена
+      </button>
+      <button class="watch-room-chat__attach watch-room-chat__attach_accent" type="submit">
+        Запустить
+      </button>
+    </div>
+  </form>
+{{/if}}
+
+<form class="watch-room-chat__form" data-action="send-chat-message">
+  <button
+    class="watch-room-chat__attach"
+    type="button"
+    data-action="toggle-bet-composer"
+    aria-label="Создать ставку через вложение"
+  >
+    <span></span>
+    <span></span>
+  </button>
+
+  <input
+    class="watch-room-chat__input"
+    type="text"
+    name="message"
+    value="{{messageText}}"
+    placeholder="Написать в комнату..."
+    autocomplete="off"
+  />
+
+  <button class="watch-room-chat__send" type="submit">Отправить</button>
+</form>

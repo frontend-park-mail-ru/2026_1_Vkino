@@ -1,10 +1,11 @@
-import { BaseComponent } from "../BaseComponent.js";
-import "./Header.precompiled.js";
-import { authStore } from "../../store/authStore.js";
-import { router } from "../../router/index.js";
-import { resolveAvatarUrl } from "../../utils/avatar.js";
-import { canManageSupportTicketStatus } from "../../utils/support.js";
-import { getDisplayNameFromEmail } from "../../utils/user.js";
+import { BaseComponent } from "@/components/BaseComponent.js";
+import "@/components/Header/Header.precompiled.js";
+import { authStore } from "@/store/authStore.js";
+import { router } from "@/router/index.js";
+import { resolveAvatarUrl } from "@/utils/avatar.js";
+import { getDisplayNameFromEmail } from "@/utils/user.js";
+import { canManageSupportTicketStatus } from "@/utils/support.js";
+
 
 const PENDING_SCROLL_TARGET_KEY = "vkino_pending_scroll_target";
 
@@ -267,7 +268,8 @@ export default class HeaderComponent extends BaseComponent {
       supportTicketsLabel: canManageSupportTickets
         ? "Панель поддержки"
         : "Мои обращения",
-      isWatchPartyActive: currentPath === "/watch-party",
+      isWatchPartyActive:
+        currentPath === "/watch-party" || currentPath.startsWith("/watch-party/"),
       isBurgerMenuOpen: currentContext.isBurgerMenuOpen ?? false,
       isSearchOpen: currentContext.isSearchOpen ?? false,
       isProfileMenuOpen: isAuthorized
