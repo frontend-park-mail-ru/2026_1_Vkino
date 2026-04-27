@@ -17,7 +17,7 @@
           data-support-form="create-ticket"
           novalidate
         >
-          {{#if isNotAuthorized}}
+          {{#if shouldAskEmail}}
             <label class="support-create__field" for="support-email">
               <span class="support-create__label">Ваша почта</span>
               <input
@@ -26,6 +26,8 @@
                 name="email"
                 type="email"
                 placeholder="email@mail.ru"
+                value="{{guestEmail}}"
+                required
               />
               <span
                 class="support-create__error"
@@ -117,7 +119,7 @@
               id="support-attachment"
               name="attachment"
               type="file"
-              accept="image/*,.pdf,application/pdf"
+              accept=".png,.jpg,.jpeg,.webp,.pdf,image/png,image/jpeg,image/webp,application/pdf"
             />
             <span class="support-create__file-trigger">
               <span class="support-create__file-button">Выберите файл</span>
@@ -127,7 +129,7 @@
               ></span>
             </span>
             <span class="support-create__hint">
-              Только изображения или PDF-документы
+              PNG, JPG, WEBP или PDF до 10 МБ
             </span>
             <span
               class="support-create__error"

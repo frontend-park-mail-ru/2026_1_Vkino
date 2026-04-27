@@ -1,14 +1,16 @@
 import { apiService } from "./api.js";
 
-const WS_PATH = "/support/ws";
+const SUPPORT_WS_BASE_PATH = "/support/tickets";
+const SUPPORT_WS_RECONNECT_DELAY_MS = 3000;
 
 export class SupportRealtimeService {
   constructor(apiServiceInstance) {
     this.api = apiServiceInstance;
     this.socket = null;
     this.handlers = {};
-    this.pendingTicketId = "";
     this.currentTicketId = "";
+    this._reconnectTimerId = 0;
+    this._shouldReconnect = false;
   }
 
   connect(handlers = {}) {
@@ -18,6 +20,7 @@ export class SupportRealtimeService {
     };
 
     if (
+      this.currentTicketId &&
       this.socket &&
       (this.socket.readyState === WebSocket.OPEN ||
         this.socket.readyState === WebSocket.CONNECTING)
@@ -25,13 +28,9 @@ export class SupportRealtimeService {
       return;
     }
 
-    const socketUrl = this._buildSocketUrl();
-
-    this.socket = new WebSocket(socketUrl);
-    this.socket.addEventListener("open", this._handleOpen);
-    this.socket.addEventListener("message", this._handleMessage);
-    this.socket.addEventListener("error", this._handleError);
-    this.socket.addEventListener("close", this._handleClose);
+    if (this.currentTicketId) {
+      this._openSocket(this.currentTicketId);
+    }
   }
 
   subscribe(ticketId) {
@@ -41,75 +40,53 @@ export class SupportRealtimeService {
       return;
     }
 
-    if (!this.socket || this.socket.readyState === WebSocket.CLOSED) {
-      this.pendingTicketId = normalizedTicketId;
-      this.connect();
+    if (
+      this.currentTicketId === normalizedTicketId &&
+      this.socket &&
+      (this.socket.readyState === WebSocket.OPEN ||
+        this.socket.readyState === WebSocket.CONNECTING)
+    ) {
       return;
     }
 
-    if (
-      this.currentTicketId &&
-      this.currentTicketId !== normalizedTicketId &&
-      this.socket.readyState === WebSocket.OPEN
-    ) {
-      this._sendAction("unsubscribe", this.currentTicketId);
-    }
-
     this.currentTicketId = normalizedTicketId;
-    this.pendingTicketId = normalizedTicketId;
-
-    if (this.socket.readyState === WebSocket.OPEN) {
-      this._sendAction("subscribe", normalizedTicketId);
-    }
+    this._shouldReconnect = true;
+    this._openSocket(normalizedTicketId);
   }
 
   unsubscribe(ticketId = this.currentTicketId) {
     const normalizedTicketId = String(ticketId || "").trim();
 
-    if (!normalizedTicketId) {
+    if (!normalizedTicketId || normalizedTicketId !== this.currentTicketId) {
       return;
     }
 
-    if (this.socket?.readyState === WebSocket.OPEN) {
-      this._sendAction("unsubscribe", normalizedTicketId);
-    }
-
-    if (this.currentTicketId === normalizedTicketId) {
-      this.currentTicketId = "";
-    }
-
-    if (this.pendingTicketId === normalizedTicketId) {
-      this.pendingTicketId = "";
-    }
+    this.currentTicketId = "";
+    this._shouldReconnect = false;
+    this._teardownSocket({ notifyClose: false });
   }
 
   disconnect() {
-    if (!this.socket) {
+    this.currentTicketId = "";
+    this._shouldReconnect = false;
+    this._teardownSocket({ notifyClose: false });
+  }
+
+  _handleOpen = (event) => {
+    if (event.currentTarget !== this.socket) {
       return;
     }
 
-    this.unsubscribe();
-
-    this.socket.removeEventListener("open", this._handleOpen);
-    this.socket.removeEventListener("message", this._handleMessage);
-    this.socket.removeEventListener("error", this._handleError);
-    this.socket.removeEventListener("close", this._handleClose);
-    this.socket.close();
-    this.socket = null;
-    this.pendingTicketId = "";
-    this.currentTicketId = "";
-  }
-
-  _handleOpen = () => {
+    window.clearTimeout(this._reconnectTimerId);
+    this._reconnectTimerId = 0;
     this.handlers.onStatusChange?.("open");
-
-    if (this.pendingTicketId) {
-      this.currentTicketId = this.pendingTicketId;
-      this._sendAction("subscribe", this.pendingTicketId);
-    }
   };
 
   _handleMessage = (event) => {
+    if (event.currentTarget !== this.socket) {
+      return;
+    }
+
     let payload = event.data;
 
     if (typeof event.data === "string" && event.data.trim()) {
@@ -124,34 +101,98 @@ export class SupportRealtimeService {
   };
 
   _handleError = (event) => {
-    this.handlers.onError?.(event);
-  };
-
-  _handleClose = () => {
-    this.handlers.onStatusChange?.("closed");
-    this.socket = null;
-  };
-
-  _sendAction(action, ticketId) {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+    if (event.currentTarget !== this.socket) {
       return;
     }
 
-    this.socket.send(
-      JSON.stringify({
-        action,
-        ticket_id: ticketId,
-        ticketId: ticketId,
-      }),
-    );
+    this.handlers.onError?.(event);
+  };
+
+  _handleClose = (event) => {
+    if (event.currentTarget !== this.socket) {
+      return;
+    }
+
+    this.socket = null;
+    this.handlers.onStatusChange?.("closed");
+
+    if (this._shouldReconnect && this.currentTicketId) {
+      this._scheduleReconnect();
+    }
+  };
+
+  _openSocket(ticketId) {
+    const normalizedTicketId = String(ticketId || "").trim();
+
+    if (!normalizedTicketId) {
+      return;
+    }
+
+    const socketUrl = this._buildSocketUrl(normalizedTicketId);
+
+    this._teardownSocket({ notifyClose: false });
+
+    this.socket = new WebSocket(socketUrl);
+    this.socket.addEventListener("open", this._handleOpen);
+    this.socket.addEventListener("message", this._handleMessage);
+    this.socket.addEventListener("error", this._handleError);
+    this.socket.addEventListener("close", this._handleClose);
   }
 
-  _buildSocketUrl() {
+  _teardownSocket({ notifyClose = false } = {}) {
+    window.clearTimeout(this._reconnectTimerId);
+    this._reconnectTimerId = 0;
+
+    if (!this.socket) {
+      return;
+    }
+
+    const previousSocket = this.socket;
+
+    previousSocket.removeEventListener("open", this._handleOpen);
+    previousSocket.removeEventListener("message", this._handleMessage);
+    previousSocket.removeEventListener("error", this._handleError);
+    previousSocket.removeEventListener("close", this._handleClose);
+
+    if (
+      previousSocket.readyState === WebSocket.OPEN ||
+      previousSocket.readyState === WebSocket.CONNECTING
+    ) {
+      previousSocket.close();
+    }
+
+    this.socket = null;
+
+    if (notifyClose) {
+      this.handlers.onStatusChange?.("closed");
+    }
+  }
+
+  _scheduleReconnect() {
+    if (this._reconnectTimerId || !this.currentTicketId) {
+      return;
+    }
+
+    this.handlers.onStatusChange?.("reconnecting");
+    this._reconnectTimerId = window.setTimeout(() => {
+      this._reconnectTimerId = 0;
+
+      if (!this._shouldReconnect || !this.currentTicketId) {
+        return;
+      }
+
+      this._openSocket(this.currentTicketId);
+    }, SUPPORT_WS_RECONNECT_DELAY_MS);
+  }
+
+  _buildSocketUrl(ticketId) {
     const explicitUrl = String(
       import.meta.env.VITE_SUPPORT_WS_URL || "",
     ).trim();
-    const fallbackUrl = apiService.buildUrl(WS_PATH);
-    const baseUrl = explicitUrl || fallbackUrl;
+    const fallbackUrl = apiService.buildUrl(
+      `${SUPPORT_WS_BASE_PATH}/${encodeURIComponent(ticketId)}/subscribe`,
+    );
+    const baseUrl = resolveWsBaseUrl(explicitUrl, fallbackUrl, ticketId);
     const wsUrl = baseUrl.replace(/^http/i, "ws");
     const url = new URL(wsUrl, window.location.origin);
     const accessToken = this.api.getAccessToken();
@@ -162,6 +203,22 @@ export class SupportRealtimeService {
 
     return url.toString();
   }
+}
+
+function resolveWsBaseUrl(explicitUrl, fallbackUrl, ticketId) {
+  if (!explicitUrl) {
+    return fallbackUrl;
+  }
+
+  if (explicitUrl.includes("{ticketId}")) {
+    return explicitUrl.replaceAll("{ticketId}", encodeURIComponent(ticketId));
+  }
+
+  if (/\/support\/tickets\/[^/]+\/subscribe/i.test(explicitUrl)) {
+    return explicitUrl;
+  }
+
+  return `${explicitUrl.replace(/\/+$/, "")}/support/tickets/${encodeURIComponent(ticketId)}/subscribe`;
 }
 
 export const supportRealtimeService = new SupportRealtimeService(apiService);

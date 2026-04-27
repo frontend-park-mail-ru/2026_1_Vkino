@@ -2,10 +2,14 @@ import BasePage from "../BasePage.js";
 import "./SupportCreate.precompiled.js";
 import "../../css/support-create.scss";
 import { supportService } from "../../js/SupportService.js";
+import { validateEmail } from "../../js/password/validation.js";
 import { router } from "../../router/index.js";
 import { authStore } from "../../store/authStore.js";
-import { extractSupportTicket } from "../../utils/support.js";
-import { SUPPORT_CATEGORY_OPTIONS } from "../../utils/support.js";
+import {
+  extractSupportTicket,
+  SUPPORT_CATEGORY_OPTIONS,
+  validateSupportFile,
+} from "../../utils/support.js";
 const SUPPORT_WIDGET_EVENTS = {
   closeRequest: "vkino:support-widget-close-request",
   ticketCreated: "vkino:support-ticket-created",
@@ -24,9 +28,9 @@ export default class SupportCreatePage extends BasePage {
 
     const isEmbedded = resolveEmbeddedMode(context);
     const authState = authStore.getState();
-    const isNotAuthorized = authState.status !== "authenticated";
-    const userEmail = isNotAuthorized
-      ? String(authState.user?.email || "").trim()
+    const shouldAskEmail = authState.status !== "authenticated";
+    const guestEmail = shouldAskEmail
+      ? String(context.guestEmail || "").trim()
       : "";
 
     super(
@@ -35,8 +39,8 @@ export default class SupportCreatePage extends BasePage {
         ...context,
         ...buildSupportCreateViewContext(isEmbedded),
         isEmbedded,
-        isNotAuthorized,
-        userEmail,
+        shouldAskEmail,
+        guestEmail,
       },
       Handlebars.templates["SupportCreate.hbs"],
       parent,
@@ -61,11 +65,16 @@ export default class SupportCreatePage extends BasePage {
     }
 
     [
+      [this.context.shouldAskEmail ? "email" : "", "input"],
       ["subject", "input"],
       ["category", "change"],
       ["message", "input"],
       ["attachment", "change"],
     ].forEach(([fieldName, eventName]) => {
+      if (!fieldName) {
+        return;
+      }
+
       const field = this._getField(fieldName);
       if (!field) {
         return;
@@ -213,7 +222,7 @@ export default class SupportCreatePage extends BasePage {
         : "Обращение отправлено в поддержку.",
     });
 
-    if (!this._isEmbedded) {
+    if (!this._isEmbedded && authStore.getState().status === "authenticated") {
       router.go("/support");
     }
   }
@@ -227,7 +236,13 @@ export default class SupportCreatePage extends BasePage {
   };
 
   _validateForm() {
-    const fieldNames = ["subject", "category", "message", "attachment"];
+    const fieldNames = [
+      this.context.shouldAskEmail ? "email" : "",
+      "subject",
+      "category",
+      "message",
+      "attachment",
+    ].filter(Boolean);
 
     return fieldNames.every((fieldName) => !this._validateField(fieldName));
   }
@@ -244,6 +259,9 @@ export default class SupportCreatePage extends BasePage {
     const control = this._getFieldControl(fieldName);
 
     switch (fieldName) {
+      case "email":
+        message = validateEmail(String(field.value || "").trim());
+        break;
       case "subject":
         message = String(field.value || "").trim()
           ? ""
@@ -270,29 +288,29 @@ export default class SupportCreatePage extends BasePage {
   }
 
   _validateAttachment(field) {
-    const file = field.files?.[0];
-
-    if (!file) {
-      return "";
-    }
-
-    return isSupportedAttachment(file)
-      ? ""
-      : "Поддерживаются только изображения и PDF";
+    return validateSupportFile(field.files?.[0] || null);
   }
 
   _clearValidationState() {
-    ["subject", "category", "message", "attachment"].forEach((fieldName) => {
-      const field = this._getField(fieldName);
-      const control = this._getFieldControl(fieldName);
-      const errorEl = this._getErrorElement(fieldName);
+    [
+      this.context.shouldAskEmail ? "email" : "",
+      "subject",
+      "category",
+      "message",
+      "attachment",
+    ]
+      .filter(Boolean)
+      .forEach((fieldName) => {
+        const field = this._getField(fieldName);
+        const control = this._getFieldControl(fieldName);
+        const errorEl = this._getErrorElement(fieldName);
 
-      field?.classList.remove("is-error");
-      control?.classList.remove("is-error");
-      if (errorEl) {
-        errorEl.textContent = "";
-      }
-    });
+        field?.classList.remove("is-error");
+        control?.classList.remove("is-error");
+        if (errorEl) {
+          errorEl.textContent = "";
+        }
+      });
   }
 
   _setStatus(message, tone = "") {
@@ -337,6 +355,7 @@ export default class SupportCreatePage extends BasePage {
 
   _getErrorElement(fieldName) {
     const errorIds = {
+      email: "#support-email-error",
       subject: "#support-subject-error",
       category: "#support-category-error",
       message: "#support-message-error",
@@ -520,17 +539,6 @@ export default class SupportCreatePage extends BasePage {
       window.location.origin,
     );
   }
-}
-
-function isSupportedAttachment(file) {
-  const fileType = String(file?.type || "").toLowerCase();
-  const fileName = String(file?.name || "").toLowerCase();
-
-  return (
-    fileType.startsWith("image/") ||
-    fileType === "application/pdf" ||
-    fileName.endsWith(".pdf")
-  );
 }
 
 function resolveEmbeddedMode(context = {}) {

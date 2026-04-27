@@ -92,7 +92,11 @@
       data-menu="profile"
     >
       <a href="/profile" router-link data-action="close-all-menus">Мой профиль</a>
-      <a href="/support" router-link data-action="close-all-menus">Мои обращения</a>
+      <a
+        href="{{supportTicketsHref}}"
+        router-link
+        data-action="close-all-menus"
+      >{{supportTicketsLabel}}</a>
       <a href="/settings" router-link data-action="close-all-menus">Настройки</a>
       <button type="button" data-action="logout">Выход</button>
     </div>

@@ -8,6 +8,8 @@ import { movieService } from "../../js/MovieService.js";
 import HeaderComponent from "../../components/Header/Header.js";
 import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
+import { authStore } from "../../store/authStore.js";
+import { canManageSupportTicketStatus } from "../../utils/support.js";
 
 const HOME_SELECTION_TITLES = [
   "Новинки",
@@ -44,6 +46,7 @@ export default class MainPage extends BasePage {
 
     super(
       {
+        showSupportWidget: shouldShowSupportWidget(),
         cacheMessage: "",
         ...context,
       },
@@ -102,6 +105,7 @@ export default class MainPage extends BasePage {
 
     const newContext = {
       ...this.context,
+      showSupportWidget: shouldShowSupportWidget(),
       cacheMessage: getCacheFallbackNotice(selectionsResult),
       selectionEntries: selections,
       heroEntry,
@@ -425,6 +429,10 @@ export default class MainPage extends BasePage {
       );
     }
   }
+}
+
+function shouldShowSupportWidget() {
+  return !canManageSupportTicketStatus(authStore.getState().user?.role);
 }
 
 function buildSelectionEntries(selections = []) {
