@@ -4,6 +4,7 @@ import "@/css/watch-party.scss";
 
 import HeaderComponent from "@/components/Header/Header.js";
 import MoviePlayerComponent from "@/components/MoviePlayer/MoviePlayer.js";
+import WatchPartyRoomChatComponent from "@/components/WatchPartyRoomChat/WatchPartyRoomChat.js";
 import {
   buildWatchPartyFallbackOverview,
   buildWatchPartyFallbackRoom,
@@ -47,12 +48,15 @@ export default class WatchPartyPage extends BasePage {
         : createInitialLobbyUiState();
 
     super(
-      buildPageContext({
-        mode,
-        overviewData,
-        roomData,
-        uiState,
-      }),
+      {
+        ...context,
+        ...buildPageContext({
+          mode,
+          overviewData,
+          roomData,
+          uiState,
+        }),
+      },
       Handlebars.templates["WatchParty.hbs"],
       parent,
       el,
@@ -91,7 +95,11 @@ export default class WatchPartyPage extends BasePage {
     this.el.addEventListener("click", this._onClick);
     this.el.addEventListener("submit", this._onSubmit);
 
-    if (this._mode === "room" && !this._uiState.loading && !this._uiState.hasError) {
+    if (
+      this._mode === "room" &&
+      !this._uiState.loading &&
+      !this._uiState.hasError
+    ) {
       this._syncRoomPlayer();
     }
   }
@@ -116,8 +124,13 @@ export default class WatchPartyPage extends BasePage {
 
     this.addChild("header", new HeaderComponent({}, this, header));
 
-    if (this._mode === "room" && !this._uiState.loading && !this._uiState.hasError) {
+    if (
+      this._mode === "room" &&
+      !this._uiState.loading &&
+      !this._uiState.hasError
+    ) {
       this._setupRoomPlayer();
+      this._setupRoomChat();
     }
   }
 
@@ -176,8 +189,10 @@ export default class WatchPartyPage extends BasePage {
         break;
       case "close-bet-composer":
         event.preventDefault();
-        this._refreshView({
+        this._clearRoomChatBetComposerDraft();
+        this._refreshRoomChat({
           isBetComposerOpen: false,
+          betComposerOptionCount: 2,
         });
         break;
       case "add-bet-option":
@@ -334,7 +349,10 @@ export default class WatchPartyPage extends BasePage {
     const visibility = normalizeText(formData.get("visibility"));
 
     if (!roomName) {
-      this._setLobbyStatus("Введите название комнаты, чтобы продолжить.", "error");
+      this._setLobbyStatus(
+        "Введите название комнаты, чтобы продолжить.",
+        "error",
+      );
       return;
     }
 
@@ -371,7 +389,10 @@ export default class WatchPartyPage extends BasePage {
     const inviteLink = normalizeText(formData.get("inviteLink"));
 
     if (!inviteLink) {
-      this._setLobbyStatus("Добавьте ссылку-приглашение для входа в комнату.", "error");
+      this._setLobbyStatus(
+        "Добавьте ссылку-приглашение для входа в комнату.",
+        "error",
+      );
       return;
     }
 
@@ -439,7 +460,8 @@ export default class WatchPartyPage extends BasePage {
       messages: nextMessages,
     };
     saveLocalWatchPartyRoom(this._roomData);
-    this._refreshView({
+    this._clearRoomChatMessageDraft();
+    this._refreshRoomChat({
       activePanel: "chat",
       roomStatusMessage: "",
     });
@@ -458,7 +480,10 @@ export default class WatchPartyPage extends BasePage {
       .filter(Boolean);
 
     if (!question || options.length < 2) {
-      this._setRoomStatus("Для ставки нужны вопрос и минимум два варианта.", "warning");
+      this._setRoomStatus(
+        "Для ставки нужны вопрос и минимум два варианта.",
+        "warning",
+      );
       return;
     }
 
@@ -491,7 +516,8 @@ export default class WatchPartyPage extends BasePage {
       messages: nextMessages,
     };
     saveLocalWatchPartyRoom(this._roomData);
-    this._refreshView({
+    this._clearRoomChatBetComposerDraft();
+    this._refreshRoomChat({
       activePanel: "chat",
       isBetComposerOpen: false,
       betComposerOptionCount: 2,
@@ -511,54 +537,36 @@ export default class WatchPartyPage extends BasePage {
       return;
     }
 
-    this._refreshView({
+    if (this._uiState.isBetComposerOpen) {
+      this._clearRoomChatBetComposerDraft();
+    }
+
+    this._refreshRoomChat({
       activePanel: "chat",
       isBetComposerOpen: !this._uiState.isBetComposerOpen,
+      betComposerOptionCount: this._uiState.isBetComposerOpen
+        ? 2
+        : this._uiState.betComposerOptionCount,
     });
   }
 
-  _addBetOption(trigger) {
+  _addBetOption() {
     if (this._mode !== "room") {
       return;
     }
 
-    const form = trigger.closest('[data-action="create-bet"]');
-    const optionsContainer = form?.querySelector(
-      ".watch-room-chat__composer-options",
-    );
-    const currentOptionsCount =
-      optionsContainer?.querySelectorAll('input[name="option"]').length || 0;
+    const chat = this.getChild("watch-party-room-chat");
 
-    if (!form || !optionsContainer || currentOptionsCount >= 6) {
+    if (!chat) {
       return;
     }
 
-    const nextOptionIndex = currentOptionsCount + 1;
-    const optionRow = document.createElement("div");
-    optionRow.className = "watch-room-chat__composer-option";
-
-    const input = document.createElement("input");
-    input.className = "watch-room-chat__composer-input";
-    input.type = "text";
-    input.name = "option";
-    input.placeholder = `Вариант ${nextOptionIndex}`;
-
-    const removeButton = document.createElement("button");
-    removeButton.className = "watch-room-chat__composer-remove";
-    removeButton.type = "button";
-    removeButton.dataset.action = "remove-bet-option";
-    removeButton.setAttribute("aria-label", "Удалить вариант");
-    removeButton.textContent = "×";
-
-    optionRow.append(input, removeButton);
-    optionsContainer.append(optionRow);
+    const nextOptionsCount = chat.addBetOption();
 
     this._uiState = {
       ...this._uiState,
-      betComposerOptionCount: nextOptionIndex,
+      betComposerOptionCount: nextOptionsCount,
     };
-
-    this._syncBetComposerOptions(form);
   }
 
   _removeBetOption(trigger) {
@@ -566,54 +574,17 @@ export default class WatchPartyPage extends BasePage {
       return;
     }
 
-    const form = trigger.closest('[data-action="create-bet"]');
-    const optionsContainer = form?.querySelector(
-      ".watch-room-chat__composer-options",
-    );
-    const optionRows = Array.from(
-      optionsContainer?.querySelectorAll(".watch-room-chat__composer-option") ||
-        [],
-    );
+    const chat = this.getChild("watch-party-room-chat");
 
-    if (!form || optionRows.length <= 2) {
+    if (!chat) {
       return;
     }
 
-    trigger.closest(".watch-room-chat__composer-option")?.remove();
-    this._syncBetComposerOptions(form);
-  }
-
-  _syncBetComposerOptions(form) {
-    const optionRows = Array.from(
-      form.querySelectorAll(".watch-room-chat__composer-option"),
-    );
-    const canRemove = optionRows.length > 2;
-    const canAdd = optionRows.length < 6;
-
-    optionRows.forEach((row, index) => {
-      const input = row.querySelector('input[name="option"]');
-      const removeButton = row.querySelector(
-        '[data-action="remove-bet-option"]',
-      );
-
-      if (input) {
-        input.placeholder = `Вариант ${index + 1}`;
-      }
-
-      if (removeButton) {
-        removeButton.disabled = !canRemove;
-      }
-    });
-
-    const addButton = form.querySelector('[data-action="add-bet-option"]');
-
-    if (addButton) {
-      addButton.disabled = !canAdd;
-    }
+    const nextOptionsCount = chat.removeBetOption(trigger);
 
     this._uiState = {
       ...this._uiState,
-      betComposerOptionCount: optionRows.length,
+      betComposerOptionCount: nextOptionsCount,
     };
   }
 
@@ -639,7 +610,9 @@ export default class WatchPartyPage extends BasePage {
       const nextOptions = message.options.map((option) => ({
         ...option,
       }));
-      const previousSelectedOption = nextOptions.find((option) => option.isSelected);
+      const previousSelectedOption = nextOptions.find(
+        (option) => option.isSelected,
+      );
 
       if (previousSelectedOption) {
         return message;
@@ -681,7 +654,7 @@ export default class WatchPartyPage extends BasePage {
       messages: nextMessages,
     };
     saveLocalWatchPartyRoom(this._roomData);
-    this._refreshView({
+    this._refreshRoomChat({
       activePanel: "chat",
       roomStatusMessage: "Голос в ставке принят.",
       roomStatusTone: "success",
@@ -693,9 +666,15 @@ export default class WatchPartyPage extends BasePage {
 
     if (!normalizedLink) {
       if (this._mode === "room") {
-        this._setRoomStatus("Не удалось получить ссылку для копирования.", "error");
+        this._setRoomStatus(
+          "Не удалось получить ссылку для копирования.",
+          "error",
+        );
       } else {
-        this._setLobbyStatus("Не удалось получить ссылку для копирования.", "error");
+        this._setLobbyStatus(
+          "Не удалось получить ссылку для копирования.",
+          "error",
+        );
       }
       return;
     }
@@ -725,7 +704,7 @@ export default class WatchPartyPage extends BasePage {
     deleteLocalWatchPartyRoom(normalizedRoomId);
 
     this._overviewData = mergeOverviewWithLocalRooms(
-      this._overviewData,
+      removeRoomFromOverview(this._overviewData, normalizedRoomId),
       listLocalWatchPartyRooms(),
       buildWatchPartyFallbackOverview(),
     );
@@ -742,7 +721,10 @@ export default class WatchPartyPage extends BasePage {
     const normalizedRoomId = normalizeText(roomId);
 
     if (!normalizedRoomId) {
-      this._setLobbyStatus("Не удалось определить комнату для перехода.", "error");
+      this._setLobbyStatus(
+        "Не удалось определить комнату для перехода.",
+        "error",
+      );
       return;
     }
 
@@ -762,7 +744,8 @@ export default class WatchPartyPage extends BasePage {
   }
 
   _applyRoomPanelState(panel) {
-    const normalizedPanel = panel === "members" || panel === "chat" ? panel : "";
+    const normalizedPanel =
+      panel === "members" || panel === "chat" ? panel : "";
     const isOpen = Boolean(normalizedPanel);
 
     this.el
@@ -805,6 +788,14 @@ export default class WatchPartyPage extends BasePage {
   }
 
   _setRoomStatus(message, tone) {
+    if (this._mode === "room") {
+      this._refreshRoomChrome({
+        roomStatusMessage: message,
+        roomStatusTone: tone,
+      });
+      return;
+    }
+
     this._refreshView({
       roomStatusMessage: message,
       roomStatusTone: tone,
@@ -858,6 +849,64 @@ export default class WatchPartyPage extends BasePage {
     );
   }
 
+  _refreshRoomChat(overrides = {}) {
+    if (this._mode !== "room") {
+      return;
+    }
+
+    this._refreshRoomChrome(overrides);
+
+    const chat = this.getChild("watch-party-room-chat");
+
+    if (!chat) {
+      return;
+    }
+
+    chat.refresh(buildRoomChatContext(this._roomData, this._uiState));
+  }
+
+  _clearRoomChatMessageDraft() {
+    this.getChild("watch-party-room-chat")?.clearMessageDraft();
+  }
+
+  _clearRoomChatBetComposerDraft() {
+    this.getChild("watch-party-room-chat")?.clearBetComposerDraft();
+  }
+
+  _refreshRoomChrome(overrides = {}) {
+    if (this._mode !== "room") {
+      return;
+    }
+
+    this._uiState = {
+      ...this._uiState,
+      ...overrides,
+    };
+
+    if (Object.prototype.hasOwnProperty.call(overrides, "activePanel")) {
+      this._applyRoomPanelState(this._uiState.activePanel);
+    }
+
+    this._syncRoomStatus();
+  }
+
+  _syncRoomStatus() {
+    const statusNode = this.el.querySelector(
+      "[data-role='watch-party-room-status']",
+    );
+
+    if (!statusNode) {
+      return;
+    }
+
+    const message = this._uiState.roomStatusMessage || "";
+    const tone = this._uiState.roomStatusTone || "info";
+
+    statusNode.textContent = message;
+    statusNode.hidden = !message;
+    statusNode.className = `watch-room-shell__status watch-room-shell__status_${tone}`;
+  }
+
   _syncNextRoomIndex() {
     const rooms = listLocalWatchPartyRooms();
     const maxId = rooms.reduce((accumulator, room) => {
@@ -900,6 +949,23 @@ export default class WatchPartyPage extends BasePage {
     );
   }
 
+  _setupRoomChat() {
+    const chatRoot = this.el.querySelector("#watch-party-room-chat");
+
+    if (!chatRoot) {
+      return;
+    }
+
+    this.addChild(
+      "watch-party-room-chat",
+      new WatchPartyRoomChatComponent(
+        buildRoomChatContext(this._roomData, this._uiState),
+        this,
+        chatRoot,
+      ),
+    );
+  }
+
   _captureRoomPlayerSnapshot() {
     const player = this.getChild("watch-party-room-player");
 
@@ -925,11 +991,15 @@ export default class WatchPartyPage extends BasePage {
 
     const snapshot = this._roomPlayerSnapshot;
 
-    await player.open(playerMovie, snapshot?.activeEpisodeId || playerMovie.initialEpisodeId, {
-      autoplay: Boolean(snapshot?.isPlaying),
-      restoreProgress: !playerMovie.isDirectPlayback,
-      startAtSeconds: snapshot?.currentTime || 0,
-    });
+    await player.open(
+      playerMovie,
+      snapshot?.activeEpisodeId || playerMovie.initialEpisodeId,
+      {
+        autoplay: Boolean(snapshot?.isPlaying),
+        restoreProgress: !playerMovie.isDirectPlayback,
+        startAtSeconds: snapshot?.currentTime || 0,
+      },
+    );
 
     if (player.videoEl) {
       player.videoEl.muted = Boolean(snapshot?.isMuted);
@@ -970,9 +1040,7 @@ function buildLobbyContext(pageData, uiState) {
 }
 
 function buildRoomContext(roomData, uiState) {
-  const decoratedMessages = roomData.messages.map((message) => {
-    return decorateRoomMessage(message);
-  });
+  const chatContext = buildRoomChatContext(roomData, uiState);
 
   return {
     isRoomView: true,
@@ -985,8 +1053,6 @@ function buildRoomContext(roomData, uiState) {
     isRoomPanelOpen: Boolean(uiState.activePanel),
     isMembersPanel: uiState.activePanel === "members",
     isChatPanel: uiState.activePanel === "chat",
-    isBetComposerOpen: Boolean(uiState.isBetComposerOpen),
-    roomBetComposerOptions: buildComposerOptions(uiState.betComposerOptionCount),
     roomName: roomData.roomName,
     movieTitle: roomData.movie.title,
     progressLabel: roomData.progressLabel,
@@ -998,10 +1064,21 @@ function buildRoomContext(roomData, uiState) {
     viewer: roomData.viewer,
     movie: roomData.movie,
     roomMembersCount: roomData.members.length,
-    roomMessagesCount: decoratedMessages.length,
-    roomMessages: decoratedMessages,
+    roomMessagesCount: chatContext.roomMessages.length,
     members: roomData.members,
     roomNote: roomData.roomNote,
+  };
+}
+
+function buildRoomChatContext(roomData, uiState) {
+  return {
+    isBetComposerOpen: Boolean(uiState.isBetComposerOpen),
+    roomBetComposerOptions: buildComposerOptions(
+      uiState.betComposerOptionCount,
+    ),
+    roomMessages: roomData.messages.map((message) => {
+      return decorateRoomMessage(message);
+    }),
   };
 }
 
@@ -1026,13 +1103,12 @@ function buildRoomPlayerMovieData(roomData = {}) {
     contentType: "watch-party",
     posterUrl,
     isDirectPlayback: !episodeId || Boolean(playbackUrl),
-    initialEpisodeId: episodeId || `watch-party-${normalizeText(roomData.id) || "room"}`,
+    initialEpisodeId:
+      episodeId || `watch-party-${normalizeText(roomData.id) || "room"}`,
     episodes: [
       {
         id: episodeId || `watch-party-${normalizeText(roomData.id) || "room"}`,
-        title:
-          normalizeText(playerSource.episodeTitle) ||
-          movieTitle,
+        title: normalizeText(playerSource.episodeTitle) || movieTitle,
         description:
           normalizeText(playerSource.description) ||
           normalizeText(roomData.movie?.subtitle),
@@ -1058,11 +1134,7 @@ function mapOverviewToPageData(overview, fallbackData) {
 
   return {
     heroPosters: mapHeroPosters(
-      readArray(normalizedOverview, [
-        "heroPosters",
-        "hero_posters",
-        "posters",
-      ]),
+      readArray(normalizedOverview, ["heroPosters", "hero_posters", "posters"]),
       fallbackData.heroPosters,
     ),
     visibilityOptions: mapVisibilityOptions(
@@ -1158,8 +1230,9 @@ function mapRoomDtoToViewModel(roomDto, fallbackRoom, viewer) {
           normalizedRoomDto.owner_name,
       ) || fallbackRoom.hostName,
     roomNote:
-      normalizeText(normalizedRoomDto.roomNote || normalizedRoomDto.room_note) ||
-      fallbackRoom.roomNote,
+      normalizeText(
+        normalizedRoomDto.roomNote || normalizedRoomDto.room_note,
+      ) || fallbackRoom.roomNote,
     movie: {
       ...fallbackRoom.movie,
       title:
@@ -1189,8 +1262,8 @@ function mapRoomDtoToViewModel(roomDto, fallbackRoom, viewer) {
       ...fallbackRoom.player,
       isPlaying: Boolean(
         normalizedRoomDto.player?.isPlaying ??
-          normalizedRoomDto.player?.playing ??
-          fallbackRoom.player.isPlaying,
+        normalizedRoomDto.player?.playing ??
+        fallbackRoom.player.isPlaying,
       ),
       progressPercent: clampPercent(
         normalizedRoomDto.player?.progressPercent ??
@@ -1400,13 +1473,15 @@ function mapVisibilityOptions(items, fallbackItems) {
 function mapFeaturedRooms(items, fallbackItems) {
   if (!Array.isArray(items) || !items.length) {
     return fallbackItems.map((item, index) => ({
-      imageUrl: index % 2 === 0 ? "/img/cards/interstellar.webp" : "/img/joker.jpeg",
+      imageUrl:
+        index % 2 === 0 ? "/img/cards/interstellar.webp" : "/img/joker.jpeg",
       ...item,
     }));
   }
 
   return items.slice(0, 6).map((item, index) => {
-    const fallback = fallbackItems[index % fallbackItems.length] || fallbackItems[0];
+    const fallback =
+      fallbackItems[index % fallbackItems.length] || fallbackItems[0];
     const membersCount = normalizeCount(
       item?.membersCount ??
         item?.members_count ??
@@ -1421,18 +1496,28 @@ function mapFeaturedRooms(items, fallbackItems) {
         normalizeText(item?.id || item?.roomId || item?.room_id) ||
         normalizeText(fallback?.id) ||
         String(index + 1),
-      title: normalizeText(item?.title || item?.name) || fallback?.title || "Комната",
+      title:
+        normalizeText(item?.title || item?.name) ||
+        fallback?.title ||
+        "Комната",
       hostName:
         normalizeText(
-          item?.hostName || item?.host_name || item?.ownerName || item?.owner_name,
-        ) || fallback?.hostName || "Хозяин комнаты",
+          item?.hostName ||
+            item?.host_name ||
+            item?.ownerName ||
+            item?.owner_name,
+        ) ||
+        fallback?.hostName ||
+        "Хозяин комнаты",
       movieTitle:
         normalizeText(
           item?.movieTitle ||
             item?.movie_title ||
             item?.movie?.title ||
             item?.movie_name,
-        ) || fallback?.movieTitle || "Фильм",
+        ) ||
+        fallback?.movieTitle ||
+        "Фильм",
       membersCount: membersCount || fallback?.membersCount || 0,
       privacyLabel:
         normalizeText(item?.privacyLabel || item?.privacy_label) ||
@@ -1441,13 +1526,20 @@ function mapFeaturedRooms(items, fallbackItems) {
       progressLabel:
         normalizeText(
           item?.progressLabel || item?.progress_label || item?.currentTimeLabel,
-        ) || fallback?.progressLabel || "0:00",
-      isLive: resolveLiveLabel(item?.live ?? item?.status, fallback?.isLive ? "LIVE" : ""),
+        ) ||
+        fallback?.progressLabel ||
+        "0:00",
+      isLive: resolveLiveLabel(
+        item?.live ?? item?.status,
+        fallback?.isLive ? "LIVE" : "",
+      ),
       roomHref:
         normalizeText(item?.roomHref || item?.roomLink || item?.room_link) ||
         buildWatchPartyRoomPath(item?.id || fallback?.id || index + 1),
-      imageUrl:
-        resolveImageUrl(item, fallback?.imageUrl || "/img/cards/interstellar.webp"),
+      imageUrl: resolveImageUrl(
+        item,
+        fallback?.imageUrl || "/img/cards/interstellar.webp",
+      ),
     };
   });
 }
@@ -1468,7 +1560,8 @@ function mapMyRooms(items) {
     return {
       id: roomId,
       title: normalizeText(item?.title || item?.name) || `Комната ${roomId}`,
-      statusLabel: resolveLiveLabel(item?.status || item?.live, "") || "Ожидает",
+      statusLabel:
+        resolveLiveLabel(item?.status || item?.live, "") || "Ожидает",
       statusTone:
         resolveLiveLabel(item?.status || item?.live, "") === "LIVE"
           ? "live"
@@ -1478,7 +1571,10 @@ function mapMyRooms(items) {
         `${normalizeText(item?.movieTitle || item?.movie_title) || "Фильм"} · ${participantsCount} ${pluralizeParticipants(participantsCount)}`,
       roomLink:
         normalizeText(
-          item?.roomLink || item?.room_link || item?.inviteLink || item?.invite_link,
+          item?.roomLink ||
+            item?.room_link ||
+            item?.inviteLink ||
+            item?.invite_link,
         ) || buildWatchPartyRoomPath(roomId),
       imageUrl: resolveImageUrl(item, "/img/65.jpg"),
     };
@@ -1491,25 +1587,33 @@ function mapRoomMembers(items, fallbackItems, viewer) {
   }
 
   return items.map((item, index) => {
-    const fallback = fallbackItems[index % fallbackItems.length] || fallbackItems[0];
+    const fallback =
+      fallbackItems[index % fallbackItems.length] || fallbackItems[0];
     const name =
       normalizeText(item?.name || item?.title || item?.username) ||
       fallback?.name ||
       `Участник ${index + 1}`;
 
     return {
-      id: normalizeText(item?.id || item?.userId || item?.user_id) || `member-${index + 1}`,
+      id:
+        normalizeText(item?.id || item?.userId || item?.user_id) ||
+        `member-${index + 1}`,
       name,
       initial: buildInitial(name),
       avatarTint: pickAvatarTint(name),
       isHost: Boolean(item?.isHost ?? item?.host ?? fallback?.isHost),
-      isYou: normalizeText(name).toLowerCase() === normalizeText(viewer.name).toLowerCase(),
+      isYou:
+        normalizeText(name).toLowerCase() ===
+        normalizeText(viewer.name).toLowerCase(),
       statusText:
-        normalizeText(item?.statusText || item?.status_text || item?.statusLabel) ||
-        "",
+        normalizeText(
+          item?.statusText || item?.status_text || item?.statusLabel,
+        ) || "",
       statusColor:
         normalizeText(item?.statusColor || item?.status_color) ||
-        (normalizeText(item?.statusText || item?.status_text) ? "#888888" : "#2b9c5a"),
+        (normalizeText(item?.statusText || item?.status_text)
+          ? "#888888"
+          : "#2b9c5a"),
     };
   });
 }
@@ -1533,12 +1637,15 @@ function mapRoomMessages(items, fallbackItems) {
       const options = item.options
         .map((option, optionIndex) => ({
           id:
-            normalizeText(option?.id || option?.optionId || option?.option_id) ||
-            `bet-${index + 1}-option-${optionIndex + 1}`,
+            normalizeText(
+              option?.id || option?.optionId || option?.option_id,
+            ) || `bet-${index + 1}-option-${optionIndex + 1}`,
           label:
             normalizeText(option?.label || option?.title || option?.name) ||
             `Вариант ${optionIndex + 1}`,
-          votes: normalizeCount(option?.votes ?? option?.count ?? option?.value),
+          votes: normalizeCount(
+            option?.votes ?? option?.count ?? option?.value,
+          ),
           isSelected: Boolean(option?.isSelected ?? option?.selected),
         }))
         .filter((option) => option.label);
@@ -1549,7 +1656,9 @@ function mapRoomMessages(items, fallbackItems) {
         authorName,
         authorInitial,
         authorTint: pickAvatarTint(authorName),
-        timeLabel: normalizeText(item?.timeLabel || item?.time_label) || formatTimeLabel(),
+        timeLabel:
+          normalizeText(item?.timeLabel || item?.time_label) ||
+          formatTimeLabel(),
         question: normalizeText(item?.question || item?.title) || "Ставка",
         metaText:
           normalizeText(item?.metaText || item?.meta_text) ||
@@ -1568,7 +1677,8 @@ function mapRoomMessages(items, fallbackItems) {
       authorName,
       authorInitial,
       authorTint: pickAvatarTint(authorName),
-      timeLabel: normalizeText(item?.timeLabel || item?.time_label) || formatTimeLabel(),
+      timeLabel:
+        normalizeText(item?.timeLabel || item?.time_label) || formatTimeLabel(),
       text: normalizeText(item?.text || item?.message) || "",
       reactionText:
         normalizeText(item?.reactionText || item?.reaction_text) || "",
@@ -1598,7 +1708,8 @@ function mergeOverviewWithLocalRooms(pageData, localRooms, fallbackData) {
     movieTitle: room.movie?.title || "Фильм",
     membersCount: normalizeCount(room.participantsCount),
     privacyLabel: room.privacyLabel || "Только по ссылке",
-    progressLabel: room.player?.currentTimeLabel || room.progressLabel || "0:00",
+    progressLabel:
+      room.player?.currentTimeLabel || room.progressLabel || "0:00",
     isLive: Boolean(room.liveLabel),
     roomHref: buildWatchPartyRoomPath(room.id),
     imageUrl: room.movie?.backdropUrl || "/img/cards/interstellar.webp",
@@ -1618,6 +1729,24 @@ function mergeOverviewWithLocalRooms(pageData, localRooms, fallbackData) {
         ? pageData.featuredRooms
         : fallbackData.featuredRooms,
     myRooms: localMyRooms.length ? localMyRooms : pageData.myRooms,
+  };
+}
+
+function removeRoomFromOverview(pageData, roomId) {
+  const normalizedRoomId = normalizeText(roomId);
+
+  if (!normalizedRoomId) {
+    return pageData;
+  }
+
+  return {
+    ...pageData,
+    featuredRooms: pageData.featuredRooms.filter((room) => {
+      return normalizeText(room.id) !== normalizedRoomId;
+    }),
+    myRooms: pageData.myRooms.filter((room) => {
+      return normalizeText(room.id) !== normalizedRoomId;
+    }),
   };
 }
 
@@ -1658,12 +1787,7 @@ function buildCurrentViewer() {
   };
 }
 
-function createLocalRoomDraft({
-  roomId,
-  roomName,
-  visibilityLabel,
-  viewer,
-}) {
+function createLocalRoomDraft({ roomId, roomName, visibilityLabel, viewer }) {
   const fallbackRoom = buildWatchPartyFallbackRoom(roomId);
 
   return applyViewerToRoom(
@@ -1711,7 +1835,10 @@ function decorateRoomMessage(message) {
     };
   }
 
-  const voteCount = Math.max(normalizeCount(message.voteCount), sumOptionVotes(message.options));
+  const voteCount = Math.max(
+    normalizeCount(message.voteCount),
+    sumOptionVotes(message.options),
+  );
   const options = message.options.map((option) => {
     const votes = normalizeCount(option.votes);
     const percent = voteCount > 0 ? Math.round((votes / voteCount) * 100) : 0;
@@ -1801,16 +1928,6 @@ function resolveLiveLabel(value, fallback) {
   }
 
   return fallback || "";
-}
-
-function buildBackdropStyle(imageUrl) {
-  const normalizedImageUrl = normalizeText(imageUrl);
-
-  if (!normalizedImageUrl) {
-    return "";
-  }
-
-  return `background-image: linear-gradient(180deg, rgba(6, 3, 1, 0.1), rgba(6, 3, 1, 0.78)), url('${normalizedImageUrl}')`;
 }
 
 function extractRoomIdFromLink(link) {

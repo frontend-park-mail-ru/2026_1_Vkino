@@ -3,6 +3,7 @@ handlebars ./src/components/MoviePoster/MoviePoster.hbs -f ./src/components/Movi
 handlebars ./src/components/PosterCarousel/PosterCarousel.hbs -f ./src/components/PosterCarousel/PosterCarousel.precompiled.js
 handlebars ./src/components/MoviePlayer/MoviePlayer.hbs -f ./src/components/MoviePlayer/MoviePlayer.precompiled.js
 handlebars ./src/components/Pagination/Pagination.hbs -f ./src/components/Pagination/Pagination.precompiled.js
+handlebars ./src/components/WatchPartyRoomChat/WatchPartyRoomChat.hbs -f ./src/components/WatchPartyRoomChat/WatchPartyRoomChat.precompiled.js
 
 
 handlebars ./src/pages/Main/Main.hbs -f ./src/pages/Main/Main.precompiled.js

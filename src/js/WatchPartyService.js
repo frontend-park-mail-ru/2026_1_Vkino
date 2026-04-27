@@ -416,7 +416,9 @@ function writeLocalRooms(rooms) {
 
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms));
-  } catch {}
+  } catch {
+    return;
+  }
 }
 
 function normalizeRoomId(roomId) {
