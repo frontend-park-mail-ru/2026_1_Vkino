@@ -191,7 +191,17 @@ function isApiRequest(request, url) {
 
   const acceptHeader = (request.headers.get("accept") || "").toLowerCase();
 
-  return acceptHeader.includes("application/json");
+  if (!acceptHeader.includes("application/json")) {
+    return false;
+  }
+
+  const pathSegments = getPathSegments(url);
+  const isBlacklisted =
+    pathSegments.includes("user") ||
+    pathSegments.includes("auth") ||
+    pathSegments.includes("episode");
+
+  return !isBlacklisted;
 }
 
 function isMediaStreamRequest(request) {
@@ -216,6 +226,10 @@ function hasNoStoreDirective(response) {
     .trim();
 
   return cacheControl.includes("no-store");
+}
+
+function getPathSegments(url) {
+  return url.pathname.toLowerCase().split("/").filter(Boolean);
 }
 
 function isHttpRequest(protocol) {
