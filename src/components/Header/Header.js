@@ -2,8 +2,8 @@ import { BaseComponent } from "../BaseComponent.js";
 import "./Header.precompiled.js";
 import { authStore } from "../../store/authStore.js";
 import { router } from "../../router/index.js";
-import { canManageSupportTicketStatus } from "../../utils/support.js";
 import { resolveAvatarUrl } from "../../utils/avatar.js";
+import { canManageSupportTicketStatus } from "../../utils/support.js";
 import { getDisplayNameFromEmail } from "../../utils/user.js";
 
 const PENDING_SCROLL_TARGET_KEY = "vkino_pending_scroll_target";

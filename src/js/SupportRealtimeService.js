@@ -1,6 +1,7 @@
 import { apiService } from "./api.js";
 
 const SUPPORT_WS_BASE_PATH = "/support/tickets";
+const SUPPORT_WS_RECONNECT_DELAY_MS = 3000;
 
 export class SupportRealtimeService {
   constructor(apiServiceInstance) {
@@ -8,6 +9,8 @@ export class SupportRealtimeService {
     this.socket = null;
     this.handlers = {};
     this.currentTicketId = "";
+    this._reconnectTimerId = 0;
+    this._shouldReconnect = false;
   }
 
   connect(handlers = {}) {
@@ -47,6 +50,7 @@ export class SupportRealtimeService {
     }
 
     this.currentTicketId = normalizedTicketId;
+    this._shouldReconnect = true;
     this._openSocket(normalizedTicketId);
   }
 
@@ -58,11 +62,13 @@ export class SupportRealtimeService {
     }
 
     this.currentTicketId = "";
+    this._shouldReconnect = false;
     this._teardownSocket({ notifyClose: false });
   }
 
   disconnect() {
     this.currentTicketId = "";
+    this._shouldReconnect = false;
     this._teardownSocket({ notifyClose: false });
   }
 
@@ -71,6 +77,8 @@ export class SupportRealtimeService {
       return;
     }
 
+    window.clearTimeout(this._reconnectTimerId);
+    this._reconnectTimerId = 0;
     this.handlers.onStatusChange?.("open");
   };
 
@@ -107,6 +115,10 @@ export class SupportRealtimeService {
 
     this.socket = null;
     this.handlers.onStatusChange?.("closed");
+
+    if (this._shouldReconnect && this.currentTicketId) {
+      this._scheduleReconnect();
+    }
   };
 
   _openSocket(ticketId) {
@@ -128,6 +140,9 @@ export class SupportRealtimeService {
   }
 
   _teardownSocket({ notifyClose = false } = {}) {
+    window.clearTimeout(this._reconnectTimerId);
+    this._reconnectTimerId = 0;
+
     if (!this.socket) {
       return;
     }
@@ -151,6 +166,23 @@ export class SupportRealtimeService {
     if (notifyClose) {
       this.handlers.onStatusChange?.("closed");
     }
+  }
+
+  _scheduleReconnect() {
+    if (this._reconnectTimerId || !this.currentTicketId) {
+      return;
+    }
+
+    this.handlers.onStatusChange?.("reconnecting");
+    this._reconnectTimerId = window.setTimeout(() => {
+      this._reconnectTimerId = 0;
+
+      if (!this._shouldReconnect || !this.currentTicketId) {
+        return;
+      }
+
+      this._openSocket(this.currentTicketId);
+    }, SUPPORT_WS_RECONNECT_DELAY_MS);
   }
 
   _buildSocketUrl(ticketId) {

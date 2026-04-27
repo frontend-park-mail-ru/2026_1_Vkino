@@ -173,7 +173,7 @@ export class SupportService {
       return {
         ...result,
         error:
-          "Текущий контракт PATCH /support/tickets/{id} на бэке пока не принимает поле rating.",
+          "Ошибка обновления рейтинга. Попробуйте позже!",
       };
     }
 

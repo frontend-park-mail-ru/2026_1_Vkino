@@ -14,6 +14,7 @@ import {
   extractSupportMessages,
   extractSupportTickets,
   shouldSyncSupportRealtimePayload,
+  validateSupportFile,
 } from "../../utils/support.js";
 
 const STATUS_FILTER_OPTIONS = [
@@ -345,9 +346,13 @@ export default class SupportTicketsPage extends BasePage {
     }
 
     if (event.target.matches('[name="replyFile"]')) {
-      this._replyError = "";
+      const selectedFile = pickSelectedFile(event.target.files?.[0] || null);
+
+      this._replyError = validateSupportFile(selectedFile);
+      this._noticeMessage = "";
+      this._noticeTone = "";
       this._renderReplyState();
-      this._renderReplyFileState(event.target.files?.[0] || null);
+      this._renderReplyFileState(selectedFile);
       return;
     }
 
@@ -878,18 +883,19 @@ export default class SupportTicketsPage extends BasePage {
   }
 
   _connectRealtime() {
-    if (this._isRequestBlocked || this._isRealtimeUnavailable) {
+    if (this._isRequestBlocked) {
       return;
     }
 
     supportRealtimeService.connect({
       onMessage: this._handleRealtimeMessage,
       onError: this._handleRealtimeError,
+      onStatusChange: this._handleRealtimeStatusChange,
     });
   }
 
   _syncRealtimeSubscription() {
-    if (this._isRequestBlocked || this._isRealtimeUnavailable) {
+    if (this._isRequestBlocked) {
       supportRealtimeService.disconnect();
       return;
     }
@@ -943,12 +949,39 @@ export default class SupportTicketsPage extends BasePage {
       return;
     }
 
-    this._isRealtimeUnavailable = true;
-    supportRealtimeService.disconnect();
     this._noticeMessage =
-      "WS недоступен. Перезагрузите страницу, чтобы получить новые сообщения и статусы.";
+      "WS недоступен. Пробуем восстановить соединение автоматически.";
     this._noticeTone = "error";
     this._refreshView();
+  };
+
+  _handleRealtimeStatusChange = (status) => {
+    if (this._isRequestBlocked) {
+      return;
+    }
+
+    if (status === "open") {
+      this._isRealtimeUnavailable = false;
+
+      if (
+        this._noticeTone === "error" &&
+        this._noticeMessage.includes("WS недоступен")
+      ) {
+        this._noticeMessage = "Соединение с чатом восстановлено.";
+        this._noticeTone = "info";
+      }
+
+      this._refreshView();
+      return;
+    }
+
+    if (status === "reconnecting") {
+      this._isRealtimeUnavailable = false;
+      this._noticeMessage =
+        "Соединение с чатом потеряно. Пытаемся переподключиться...";
+      this._noticeTone = "error";
+      this._refreshView();
+    }
   };
 
   async _handleUnauthorized(result) {

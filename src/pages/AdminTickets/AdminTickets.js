@@ -16,6 +16,7 @@ import {
   canManageSupportTicketStatus,
   getSupportCategoryLabel,
   shouldSyncSupportRealtimePayload,
+  validateSupportFile,
 } from "../../utils/support.js";
 
 /**
@@ -269,6 +270,14 @@ export default class AdminTicketsPage extends BasePage {
     if (event.target.matches('[name="reply"]')) {
       this._replyError = "";
       this._refreshReplyError();
+      return;
+    }
+
+    if (event.target.matches('[name="replyFile"]')) {
+      this._replyError = validateSupportFile(
+        pickSelectedFile(event.target.files?.[0] || null),
+      );
+      this._refreshReplyError();
     }
   };
 
@@ -315,9 +324,31 @@ export default class AdminTicketsPage extends BasePage {
     }
 
     const formData = new FormData(form);
+    const replyText = String(formData.get("reply") || "").trim();
     const replyFile = pickSelectedFile(formData.get("replyFile"));
+
+    if (!replyText && !(replyFile instanceof File)) {
+      this._replyError = "Напишите ответ или приложите файл.";
+      this._noticeMessage = "";
+      this._noticeTone = "";
+      this._refreshNotice();
+      this._refreshReplyError();
+      return;
+    }
+
+    const fileError = validateSupportFile(replyFile);
+
+    if (fileError) {
+      this._replyError = fileError;
+      this._noticeMessage = "";
+      this._noticeTone = "";
+      this._refreshNotice();
+      this._refreshReplyError();
+      return;
+    }
+
     const result = await this._ticketsHook.replyToSelectedTicket({
-      text: formData.get("reply"),
+      text: replyText,
       attachment: replyFile,
     });
 
@@ -499,18 +530,15 @@ export default class AdminTicketsPage extends BasePage {
   }
 
   _connectRealtime() {
-    if (this._isRealtimeUnavailable) {
-      return;
-    }
-
     supportRealtimeService.connect({
       onMessage: this._handleRealtimeMessage,
       onError: this._handleRealtimeError,
+      onStatusChange: this._handleRealtimeStatusChange,
     });
   }
 
   _syncRealtimeSubscription() {
-    if (this._isRealtimePaused || this._isRealtimeUnavailable) {
+    if (this._isRealtimePaused) {
       supportRealtimeService.disconnect();
       return;
     }
@@ -559,12 +587,34 @@ export default class AdminTicketsPage extends BasePage {
   };
 
   _handleRealtimeError = () => {
-    this._isRealtimeUnavailable = true;
-    supportRealtimeService.disconnect();
     this._noticeMessage =
-      "WS недоступен. Перезагрузите страницу, чтобы получить новые сообщения и статусы.";
+      "WS недоступен. Пробуем восстановить соединение автоматически.";
     this._noticeTone = "error";
     this.refresh(this._buildViewContext());
+  };
+
+  _handleRealtimeStatusChange = (status) => {
+    if (status === "open") {
+      this._isRealtimeUnavailable = false;
+
+      if (
+        this._noticeTone === "error" &&
+        this._noticeMessage.includes("WS недоступен")
+      ) {
+        this._noticeMessage = "Соединение с чатом восстановлено.";
+        this._noticeTone = "info";
+      }
+
+      this.refresh(this._buildViewContext());
+      return;
+    }
+
+    if (status === "reconnecting") {
+      this._noticeMessage =
+        "Соединение с чатом потеряно. Пытаемся переподключиться...";
+      this._noticeTone = "error";
+      this.refresh(this._buildViewContext());
+    }
   };
 
   async _handleUnauthorized(result) {
