@@ -7,6 +7,26 @@
         Загружаем обращения...
       </div>
     {{else}}
+      <section class="support-tickets__hero support-tickets__hero--admin">
+        <div class="support-tickets__hero-main support-tickets__hero-main--admin">
+          <div class="support-tickets__eyebrow">Панель поддержки</div>
+          <h1 class="support-tickets__hero-title">Статистика по обращениям</h1>
+          <p class="support-tickets__hero-description">
+            Общая сводка по доступным обращениям: сколько открыто, в работе,
+            ждут пользователя, решены и закрыты.
+          </p>
+        </div>
+
+        <div class="support-tickets__hero-stats">
+          {{#each statisticsCards}}
+            <article class="support-tickets__hero-stat">
+              <span class="support-tickets__hero-stat-label">{{this.label}}</span>
+              <strong class="support-tickets__hero-stat-value">{{this.value}}</strong>
+            </article>
+          {{/each}}
+        </div>
+      </section>
+
       <div class="support-tickets__layout">
         <aside class="support-tickets__sidebar admin-tickets__sidebar">
           <div
@@ -22,7 +42,7 @@
               </span>
 
               <div class="admin-tickets__title-copy">
-                <div class="admin-tickets__eyebrow">Панель администратора</div>
+                <div class="admin-tickets__eyebrow">Панель поддержки</div>
                 <h1 class="support-tickets__title">Обращения</h1>
               </div>
             </div>
@@ -65,15 +85,6 @@
                     {{/each}}
                   </select>
                 </label>
-              </div>
-
-              <div class="admin-tickets__stats">
-                {{#each statisticsCards}}
-                  <article class="admin-tickets__stat-card">
-                    <span class="admin-tickets__stat-label">{{this.label}}</span>
-                    <strong class="admin-tickets__stat-value">{{this.value}}</strong>
-                  </article>
-                {{/each}}
               </div>
             </div>
           </div>
@@ -149,14 +160,27 @@
                   {{selectedTicket.statusLabel}}
                 </span>
 
-                <button
-                  class="{{selectedTicket.closeButtonClass}}"
-                  type="button"
-                  data-action="close-ticket"
-                  {{selectedTicket.closeButtonDisabledAttr}}
+                <form
+                  class="admin-tickets__status-form"
+                  data-action="update-ticket-status"
                 >
-                  Закрыть обращение
-                </button>
+                  <label
+                    class="support-tickets__filter admin-tickets__status-filter"
+                  >
+                    <span>Статус</span>
+                    <select class="support-tickets__select" name="ticketStatus">
+                      {{#each selectedTicket.statusOptions}}
+                        <option value="{{this.value}}" {{this.selectedAttr}}>
+                          {{this.label}}
+                        </option>
+                      {{/each}}
+                    </select>
+                  </label>
+
+                  <button class="admin-tickets__close-button" type="submit">
+                    Сохранить статус
+                  </button>
+                </form>
               </div>
             </div>
 
@@ -233,7 +257,7 @@
                   id="admin-ticket-reply-file"
                   name="replyFile"
                   type="file"
-                  accept="image/*,.pdf,application/pdf"
+                  accept=".png,.jpg,.jpeg,.webp,.pdf,image/png,image/jpeg,image/webp,application/pdf"
                 />
 
                 <button class="support-tickets__send-button" type="submit">

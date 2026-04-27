@@ -279,6 +279,54 @@
               {{/if}}
             </div>
 
+            {{#if selectedTicket.canRate}}
+              <form
+                class="support-tickets__rating-card"
+                data-action="rate-ticket"
+              >
+                <div class="support-tickets__rating-copy">
+                  <strong class="support-tickets__rating-title">
+                    Оцените работу поддержки
+                  </strong>
+                  <p class="support-tickets__rating-caption">
+                    Поставьте оценку от 1 до 5 после решения обращения.
+                  </p>
+                </div>
+
+                <div class="support-tickets__rating-controls">
+                  <label class="support-tickets__filter">
+                    <span>Оценка</span>
+                    <select class="support-tickets__select" name="ticketRating">
+                      <option value="">Выберите оценку</option>
+                      {{#each selectedTicket.ratingOptions}}
+                        <option value="{{this.value}}" {{this.selectedAttr}}>
+                          {{this.label}}
+                        </option>
+                      {{/each}}
+                    </select>
+                  </label>
+
+                  <button
+                    class="support-tickets__chat-action-button"
+                    type="submit"
+                  >
+                    {{selectedTicket.ratingSubmitLabel}}
+                  </button>
+                </div>
+
+                <div class="support-tickets__rating-summary">
+                  {{selectedTicket.ratingSummary}}
+                </div>
+
+                <div
+                  class="support-tickets__reply-error"
+                  id="support-rating-error"
+                >
+                  {{ratingError}}
+                </div>
+              </form>
+            {{/if}}
+
             <form
               class="support-tickets__reply-form"
               data-action="reply-ticket"
@@ -311,7 +359,7 @@
                   id="support-reply-file"
                   name="replyFile"
                   type="file"
-                  accept="image/*,.pdf,application/pdf"
+                  accept=".png,.jpg,.jpeg,.webp,.pdf,image/png,image/jpeg,image/webp,application/pdf"
                 />
 
                 <button class="support-tickets__send-button" type="submit">
@@ -328,7 +376,7 @@
                   id="support-reply-file-meta"
                   aria-live="polite"
                 >
-                  Можно приложить изображение или PDF
+                  Можно приложить PNG, JPG, WEBP или PDF до 10 МБ
                 </div>
 
                 <div

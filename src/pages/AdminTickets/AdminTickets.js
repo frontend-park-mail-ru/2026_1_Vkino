@@ -13,6 +13,7 @@ import { router } from "../../router/index.js";
 import { authStore } from "../../store/authStore.js";
 import { getDisplayNameFromEmail } from "../../utils/user.js";
 import {
+  canManageSupportTicketStatus,
   getSupportCategoryLabel,
   shouldSyncSupportRealtimePayload,
 } from "../../utils/support.js";
@@ -55,6 +56,7 @@ export default class AdminTicketsPage extends BasePage {
     this._noticeTone = "";
     this._replyError = "";
     this._isRealtimePaused = false;
+    this._isRealtimeUnavailable = false;
     this._isRealtimeRequestInFlight = false;
     this._isViewRefreshInProgress = false;
   }
@@ -76,6 +78,11 @@ export default class AdminTicketsPage extends BasePage {
           return;
         }
 
+        if (!canManageSupportTicketStatus(nextState.user?.role)) {
+          router.go("/support");
+          return;
+        }
+
         this._ensureTicketsHook(nextState.user);
         super.init();
 
@@ -89,6 +96,11 @@ export default class AdminTicketsPage extends BasePage {
 
     if (!state.user) {
       router.go("/sign-in");
+      return this;
+    }
+
+    if (!canManageSupportTicketStatus(state.user?.role)) {
+      router.go("/support");
       return this;
     }
 
@@ -143,7 +155,7 @@ export default class AdminTicketsPage extends BasePage {
 
       this._refreshView(result.snapshot);
 
-      if (!this._isRealtimePaused) {
+      if (!this._isRealtimePaused && !this._isRealtimeUnavailable) {
         this._connectRealtime();
         this._syncRealtimeSubscription();
       }
@@ -279,6 +291,14 @@ export default class AdminTicketsPage extends BasePage {
   };
 
   _onSubmit = async (event) => {
+    const statusForm = event.target.closest('[data-action="update-ticket-status"]');
+
+    if (statusForm) {
+      event.preventDefault();
+      await this._handleStatusSubmit(statusForm);
+      return;
+    }
+
     const form = event.target.closest('[data-action="reply-ticket"]');
 
     if (!form) {
@@ -295,10 +315,7 @@ export default class AdminTicketsPage extends BasePage {
     }
 
     const formData = new FormData(form);
-    const replyFile =
-      formData.get("replyFile") instanceof File
-        ? formData.get("replyFile")
-        : null;
+    const replyFile = pickSelectedFile(formData.get("replyFile"));
     const result = await this._ticketsHook.replyToSelectedTicket({
       text: formData.get("reply"),
       attachment: replyFile,
@@ -321,6 +338,32 @@ export default class AdminTicketsPage extends BasePage {
     this._noticeMessage = result.message || "";
     this._noticeTone = "info";
     form.reset();
+    await this._applyHookResult(result);
+  }
+
+  async _handleStatusSubmit(form) {
+    if (!this._ticketsHook) {
+      return;
+    }
+
+    const nextStatus = String(
+      new FormData(form).get("ticketStatus") || "",
+    ).trim();
+    const result = await this._ticketsHook.setSelectedTicketStatus(nextStatus);
+
+    if (await this._handleUnauthorized(result)) {
+      return;
+    }
+
+    if (!result.ok) {
+      this._noticeMessage = result.error || "Не удалось обновить статус.";
+      this._noticeTone = "error";
+      this.refresh(this._buildViewContext(result.snapshot));
+      return;
+    }
+
+    this._noticeMessage = result.message || "";
+    this._noticeTone = "info";
     await this._applyHookResult(result);
   }
 
@@ -374,7 +417,7 @@ export default class AdminTicketsPage extends BasePage {
 
     this.refresh(this._buildViewContext(result.snapshot));
 
-    if (!this._isRealtimePaused) {
+    if (!this._isRealtimePaused && !this._isRealtimeUnavailable) {
       this._connectRealtime();
       this._syncRealtimeSubscription();
     }
@@ -385,6 +428,7 @@ export default class AdminTicketsPage extends BasePage {
       ? buildSelectedTicketView(
           snapshot.selectedTicket,
           snapshot.selectedMessages,
+          snapshot.currentAdmin || {},
         )
       : null;
 
@@ -446,6 +490,7 @@ export default class AdminTicketsPage extends BasePage {
     }
 
     this._ticketsHook = useAdminTickets({
+      id: user?.id || user?.user_id || "",
       email: user?.email || "admin@vkino.tech",
       role: user?.role || "admin",
       displayName:
@@ -454,6 +499,10 @@ export default class AdminTicketsPage extends BasePage {
   }
 
   _connectRealtime() {
+    if (this._isRealtimeUnavailable) {
+      return;
+    }
+
     supportRealtimeService.connect({
       onMessage: this._handleRealtimeMessage,
       onError: this._handleRealtimeError,
@@ -461,7 +510,7 @@ export default class AdminTicketsPage extends BasePage {
   }
 
   _syncRealtimeSubscription() {
-    if (this._isRealtimePaused) {
+    if (this._isRealtimePaused || this._isRealtimeUnavailable) {
       supportRealtimeService.disconnect();
       return;
     }
@@ -510,10 +559,11 @@ export default class AdminTicketsPage extends BasePage {
   };
 
   _handleRealtimeError = () => {
+    this._isRealtimeUnavailable = true;
+    supportRealtimeService.disconnect();
     this._noticeMessage =
-      this._noticeMessage ||
-      "WS недоступен. Обновления продолжат приходить через API.";
-    this._noticeTone = this._noticeTone || "error";
+      "WS недоступен. Перезагрузите страницу, чтобы получить новые сообщения и статусы.";
+    this._noticeTone = "error";
     this.refresh(this._buildViewContext());
   };
 
@@ -558,7 +608,7 @@ function buildTicketCardView(ticket, selectedTicketId) {
   };
 }
 
-function buildSelectedTicketView(ticket, messages = []) {
+function buildSelectedTicketView(ticket, messages = [], currentAdmin = {}) {
   const statusMeta = getAdminTicketStatusMeta(ticket.status);
 
   return {
@@ -572,22 +622,51 @@ function buildSelectedTicketView(ticket, messages = []) {
       ),
     statusLabel: statusMeta.label,
     statusClass: `support-tickets__status-badge support-tickets__status-badge--${statusMeta.tone}`,
-    closeButtonDisabledAttr: ticket.status === "resolved" ? " disabled" : "",
-    closeButtonClass:
-      ticket.status === "resolved"
-        ? "admin-tickets__close-button admin-tickets__close-button--disabled"
-        : "admin-tickets__close-button",
+    statusOptions: buildTicketStatusOptions(ticket.status),
     messages: messages.map((message) => ({
-      senderLabel: message.senderName || message.senderEmail,
-      senderEmail: message.senderEmail,
+      senderLabel:
+        message.senderName ||
+        (message.isFromCurrentUser
+          ? currentAdmin.displayName || "Вы"
+          : ticket.userEmail || "Пользователь"),
+      senderEmail:
+        message.senderEmail ||
+        (message.isFromCurrentUser
+          ? currentAdmin.email || ""
+          : ticket.userEmail || ""),
       sentAtLabel: formatFullDate(message.sentAt),
       text: message.text,
       attachmentName: message.attachmentName,
-      messageClass: message.isFromAdmin
+      messageClass: message.isFromCurrentUser
         ? "support-tickets__message support-tickets__message--outgoing"
         : "support-tickets__message",
     })),
   };
+}
+
+function pickSelectedFile(value) {
+  if (!(value instanceof File)) {
+    return null;
+  }
+
+  if (!value.name && value.size === 0) {
+    return null;
+  }
+
+  return value;
+}
+
+function buildTicketStatusOptions(selectedStatus = "") {
+  return [
+    { value: "open", label: "Открыт" },
+    { value: "in_progress", label: "В работе" },
+    { value: "waiting_user", label: "Ждёт пользователя" },
+    { value: "resolved", label: "Решён" },
+    { value: "closed", label: "Закрыт" },
+  ].map((option) => ({
+    ...option,
+    selectedAttr: option.value === selectedStatus ? " selected" : "",
+  }));
 }
 
 function buildNoticeClass(tone, message) {

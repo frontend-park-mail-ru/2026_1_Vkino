@@ -9,6 +9,8 @@ import { router } from "../../router/index.js";
 import { authStore } from "../../store/authStore.js";
 import { getDisplayNameFromEmail } from "../../utils/user.js";
 import {
+  buildSupportConversationMessages,
+  canManageSupportTicketStatus,
   extractSupportMessages,
   extractSupportTickets,
   shouldSyncSupportRealtimePayload,
@@ -16,27 +18,32 @@ import {
 
 const STATUS_FILTER_OPTIONS = [
   { value: "all", label: "Все" },
-  { value: "new", label: "Новые" },
+  { value: "open", label: "Открыты" },
   { value: "in_progress", label: "В работе" },
-  { value: "waiting", label: "Ждёт ответа" },
+  { value: "waiting_user", label: "Ждут пользователя" },
   { value: "resolved", label: "Решено" },
+  { value: "closed", label: "Закрыто" },
 ];
 
 const STATUS_META = {
-  new: {
-    label: "Новый",
+  open: {
+    label: "Открыт",
     tone: "open",
   },
   in_progress: {
     label: "В работе",
     tone: "progress",
   },
-  waiting: {
-    label: "Ждёт ответа",
+  waiting_user: {
+    label: "Ждёт пользователя",
     tone: "waiting",
   },
   resolved: {
     label: "Решено",
+    tone: "resolved",
+  },
+  closed: {
+    label: "Закрыто",
     tone: "resolved",
   },
 };
@@ -69,6 +76,7 @@ export default class SupportTicketsPage extends BasePage {
         noticeTone: "",
         replyError: "",
         replyDraft: "",
+        ratingError: "",
         hasTickets: false,
         ...context,
       },
@@ -87,14 +95,19 @@ export default class SupportTicketsPage extends BasePage {
     this._noticeTone = "";
     this._replyError = "";
     this._replyDraftText = "";
+    this._ratingError = "";
+    this._ratingValue = "";
     this._isRequestBlocked = false;
+    this._isRealtimeUnavailable = false;
     this._isRealtimeSyncing = false;
     this._isViewRefreshInProgress = false;
     this._currentUser = {
+      id: "",
       email: "",
       displayName: "",
       role: "user",
       isAdmin: false,
+      canManageStatuses: false,
     };
   }
 
@@ -116,6 +129,12 @@ export default class SupportTicketsPage extends BasePage {
         }
 
         this._currentUser = this._resolveCurrentUser(nextState.user);
+
+        if (this._currentUser.canManageStatuses) {
+          router.go("/admin/support");
+          return;
+        }
+
         super.init();
         if (!this._isViewRefreshInProgress) {
           await this.loadContext({ preserveSelection: false });
@@ -131,6 +150,12 @@ export default class SupportTicketsPage extends BasePage {
     }
 
     this._currentUser = this._resolveCurrentUser(state.user);
+
+    if (this._currentUser.canManageStatuses) {
+      router.go("/admin/support");
+      return this;
+    }
+
     super.init();
 
     if (!this._isViewRefreshInProgress) {
@@ -189,9 +214,7 @@ export default class SupportTicketsPage extends BasePage {
     const previousSelectedTicketId = preserveSelection
       ? this._selectedTicketId
       : "";
-    const ticketsResult = await supportService.getTickets({
-      role: this._currentUser.role,
-    });
+    const ticketsResult = await supportService.getTickets();
 
     if (await this._handleUnauthorized(ticketsResult)) {
       return;
@@ -207,12 +230,14 @@ export default class SupportTicketsPage extends BasePage {
     }
 
     this._tickets = extractSupportTickets(ticketsResult.resp, {
+      currentUserId: this._currentUser.id,
       currentUserEmail: this._currentUser.email,
     });
     this._selectedTicketId = this._resolveSelectedTicketId(
       previousSelectedTicketId,
     );
     this._selectedMessages = [];
+    this._syncRatingDraftFromSelectedTicket({ force: true });
 
     const messagesResult = await this._loadSelectedMessages({
       showError: false,
@@ -232,8 +257,11 @@ export default class SupportTicketsPage extends BasePage {
     }
 
     this._refreshView();
-    this._connectRealtime();
-    this._syncRealtimeSubscription();
+
+    if (!this._isRealtimeUnavailable) {
+      this._connectRealtime();
+      this._syncRealtimeSubscription();
+    }
   }
 
   _onClick = async (event) => {
@@ -266,6 +294,7 @@ export default class SupportTicketsPage extends BasePage {
     this._selectedMessages = [];
     this._replyDraftText = "";
     this._clearComposerState();
+    this._syncRatingDraftFromSelectedTicket({ force: true });
 
     if (this._canRequest(false)) {
       const messagesResult = await this._loadSelectedMessages({
@@ -293,6 +322,7 @@ export default class SupportTicketsPage extends BasePage {
       this._selectedTicketId = this._resolveSelectedTicketId(
         previousSelectedTicketId,
       );
+      this._syncRatingDraftFromSelectedTicket({ force: true });
 
       if (previousSelectedTicketId !== this._selectedTicketId) {
         this._selectedMessages = [];
@@ -321,6 +351,13 @@ export default class SupportTicketsPage extends BasePage {
       return;
     }
 
+    if (event.target.matches('[name="ticketRating"]')) {
+      this._ratingValue = String(event.target.value || "");
+      this._ratingError = "";
+      this._renderRatingState();
+      return;
+    }
+
     if (event.target.matches('[name="reply"]')) {
       this._replyDraftText = String(event.target.value || "");
       this._replyError = "";
@@ -339,6 +376,14 @@ export default class SupportTicketsPage extends BasePage {
   };
 
   _onSubmit = async (event) => {
+    const ratingForm = event.target.closest('[data-action="rate-ticket"]');
+
+    if (ratingForm) {
+      event.preventDefault();
+      await this._handleRatingSubmit(ratingForm);
+      return;
+    }
+
     const form = event.target.closest('[data-action="reply-ticket"]');
 
     if (!form) {
@@ -358,22 +403,10 @@ export default class SupportTicketsPage extends BasePage {
 
     const formData = new FormData(form);
     const replyText = normalizeText(formData.get("reply"));
-    const replyFile =
-      formData.get("replyFile") instanceof File
-        ? formData.get("replyFile")
-        : null;
+    const replyFile = pickSelectedFile(formData.get("replyFile"));
 
-    if (!replyText) {
-      this._replyError = "Напишите ответ";
-      this._noticeMessage = "";
-      this._noticeTone = "";
-      this._renderReplyState();
-      return;
-    }
-
-    if (replyFile instanceof File && replyFile.size) {
-      this._replyError =
-        "Вложения в ответе пока не поддерживаются API. Отправьте текст.";
+    if (!replyText && !(replyFile instanceof File)) {
+      this._replyError = "Напишите ответ или приложите файл.";
       this._noticeMessage = "";
       this._noticeTone = "";
       this._renderReplyState();
@@ -415,6 +448,7 @@ export default class SupportTicketsPage extends BasePage {
       buildLocalReplyMessage({
         text: replyText,
         attachmentName: replyFile?.name || "",
+        senderId: this._currentUser.id,
         senderName: this._currentUser.displayName,
         senderEmail: this._currentUser.email,
         sentAt,
@@ -433,6 +467,62 @@ export default class SupportTicketsPage extends BasePage {
     this._syncRealtimeSubscription();
   }
 
+  async _handleRatingSubmit(form) {
+    const selectedTicket = this._getSelectedTicket();
+    const rating = normalizeTicketRating(
+      new FormData(form).get("ticketRating") || this._ratingValue,
+    );
+
+    if (
+      !selectedTicket ||
+      this._currentUser.role !== "user" ||
+      (selectedTicket.status !== "resolved" &&
+        selectedTicket.status !== "closed")
+    ) {
+      return;
+    }
+
+    if (!rating) {
+      this._ratingError = "Выберите оценку от 1 до 5.";
+      this._renderRatingState();
+      return;
+    }
+
+    if (!this._canRequest()) {
+      return;
+    }
+
+    const result = await supportService.updateTicket(selectedTicket.id, {
+      rating,
+    });
+
+    if (await this._handleUnauthorized(result)) {
+      return;
+    }
+
+    if (!result.ok) {
+      if (result.status === 404) {
+        this._applyRequestError(result, "Не удалось обновить обращение.");
+        this._refreshView();
+        return;
+      }
+
+      this._ratingError = resolveRatingErrorMessage(result);
+      this._renderRatingState();
+      return;
+    }
+
+    this._touchTicket(selectedTicket.id, {
+      rating,
+      updatedAt: new Date().toISOString(),
+    });
+    this._ratingValue = String(rating);
+    this._ratingError = "";
+    this._noticeMessage = `Оценка для обращения #${selectedTicket.id} сохранена.`;
+    this._noticeTone = "info";
+    this._refreshView();
+  }
+
   async _applyTicketAction(nextStatus) {
     const selectedTicket = this._getSelectedTicket();
 
@@ -440,7 +530,7 @@ export default class SupportTicketsPage extends BasePage {
       return;
     }
 
-    if (!canApplyActionByRole(this._currentUser.isAdmin, nextStatus)) {
+    if (!canApplyActionByRole(this._currentUser.role, nextStatus)) {
       return;
     }
 
@@ -477,6 +567,7 @@ export default class SupportTicketsPage extends BasePage {
       status: nextStatus,
       updatedAt: new Date().toISOString(),
     });
+    this._syncRatingDraftFromSelectedTicket({ force: true });
     this._noticeMessage = `Статус обращения #${selectedTicket.id} обновлён.`;
     this._noticeTone = "info";
 
@@ -558,9 +649,21 @@ export default class SupportTicketsPage extends BasePage {
       return result;
     }
 
-    this._selectedMessages = extractSupportMessages(result.resp, {
+    const selectedTicket = this._getSelectedTicket();
+    const extractedMessages = extractSupportMessages(result.resp, {
+      currentUserId: this._currentUser.id || selectedTicket?.userId,
       currentUserEmail: this._currentUser.email,
     });
+
+    this._selectedMessages = buildSupportConversationMessages(
+      selectedTicket,
+      extractedMessages,
+      {
+        currentUserId: this._currentUser.id || selectedTicket?.userId,
+        currentUserEmail: this._currentUser.email,
+        currentUserDisplayName: this._currentUser.displayName,
+      },
+    );
 
     return result;
   }
@@ -590,7 +693,15 @@ export default class SupportTicketsPage extends BasePage {
         ? buildSelectedTicketView(
             selectedTicket,
             this._selectedMessages,
-            this._currentUser.isAdmin,
+            {
+              id: this._currentUser.id,
+              email: this._currentUser.email,
+              displayName: this._currentUser.displayName,
+              role: this._currentUser.role,
+              isAdmin: this._currentUser.isAdmin,
+              canManageStatuses: this._currentUser.canManageStatuses,
+              ratingValue: this._ratingValue,
+            },
           )
         : null,
       noticeMessage: this._noticeMessage,
@@ -598,6 +709,7 @@ export default class SupportTicketsPage extends BasePage {
       noticeTone: this._noticeTone,
       replyError: this._replyError,
       replyDraft: this._replyDraftText,
+      ratingError: this._ratingError,
       hasTickets: Boolean(filteredTickets.length),
       ...overrides,
     };
@@ -670,6 +782,7 @@ export default class SupportTicketsPage extends BasePage {
 
   _clearComposerState() {
     this._replyError = "";
+    this._ratingError = "";
 
     if (this._isRequestBlocked) {
       this._noticeMessage = SUPPORT_REQUESTS_BLOCKED_MESSAGE;
@@ -701,6 +814,14 @@ export default class SupportTicketsPage extends BasePage {
     }
   }
 
+  _renderRatingState() {
+    const errorNode = this.el.querySelector("#support-rating-error");
+
+    if (errorNode) {
+      errorNode.textContent = this._ratingError || "";
+    }
+  }
+
   _renderReplyFileState(file = null) {
     const fileMetaNode = this.el.querySelector("#support-reply-file-meta");
 
@@ -714,24 +835,50 @@ export default class SupportTicketsPage extends BasePage {
       return;
     }
 
-    fileMetaNode.textContent = "Можно приложить изображение или PDF";
+    fileMetaNode.textContent = "Можно приложить PNG, JPG, WEBP или PDF до 10 МБ";
     fileMetaNode.classList.remove("support-tickets__reply-file-meta--filled");
   }
 
   _resolveCurrentUser(user = authStore.getState().user || {}) {
+    const id = String(user?.id || user?.user_id || "").trim();
     const email = String(user?.email || "user@vkino.tech").trim();
     const role = String(user?.role || "user").trim().toLowerCase() || "user";
 
     return {
+      id,
       email,
       displayName: getDisplayNameFromEmail(email) || "Вы",
       role,
       isAdmin: isAdminRole(role),
+      canManageStatuses: canManageSupportTicketStatus(role),
     };
   }
 
+  _syncRatingDraftFromSelectedTicket({ force = false } = {}) {
+    const selectedTicket = this._getSelectedTicket();
+
+    if (
+      !selectedTicket ||
+      (selectedTicket.status !== "resolved" &&
+        selectedTicket.status !== "closed")
+    ) {
+      this._ratingValue = "";
+      this._ratingError = "";
+      return;
+    }
+
+    const normalizedTicketRating = normalizeTicketRating(selectedTicket.rating);
+    const normalizedDraftRating = normalizeTicketRating(this._ratingValue);
+
+    if (force || !normalizedDraftRating) {
+      this._ratingValue = normalizedTicketRating
+        ? String(normalizedTicketRating)
+        : "";
+    }
+  }
+
   _connectRealtime() {
-    if (this._isRequestBlocked) {
+    if (this._isRequestBlocked || this._isRealtimeUnavailable) {
       return;
     }
 
@@ -742,7 +889,7 @@ export default class SupportTicketsPage extends BasePage {
   }
 
   _syncRealtimeSubscription() {
-    if (this._isRequestBlocked) {
+    if (this._isRequestBlocked || this._isRealtimeUnavailable) {
       supportRealtimeService.disconnect();
       return;
     }
@@ -796,10 +943,11 @@ export default class SupportTicketsPage extends BasePage {
       return;
     }
 
+    this._isRealtimeUnavailable = true;
+    supportRealtimeService.disconnect();
     this._noticeMessage =
-      this._noticeMessage ||
-      "WS недоступен. Диалог продолжит обновляться через API.";
-    this._noticeTone = this._noticeTone || "error";
+      "WS недоступен. Перезагрузите страницу, чтобы получить новые сообщения и статусы.";
+    this._noticeTone = "error";
     this._refreshView();
   };
 
@@ -848,9 +996,15 @@ function buildFilterOptions(selectedStatus) {
   }));
 }
 
-function buildSelectedTicketView(ticket, messages = [], isAdmin = false) {
+function buildSelectedTicketView(ticket, messages = [], userContext = {}) {
   const statusMeta = getStatusMeta(ticket.status);
-  const actionButtons = buildTicketActionButtons(ticket.status, isAdmin);
+  const actionButtons = buildTicketActionButtons();
+  const resolvedRating = normalizeTicketRating(
+    userContext.ratingValue || ticket.rating,
+  );
+  const canRate =
+    userContext.role === "user" &&
+    (ticket.status === "resolved" || ticket.status === "closed");
 
   return {
     id: ticket.id,
@@ -865,7 +1019,11 @@ function buildSelectedTicketView(ticket, messages = [], isAdmin = false) {
       messageClass: message.isFromCurrentUser
         ? "support-tickets__message support-tickets__message--outgoing"
         : "support-tickets__message",
-      senderLabel: message.senderName || message.senderEmail,
+      senderLabel:
+        message.senderName ||
+        (message.isFromCurrentUser
+          ? userContext.displayName || "Вы"
+          : "Поддержка"),
       sentAtLabel: formatMessageDate(message.sentAt),
       text: message.text,
       attachmentName: message.attachmentName,
@@ -873,6 +1031,12 @@ function buildSelectedTicketView(ticket, messages = [], isAdmin = false) {
     })),
     actionButtons,
     hasActionButtons: Boolean(actionButtons.length),
+    canRate,
+    ratingSummary: resolvedRating
+      ? `Текущая оценка: ${resolvedRating} из 5`
+      : "Оценка ещё не выставлена.",
+    ratingSubmitLabel: resolvedRating ? "Обновить оценку" : "Сохранить оценку",
+    ratingOptions: buildRatingOptions(resolvedRating),
   };
 }
 
@@ -899,7 +1063,7 @@ function buildOverviewCards(tickets = []) {
     (acc, ticket) => {
       acc.total += 1;
 
-      if (ticket.status === "new" || ticket.status === "waiting") {
+      if (ticket.status === "open" || ticket.status === "waiting_user") {
         acc.attention += 1;
       }
 
@@ -907,7 +1071,7 @@ function buildOverviewCards(tickets = []) {
         acc.inProgress += 1;
       }
 
-      if (ticket.status === "resolved") {
+      if (ticket.status === "resolved" || ticket.status === "closed") {
         acc.resolved += 1;
       }
 
@@ -969,37 +1133,22 @@ function buildEmptyListMessage(selectedStatus) {
   return `По статусу «${getFilterLabel(selectedStatus)}» обращений пока нет. Попробуйте другой фильтр или создайте новое обращение.`;
 }
 
-function buildTicketActionButtons(status, isAdmin) {
-  if (isAdmin) {
-    return [
-      {
-        value: "waiting",
-        label: "Ждёт ответа",
-        disabledAttr: status === "waiting" ? " disabled" : "",
-      },
-      {
-        value: "resolved",
-        label: "Закрыть",
-        disabledAttr: status === "resolved" ? " disabled" : "",
-      },
-    ];
-  }
-
-  return [
-    {
-      value: "new",
-      label: "Переоткрыть обращение",
-      disabledAttr: status !== "resolved" ? " disabled" : "",
-    },
-  ];
+function buildTicketActionButtons() {
+  return [];
 }
 
-function canApplyActionByRole(isAdmin, nextStatus) {
-  if (isAdmin) {
-    return nextStatus === "waiting" || nextStatus === "resolved";
+function canApplyActionByRole(role, nextStatus) {
+  if (canManageSupportTicketStatus(role)) {
+    return (
+      nextStatus === "open" ||
+      nextStatus === "in_progress" ||
+      nextStatus === "waiting_user" ||
+      nextStatus === "resolved" ||
+      nextStatus === "closed"
+    );
   }
 
-  return nextStatus === "new";
+  return false;
 }
 
 function buildNoticeClass(tone) {
@@ -1018,7 +1167,7 @@ function getFilterLabel(status) {
 }
 
 function getStatusMeta(status) {
-  return STATUS_META[status] || STATUS_META.new;
+  return STATUS_META[status] || STATUS_META.open;
 }
 
 function formatCardDate(value) {
@@ -1095,7 +1244,16 @@ function pluralizeSupportMessages(count) {
   return "сообщений";
 }
 
+function buildRatingOptions(selectedRating = 0) {
+  return [1, 2, 3, 4, 5].map((value) => ({
+    value: String(value),
+    label: `${value} из 5`,
+    selectedAttr: value === selectedRating ? " selected" : "",
+  }));
+}
+
 function buildLocalReplyMessage({
+  senderId = "",
   text = "",
   attachmentName = "",
   senderName = "",
@@ -1104,6 +1262,7 @@ function buildLocalReplyMessage({
 } = {}) {
   return {
     id: crypto.randomUUID?.() ?? String(Date.now()),
+    senderId,
     senderName,
     senderEmail,
     sentAt: sentAt || new Date().toISOString(),
@@ -1116,4 +1275,44 @@ function buildLocalReplyMessage({
 
 function isAdminRole(role = "") {
   return String(role || "").trim().toLowerCase() === "admin";
+}
+
+function pickSelectedFile(value) {
+  if (!(value instanceof File)) {
+    return null;
+  }
+
+  if (!value.name && value.size === 0) {
+    return null;
+  }
+
+  return value;
+}
+
+function normalizeTicketRating(value) {
+  const rating = Number(value);
+
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return 0;
+  }
+
+  return rating;
+}
+
+function resolveRatingErrorMessage(result = {}) {
+  const rawError = String(
+    result.error ||
+      result.resp?.Error ||
+      result.resp?.error ||
+      result.resp?.message ||
+      "",
+  )
+    .trim()
+    .toLowerCase();
+
+  if (result.status === 400 && rawError.includes("invalid_json_body")) {
+    return "Текущий контракт PATCH /support/tickets/{id} на бэке пока не принимает поле rating.";
+  }
+
+  return result.error || "Не удалось сохранить оценку.";
 }

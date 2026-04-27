@@ -65,7 +65,7 @@
 
 .admin-tickets__stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.75rem;
 }
 
@@ -146,6 +146,18 @@
   align-items: center;
 }
 
+.admin-tickets__status-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.admin-tickets__status-filter {
+  min-width: 220px;
+}
+
 .admin-tickets__close-button {
   display: inline-flex;
   align-items: center;
@@ -203,5 +215,13 @@
     width: 100%;
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .admin-tickets__status-form {
+    width: 100%;
+  }
+
+  .admin-tickets__status-filter {
+    width: 100%;
   }
 }

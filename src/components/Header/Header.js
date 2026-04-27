@@ -2,6 +2,7 @@ import { BaseComponent } from "../BaseComponent.js";
 import "./Header.precompiled.js";
 import { authStore } from "../../store/authStore.js";
 import { router } from "../../router/index.js";
+import { canManageSupportTicketStatus } from "../../utils/support.js";
 import { resolveAvatarUrl } from "../../utils/avatar.js";
 import { getDisplayNameFromEmail } from "../../utils/user.js";
 
@@ -253,12 +254,19 @@ export default class HeaderComponent extends BaseComponent {
   _buildContext(state, currentContext = {}) {
     const isAuthorized = state.status === "authenticated";
     const avatarUrl = resolveAvatarUrl(state.user?.avatar_url);
+    const canManageSupportTickets = canManageSupportTicketStatus(
+      state.user?.role,
+    );
     const currentPath = window.location.pathname;
     const nextContext = {
       ...currentContext,
       isAuthorized,
       userName: getDisplayNameFromEmail(state.user?.email),
       avatarUrl,
+      supportTicketsHref: canManageSupportTickets ? "/admin/support" : "/support",
+      supportTicketsLabel: canManageSupportTickets
+        ? "Панель поддержки"
+        : "Мои обращения",
       isWatchPartyActive: currentPath === "/watch-party",
       isBurgerMenuOpen: currentContext.isBurgerMenuOpen ?? false,
       isSearchOpen: currentContext.isSearchOpen ?? false,

@@ -1,5 +1,6 @@
 import { supportService } from "../js/SupportService.js";
 import {
+  buildSupportConversationMessages,
   buildStatisticsCards,
   extractSupportMessages,
   extractSupportStatistics,
@@ -9,16 +10,18 @@ import {
 
 const STATUS_OPTIONS = [
   { value: "all", label: "Все" },
-  { value: "new", label: "Новые" },
+  { value: "open", label: "Открыты" },
   { value: "in_progress", label: "В работе" },
-  { value: "resolved", label: "Закрытые" },
+  { value: "waiting_user", label: "Ждут пользователя" },
+  { value: "resolved", label: "Решены" },
+  { value: "closed", label: "Закрыты" },
 ];
 
 const CATEGORY_OPTIONS = SUPPORT_CATEGORY_OPTIONS;
 
 const STATUS_META = {
-  new: {
-    label: "Новый",
+  open: {
+    label: "Открыт",
     tone: "open",
   },
   in_progress: {
@@ -26,12 +29,16 @@ const STATUS_META = {
     tone: "progress",
   },
   resolved: {
-    label: "Закрыто",
+    label: "Решён",
     tone: "resolved",
   },
-  waiting: {
-    label: "Ждёт ответа",
+  waiting_user: {
+    label: "Ждёт пользователя",
     tone: "waiting",
+  },
+  closed: {
+    label: "Закрыт",
+    tone: "resolved",
   },
 };
 
@@ -54,9 +61,12 @@ export function useAdminTickets(currentAdmin = {}) {
     selectedMessages: [],
     statistics: {
       total: 0,
-      newCount: 0,
+      openCount: 0,
       inProgressCount: 0,
+      waitingUserCount: 0,
       resolvedCount: 0,
+      closedCount: 0,
+      averageRating: 0,
     },
   };
 
@@ -74,7 +84,6 @@ export function useAdminTickets(currentAdmin = {}) {
     const requestSignal = signal || createContextSignal();
     const [ticketsResult, statisticsResult] = await Promise.all([
       supportService.getTickets({
-        role: currentAdmin.role || "admin",
         signal: requestSignal,
       }),
       supportService.getStatistics({ signal: requestSignal }),
@@ -164,6 +173,10 @@ export function useAdminTickets(currentAdmin = {}) {
   }
 
   async function closeSelectedTicket() {
+    return setSelectedTicketStatus("closed");
+  }
+
+  async function setSelectedTicketStatus(nextStatus) {
     if (!state.selectedTicketId) {
       return buildResult(
         [
@@ -177,8 +190,23 @@ export function useAdminTickets(currentAdmin = {}) {
       );
     }
 
+    const normalizedStatus = String(nextStatus || "").trim();
+
+    if (!normalizedStatus) {
+      return buildResult(
+        [
+          {
+            ok: false,
+            status: 400,
+            error: "Выберите статус обращения",
+          },
+        ],
+        getSnapshot(),
+      );
+    }
+
     const result = await supportService.updateTicket(state.selectedTicketId, {
-      status: "resolved",
+      status: normalizedStatus,
     });
 
     if (!result.ok) {
@@ -189,7 +217,7 @@ export function useAdminTickets(currentAdmin = {}) {
 
     return {
       ...syncResult,
-      message: `Обращение #${state.selectedTicketId} закрыто.`,
+      message: `Статус обращения #${state.selectedTicketId} обновлён.`,
     };
   }
 
@@ -283,9 +311,23 @@ export function useAdminTickets(currentAdmin = {}) {
       return buildResult([result], getSnapshot());
     }
 
-    state.selectedMessages = extractSupportMessages(result.resp, {
+    const selectedTicket =
+      state.allTickets.find((ticket) => ticket.id === state.selectedTicketId) ||
+      null;
+    const extractedMessages = extractSupportMessages(result.resp, {
+      currentUserId: currentAdmin.id,
       currentUserEmail: currentAdmin.email,
     });
+
+    state.selectedMessages = buildSupportConversationMessages(
+      selectedTicket,
+      extractedMessages,
+      {
+        currentUserId: currentAdmin.id,
+        currentUserEmail: currentAdmin.email,
+        currentUserDisplayName: currentAdmin.displayName,
+      },
+    );
 
     return {
       ok: true,
@@ -360,13 +402,14 @@ export function useAdminTickets(currentAdmin = {}) {
     selectTicket,
     replyToSelectedTicket,
     closeSelectedTicket,
+    setSelectedTicketStatus,
     handleRealtimeSync,
     cancelPendingRequests,
   };
 }
 
 export function getAdminTicketStatusMeta(status) {
-  return STATUS_META[status] || STATUS_META.new;
+  return STATUS_META[status] || STATUS_META.open;
 }
 
 function buildResult(results = [], snapshot = {}) {
