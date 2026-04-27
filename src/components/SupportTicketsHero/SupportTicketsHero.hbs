@@ -1,0 +1,31 @@
+<div class="support-tickets__hero-main{{#if isStaff}} support-tickets__hero-main--admin{{/if}}">
+  <div class="support-tickets__eyebrow">{{eyebrow}}</div>
+  <h1 class="support-tickets__hero-title">{{title}}</h1>
+  <p class="support-tickets__hero-description">{{description}}</p>
+
+  {{#if hasActions}}
+    <div class="support-tickets__hero-actions">
+      {{#each actions}}
+        <a class="{{this.className}}" href="{{this.href}}" {{#if this.isRouterLink}}router-link{{/if}}>
+          {{this.label}}
+        </a>
+      {{/each}}
+    </div>
+  {{/if}}
+</div>
+
+{{#if hasStatistics}}
+  <div class="support-tickets__hero-stats">
+    {{#each statisticsCards}}
+      <article class="support-tickets__hero-stat">
+        <span class="support-tickets__hero-stat-label">{{this.label}}</span>
+        <strong class="support-tickets__hero-stat-value">{{this.value}}</strong>
+        {{#if this.caption}}
+          <span class="support-tickets__hero-stat-caption">
+            {{this.caption}}
+          </span>
+        {{/if}}
+      </article>
+    {{/each}}
+  </div>
+{{/if}}

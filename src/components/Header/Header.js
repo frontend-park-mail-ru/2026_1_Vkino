@@ -263,7 +263,7 @@ export default class HeaderComponent extends BaseComponent {
       isAuthorized,
       userName: getDisplayNameFromEmail(state.user?.email),
       avatarUrl,
-      supportTicketsHref: canManageSupportTickets ? "/admin/support" : "/support",
+      supportTicketsHref: "/support",
       supportTicketsLabel: canManageSupportTickets
         ? "Панель поддержки"
         : "Мои обращения",

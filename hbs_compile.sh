@@ -3,6 +3,9 @@ handlebars ./src/components/MoviePoster/MoviePoster.hbs -f ./src/components/Movi
 handlebars ./src/components/PosterCarousel/PosterCarousel.hbs -f ./src/components/PosterCarousel/PosterCarousel.precompiled.js
 handlebars ./src/components/MoviePlayer/MoviePlayer.hbs -f ./src/components/MoviePlayer/MoviePlayer.precompiled.js
 handlebars ./src/components/Pagination/Pagination.hbs -f ./src/components/Pagination/Pagination.precompiled.js
+handlebars ./src/components/SupportTicketsHero/SupportTicketsHero.hbs -f ./src/components/SupportTicketsHero/SupportTicketsHero.precompiled.js
+handlebars ./src/components/SupportTicketsSidebar/SupportTicketsSidebar.hbs -f ./src/components/SupportTicketsSidebar/SupportTicketsSidebar.precompiled.js
+handlebars ./src/components/SupportTicketsConversation/SupportTicketsConversation.hbs -f ./src/components/SupportTicketsConversation/SupportTicketsConversation.precompiled.js
 
 
 handlebars ./src/pages/Main/Main.hbs -f ./src/pages/Main/Main.precompiled.js
@@ -15,5 +18,4 @@ handlebars ./src/pages/Actor/Actor.hbs -f ./src/pages/Actor/Actor.precompiled.js
 handlebars ./src/pages/Catalog/Catalog.hbs -f ./src/pages/Catalog/Catalog.precompiled.js
 handlebars ./src/pages/WatchParty/WatchParty.hbs -f ./src/pages/WatchParty/WatchParty.precompiled.js
 handlebars ./src/pages/SupportTickets/SupportTickets.hbs -f ./src/pages/SupportTickets/SupportTickets.precompiled.js
-handlebars ./src/pages/AdminTickets/AdminTickets.hbs -f ./src/pages/AdminTickets/AdminTickets.precompiled.js
 handlebars ./src/pages/SupportCreate/SupportCreate.hbs -f ./src/pages/SupportCreate/SupportCreate.precompiled.js

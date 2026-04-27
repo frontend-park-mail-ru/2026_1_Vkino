@@ -2,9 +2,11 @@ import { supportService } from "../js/SupportService.js";
 import {
   buildSupportConversationMessages,
   buildStatisticsCards,
+  canManageSupportTicketStatus,
   extractSupportMessages,
   extractSupportStatistics,
   extractSupportTickets,
+  normalizeSupportMessage,
   SUPPORT_CATEGORY_OPTIONS,
 } from "../utils/support.js";
 
@@ -17,39 +19,7 @@ const STATUS_OPTIONS = [
   { value: "closed", label: "Закрыты" },
 ];
 
-const CATEGORY_OPTIONS = SUPPORT_CATEGORY_OPTIONS;
-
-const STATUS_META = {
-  open: {
-    label: "Открыт",
-    tone: "open",
-  },
-  in_progress: {
-    label: "В работе",
-    tone: "progress",
-  },
-  resolved: {
-    label: "Решён",
-    tone: "resolved",
-  },
-  waiting_user: {
-    label: "Ждёт пользователя",
-    tone: "waiting",
-  },
-  closed: {
-    label: "Закрыт",
-    tone: "resolved",
-  },
-};
-
-/**
- * Локальный data-layer для панели обращений администратора.
- * Позволяет быстро заменить mock-логику на реальные REST endpoint'ы.
- *
- * @param {Object} currentAdmin
- * @returns {Object}
- */
-export function useAdminTickets(currentAdmin = {}) {
+export function useSupportTickets(currentUser = {}) {
   let contextAbortController = null;
   let messageAbortController = null;
   const state = {
@@ -59,21 +29,18 @@ export function useAdminTickets(currentAdmin = {}) {
     selectedTicketId: "",
     allTickets: [],
     selectedMessages: [],
-    statistics: {
-      total: 0,
-      openCount: 0,
-      inProgressCount: 0,
-      waitingUserCount: 0,
-      resolvedCount: 0,
-      closedCount: 0,
-      averageRating: 0,
-    },
+    statistics: createEmptyStatistics(),
   };
 
-  async function load() {
+  const roleContext = {
+    ...currentUser,
+    isStaff: canManageSupportTicketStatus(currentUser.role),
+  };
+
+  async function load({ preserveSelection = true, signal = null } = {}) {
     return refreshData({
-      preserveSelection: true,
-      signal: createContextSignal(),
+      preserveSelection,
+      signal: signal || createContextSignal(),
     });
   }
 
@@ -82,40 +49,59 @@ export function useAdminTickets(currentAdmin = {}) {
       ? state.selectedTicketId
       : "";
     const requestSignal = signal || createContextSignal();
-    const [ticketsResult, statisticsResult] = await Promise.all([
+    const requests = [
       supportService.getTickets({
         signal: requestSignal,
       }),
-      supportService.getStatistics({ signal: requestSignal }),
-    ]);
+    ];
 
-    if (ticketsResult.aborted || statisticsResult.aborted) {
-      return {
+    if (roleContext.isStaff) {
+      requests.push(
+        supportService.getStatistics({
+          signal: requestSignal,
+        }),
+      );
+    }
+
+    const [ticketsResult, statisticsResult = null] = await Promise.all(requests);
+
+    if (ticketsResult.aborted || statisticsResult?.aborted) {
+      return buildResult([], getSnapshot(), {
         ok: false,
         status: 0,
-        error: "",
         aborted: true,
-        snapshot: getSnapshot(),
-      };
+      });
     }
 
     if (ticketsResult.ok) {
-      state.allTickets = extractSupportTickets(ticketsResult.resp);
+      state.allTickets = extractSupportTickets(ticketsResult.resp, {
+        currentUserId: roleContext.id,
+        currentUserEmail: roleContext.email,
+      });
     } else if (!state.allTickets.length) {
       state.allTickets = [];
     }
 
-    state.statistics = statisticsResult.ok
-      ? extractSupportStatistics(statisticsResult.resp, state.allTickets)
+    state.statistics = roleContext.isStaff
+      ? statisticsResult?.ok
+        ? extractSupportStatistics(statisticsResult.resp, state.allTickets)
+        : extractSupportStatistics({}, state.allTickets)
       : extractSupportStatistics({}, state.allTickets);
 
     state.selectedTicketId = resolveSelectedTicketId(previousSelectedTicketId);
 
     const messagesResult = await loadSelectedMessages({
       signal: requestSignal,
+      preserveOnError: false,
     });
 
-    return buildResult([ticketsResult, messagesResult], getSnapshot());
+    return buildResult(
+      [ticketsResult, statisticsResult, messagesResult],
+      getSnapshot(),
+      {
+        blocked: ticketsResult.status === 404 || statisticsResult?.status === 404,
+      },
+    );
   }
 
   async function setSearchQuery(value) {
@@ -135,7 +121,10 @@ export function useAdminTickets(currentAdmin = {}) {
 
   async function selectTicket(ticketId) {
     state.selectedTicketId = String(ticketId || "").trim();
-    return loadSelectedMessages({ signal: createMessageSignal() });
+    return loadSelectedMessages({
+      signal: createMessageSignal(),
+      preserveOnError: false,
+    });
   }
 
   async function replyToSelectedTicket({ text = "", attachment = null } = {}) {
@@ -145,35 +134,42 @@ export function useAdminTickets(currentAdmin = {}) {
           {
             ok: false,
             status: 0,
-            error: "Обращение не выбрано",
+            error: "Обращение не выбрано.",
           },
         ],
         getSnapshot(),
       );
     }
 
-    const result = await supportService.createTicketMessage(
-      state.selectedTicketId,
-      {
-        message: text,
-        attachment,
-      },
-    );
+    const result = await supportService.createTicketMessage(state.selectedTicketId, {
+      message: text,
+      attachment,
+    });
 
     if (!result.ok) {
       return buildResult([result], getSnapshot());
     }
 
-    const syncResult = await refreshData({ preserveSelection: true });
+    const createdMessage = extractCreatedSupportMessage(result.resp, roleContext);
+
+    if (createdMessage) {
+      appendSelectedMessage(createdMessage);
+      touchSelectedTicket({
+        updatedAt: createdMessage.sentAt || new Date().toISOString(),
+      });
+
+      return {
+        ...buildResult([result], getSnapshot()),
+        message: "Сообщение отправлено.",
+      };
+    }
+
+    const syncResult = await syncSelectedMessages();
 
     return {
       ...syncResult,
-      message: "Ответ отправлен.",
+      message: "Сообщение отправлено.",
     };
-  }
-
-  async function closeSelectedTicket() {
-    return setSelectedTicketStatus("closed");
   }
 
   async function setSelectedTicketStatus(nextStatus) {
@@ -183,7 +179,7 @@ export function useAdminTickets(currentAdmin = {}) {
           {
             ok: false,
             status: 0,
-            error: "Обращение не выбрано",
+            error: "Обращение не выбрано.",
           },
         ],
         getSnapshot(),
@@ -198,7 +194,7 @@ export function useAdminTickets(currentAdmin = {}) {
           {
             ok: false,
             status: 400,
-            error: "Выберите статус обращения",
+            error: "Выберите статус обращения.",
           },
         ],
         getSnapshot(),
@@ -218,6 +214,55 @@ export function useAdminTickets(currentAdmin = {}) {
     return {
       ...syncResult,
       message: `Статус обращения #${state.selectedTicketId} обновлён.`,
+    };
+  }
+
+  async function rateSelectedTicket(rating) {
+    if (!state.selectedTicketId) {
+      return buildResult(
+        [
+          {
+            ok: false,
+            status: 0,
+            error: "Обращение не выбрано.",
+          },
+        ],
+        getSnapshot(),
+      );
+    }
+
+    const normalizedRating = Number(rating);
+
+    if (
+      !Number.isInteger(normalizedRating) ||
+      normalizedRating < 1 ||
+      normalizedRating > 5
+    ) {
+      return buildResult(
+        [
+          {
+            ok: false,
+            status: 400,
+            error: "Выберите оценку от 1 до 5.",
+          },
+        ],
+        getSnapshot(),
+      );
+    }
+
+    const result = await supportService.updateTicket(state.selectedTicketId, {
+      rating: normalizedRating,
+    });
+
+    if (!result.ok) {
+      return buildResult([result], getSnapshot());
+    }
+
+    const syncResult = await refreshData({ preserveSelection: true });
+
+    return {
+      ...syncResult,
+      message: `Оценка для обращения #${state.selectedTicketId} сохранена.`,
     };
   }
 
@@ -248,13 +293,15 @@ export function useAdminTickets(currentAdmin = {}) {
       statusFilter: state.statusFilter,
       categoryFilter: state.categoryFilter,
       statusOptions: STATUS_OPTIONS,
-      categoryOptions: CATEGORY_OPTIONS,
+      categoryOptions: SUPPORT_CATEGORY_OPTIONS,
       filteredTickets,
+      selectedTicketId: state.selectedTicketId,
       selectedTicket,
       selectedMessages: state.selectedMessages,
+      allTickets: state.allTickets,
       statistics: state.statistics,
       statisticsCards: buildStatisticsCards(state.statistics),
-      currentAdmin,
+      currentUser: roleContext,
     };
   }
 
@@ -267,47 +314,35 @@ export function useAdminTickets(currentAdmin = {}) {
       return loadSelectedMessages({ signal: createMessageSignal() });
     }
 
-    return {
-      ok: true,
-      status: 200,
-      error: "",
-      snapshot: getSnapshot(),
-    };
+    return buildResult([], getSnapshot());
   }
 
-  async function loadSelectedMessages({ signal = null } = {}) {
+  async function loadSelectedMessages({
+    signal = null,
+    preserveOnError = false,
+  } = {}) {
     if (!state.selectedTicketId) {
       state.selectedMessages = [];
-
-      return {
-        ok: true,
-        status: 200,
-        error: "",
-        aborted: false,
-        snapshot: getSnapshot(),
-      };
+      return buildResult([], getSnapshot());
     }
 
     const requestSignal = signal || createMessageSignal();
-    const result = await supportService.getTicketMessages(
-      state.selectedTicketId,
-      {
-        signal: requestSignal,
-      },
-    );
+    const result = await supportService.getTicketMessages(state.selectedTicketId, {
+      signal: requestSignal,
+    });
 
     if (result.aborted) {
-      return {
+      return buildResult([], getSnapshot(), {
         ok: false,
         status: 0,
-        error: "",
         aborted: true,
-        snapshot: getSnapshot(),
-      };
+      });
     }
 
     if (!result.ok) {
-      state.selectedMessages = [];
+      if (!preserveOnError) {
+        state.selectedMessages = [];
+      }
       return buildResult([result], getSnapshot());
     }
 
@@ -315,26 +350,37 @@ export function useAdminTickets(currentAdmin = {}) {
       state.allTickets.find((ticket) => ticket.id === state.selectedTicketId) ||
       null;
     const extractedMessages = extractSupportMessages(result.resp, {
-      currentUserId: currentAdmin.id,
-      currentUserEmail: currentAdmin.email,
+      currentUserId: roleContext.id,
+      currentUserEmail: roleContext.email,
     });
 
     state.selectedMessages = buildSupportConversationMessages(
       selectedTicket,
       extractedMessages,
       {
-        currentUserId: currentAdmin.id,
-        currentUserEmail: currentAdmin.email,
-        currentUserDisplayName: currentAdmin.displayName,
+        currentUserId: roleContext.id,
+        currentUserEmail: roleContext.email,
+        currentUserDisplayName: roleContext.displayName,
       },
     );
 
-    return {
-      ok: true,
-      status: 200,
-      error: "",
-      snapshot: getSnapshot(),
-    };
+    return buildResult([], getSnapshot());
+  }
+
+  async function syncSelectedMessages({ signal = null } = {}) {
+    const syncResult = await loadSelectedMessages({
+      signal: signal || createMessageSignal(),
+      preserveOnError: true,
+    });
+
+    if (syncResult.ok) {
+      touchSelectedTicket({
+        updatedAt: new Date().toISOString(),
+      });
+      return syncResult;
+    }
+
+    return buildResult([], getSnapshot());
   }
 
   function getFilteredTickets() {
@@ -343,18 +389,29 @@ export function useAdminTickets(currentAdmin = {}) {
       .toLowerCase();
 
     return state.allTickets.filter((ticket) => {
+      const ticketCategory = String(
+        ticket.categoryPrimary || ticket.categoryKey || "",
+      )
+        .trim()
+        .toLowerCase();
       const matchesSearch =
+        !roleContext.isStaff ||
         !normalizedQuery ||
-        String(ticket.id).toLowerCase().includes(normalizedQuery) ||
+        String(ticket.id || "")
+          .toLowerCase()
+          .includes(normalizedQuery) ||
         String(ticket.userEmail || "")
           .toLowerCase()
+          .includes(normalizedQuery) ||
+        String(ticket.subject || "")
+          .toLowerCase()
           .includes(normalizedQuery);
-
       const matchesStatus =
         state.statusFilter === "all" || ticket.status === state.statusFilter;
       const matchesCategory =
+        !roleContext.isStaff ||
         state.categoryFilter === "all" ||
-        ticket.categoryKey === state.categoryFilter;
+        ticketCategory === String(state.categoryFilter || "").toLowerCase();
 
       return matchesSearch && matchesStatus && matchesCategory;
     });
@@ -382,15 +439,36 @@ export function useAdminTickets(currentAdmin = {}) {
     messageAbortController?.abort();
     contextAbortController = new AbortController();
     messageAbortController = null;
-
     return contextAbortController.signal;
   }
 
   function createMessageSignal() {
     messageAbortController?.abort();
     messageAbortController = new AbortController();
-
     return messageAbortController.signal;
+  }
+
+  function appendSelectedMessage(message) {
+    if (!message || !message.id) {
+      return;
+    }
+
+    state.selectedMessages = [...state.selectedMessages, message];
+  }
+
+  function touchSelectedTicket(updates = {}) {
+    if (!state.selectedTicketId) {
+      return;
+    }
+
+    state.allTickets = state.allTickets.map((ticket) =>
+      ticket.id === state.selectedTicketId
+        ? {
+            ...ticket,
+            ...updates,
+          }
+        : ticket,
+    );
   }
 
   return {
@@ -401,25 +479,65 @@ export function useAdminTickets(currentAdmin = {}) {
     setCategoryFilter,
     selectTicket,
     replyToSelectedTicket,
-    closeSelectedTicket,
     setSelectedTicketStatus,
+    rateSelectedTicket,
     handleRealtimeSync,
     cancelPendingRequests,
   };
 }
 
-export function getAdminTicketStatusMeta(status) {
-  return STATUS_META[status] || STATUS_META.open;
-}
-
-function buildResult(results = [], snapshot = {}) {
-  const failedResult = results.find((result) => result && result.ok === false);
+function buildResult(
+  results = [],
+  snapshot = {},
+  {
+    ok = null,
+    status = null,
+    error = "",
+    aborted = false,
+    blocked = false,
+  } = {},
+) {
+  const normalizedResults = results.filter(Boolean);
+  const failedResult = normalizedResults.find((result) => result.ok === false);
 
   return {
-    ok: !failedResult,
-    status: failedResult?.status || 200,
-    error: failedResult?.error || "",
-    aborted: Boolean(results.find((result) => result?.aborted)),
+    ok: ok ?? !failedResult,
+    status: status ?? (failedResult?.status || 200),
+    error: error || failedResult?.error || "",
+    aborted: Boolean(aborted || normalizedResults.find((result) => result.aborted)),
+    blocked,
     snapshot,
   };
+}
+
+function createEmptyStatistics() {
+  return {
+    total: 0,
+    openCount: 0,
+    inProgressCount: 0,
+    waitingUserCount: 0,
+    resolvedCount: 0,
+    closedCount: 0,
+    averageRating: 0,
+  };
+}
+
+function extractCreatedSupportMessage(payload, currentUser = {}) {
+  const messagePayload =
+    payload?.message ||
+    payload?.Message ||
+    payload?.item ||
+    payload?.Item ||
+    payload?.result ||
+    payload?.Result ||
+    null;
+
+  if (!messagePayload || typeof messagePayload !== "object") {
+    return null;
+  }
+
+  return normalizeSupportMessage(messagePayload, {
+    currentUserId: currentUser.id,
+    currentUserEmail: currentUser.email,
+  });
 }

@@ -1,0 +1,210 @@
+<div class="{{noticeClass}}" id="support-tickets-notice" role="status">
+  {{noticeMessage}}
+</div>
+
+{{#if selectedTicket}}
+  <div class="support-tickets__chat-header{{#if isStaff}} admin-tickets__chat-header{{/if}}">
+    <div class="support-tickets__chat-heading{{#if isStaff}} admin-tickets__chat-heading{{/if}}">
+      {{#unless isStaff}}
+        <div class="support-tickets__eyebrow support-tickets__eyebrow--compact">
+          История переписки
+        </div>
+      {{/unless}}
+      <h2 class="support-tickets__chat-title">Диалог</h2>
+      <p class="support-tickets__chat-subtitle">{{selectedTicket.subtitle}}</p>
+
+      <div class="{{#if isStaff}}admin-tickets__chat-meta{{else}}support-tickets__chat-pills{{/if}}">
+        {{#each selectedTicket.metaPills}}
+          <span class="{{#if ../isStaff}}admin-tickets__meta-pill{{else}}support-tickets__chat-pill{{/if}}">
+            {{this}}
+          </span>
+        {{/each}}
+      </div>
+    </div>
+
+    <div class="support-tickets__chat-controls{{#if isStaff}} admin-tickets__chat-controls{{/if}}">
+      <span class="{{selectedTicket.statusClass}}">
+        {{selectedTicket.statusLabel}}
+      </span>
+
+      {{#if selectedTicket.showStatusForm}}
+        <form class="admin-tickets__status-form" data-action="update-ticket-status">
+          <label class="support-tickets__filter admin-tickets__status-filter">
+            <span>Статус</span>
+            <select class="support-tickets__select" name="ticketStatus">
+              {{#each selectedTicket.statusOptions}}
+                <option value="{{this.value}}" {{this.selectedAttr}}>
+                  {{this.label}}
+                </option>
+              {{/each}}
+            </select>
+          </label>
+
+          <button class="admin-tickets__close-button" type="submit">
+            Сохранить статус
+          </button>
+        </form>
+      {{/if}}
+    </div>
+  </div>
+
+  <div class="support-tickets__messages{{#if isStaff}} admin-tickets__messages{{/if}}">
+    {{#if selectedTicket.hasMessages}}
+      {{#each selectedTicket.messages}}
+        <article class="{{this.messageClass}}">
+          <div class="support-tickets__bubble">
+            <div class="support-tickets__bubble-meta">
+              <span>{{this.senderLabel}}</span>
+              <time>{{this.sentAtLabel}}</time>
+            </div>
+
+            {{#if this.showSenderEmail}}
+              <div class="admin-tickets__message-email">{{this.senderEmail}}</div>
+            {{/if}}
+
+            <p class="support-tickets__bubble-text">{{this.text}}</p>
+
+            {{#if this.attachmentName}}
+              <div class="support-tickets__bubble-attachment">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M8.5 12.5L14 7a2.8 2.8 0 1 1 4 4l-7.2 7.2a4.5 4.5 0 1 1-6.4-6.4L12 4.2"
+                  ></path>
+                </svg>
+                <span>{{this.attachmentName}}</span>
+              </div>
+            {{/if}}
+          </div>
+        </article>
+      {{/each}}
+    {{else}}
+      <div class="support-tickets__empty-messages">
+        <div class="support-tickets__empty-state">
+          <span class="support-tickets__empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v7A2.5 2.5 0 0 1 17.5 17h-6l-4.5 3v-3H6.5A2.5 2.5 0 0 1 4 14.5z"
+              ></path>
+            </svg>
+          </span>
+          <strong class="support-tickets__empty-title">
+            {{selectedTicket.emptyMessagesTitle}}
+          </strong>
+          <p class="support-tickets__empty-text">
+            {{selectedTicket.emptyMessagesText}}
+          </p>
+        </div>
+      </div>
+    {{/if}}
+  </div>
+
+  {{#if selectedTicket.showRatingForm}}
+    <form class="support-tickets__rating-card" data-action="rate-ticket">
+      <div class="support-tickets__rating-copy">
+        <strong class="support-tickets__rating-title">
+          Оцените работу поддержки
+        </strong>
+        <p class="support-tickets__rating-caption">
+          Поставьте оценку от 1 до 5 после решения обращения.
+        </p>
+      </div>
+
+      <div class="support-tickets__rating-controls">
+        <label class="support-tickets__filter">
+          <span>Оценка</span>
+          <select class="support-tickets__select" name="ticketRating">
+            <option value="">Выберите оценку</option>
+            {{#each selectedTicket.ratingOptions}}
+              <option value="{{this.value}}" {{this.selectedAttr}}>
+                {{this.label}}
+              </option>
+            {{/each}}
+          </select>
+        </label>
+
+        <button class="support-tickets__chat-action-button" type="submit">
+          {{selectedTicket.ratingSubmitLabel}}
+        </button>
+      </div>
+
+      <div class="support-tickets__rating-summary">
+        {{selectedTicket.ratingSummary}}
+      </div>
+
+      <div class="support-tickets__reply-error" id="support-rating-error">
+        {{ratingError}}
+      </div>
+    </form>
+  {{/if}}
+
+  <form class="support-tickets__reply-form" data-action="reply-ticket">
+    <label class="support-tickets__reply-field" for="support-ticket-reply">
+      <textarea
+        class="support-tickets__textarea"
+        id="support-ticket-reply"
+        name="reply"
+        rows="4"
+        placeholder="Напишите ответ..."
+      >{{replyDraft}}</textarea>
+    </label>
+
+    <div class="support-tickets__reply-actions">
+      <label class="support-tickets__attach-button" for="support-ticket-reply-file">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M8.5 12.5L14 7a2.8 2.8 0 1 1 4 4l-7.2 7.2a4.5 4.5 0 1 1-6.4-6.4L12 4.2"
+          ></path>
+        </svg>
+        <span>Прикрепить файл</span>
+      </label>
+
+      <input
+        class="support-tickets__reply-file"
+        id="support-ticket-reply-file"
+        name="replyFile"
+        type="file"
+        accept=".png,.jpg,.jpeg,.webp,.pdf,image/png,image/jpeg,image/webp,application/pdf"
+      />
+
+      <button class="support-tickets__send-button" type="submit">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 12L20 4L14 20L11.5 13L4 12Z"></path>
+        </svg>
+        <span>Ответить</span>
+      </button>
+    </div>
+
+    <div class="support-tickets__reply-footer">
+      <div
+        class="support-tickets__reply-file-meta"
+        id="support-reply-file-meta"
+        aria-live="polite"
+      >
+        {{replyFileMeta}}
+      </div>
+
+      <div class="support-tickets__reply-error" id="support-reply-error">
+        {{replyError}}
+      </div>
+    </div>
+  </form>
+{{else}}
+  <div class="support-tickets__empty-chat">
+    <div class="support-tickets__empty-state">
+      <span class="support-tickets__empty-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v7A2.5 2.5 0 0 1 17.5 17h-6l-4.5 3v-3H6.5A2.5 2.5 0 0 1 4 14.5z"
+          ></path>
+        </svg>
+      </span>
+      <strong class="support-tickets__empty-title">{{emptyStateTitle}}</strong>
+      <p class="support-tickets__empty-text">{{emptyStateText}}</p>
+      {{#if showEmptyAction}}
+        <a class="support-tickets__empty-action" href="/support/new" router-link>
+          Создать обращение
+        </a>
+      {{/if}}
+    </div>
+  </div>
+{{/if}}

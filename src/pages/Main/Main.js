@@ -7,6 +7,8 @@ import { movieService } from "../../js/MovieService.js";
 import HeaderComponent from "../../components/Header/Header.js";
 import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
+import { authStore } from "../../store/authStore.js";
+import { canManageSupportTicketStatus } from "../../utils/support.js";
 
 const HOME_SELECTION_TITLES = [
   "Новинки",
@@ -41,7 +43,16 @@ export default class MainPage extends BasePage {
       throw new Error("Main: не передан корневой элемент для MainPage");
     }
 
-    super(context, Handlebars.templates["Main.hbs"], parent, el, "MainPage");
+    super(
+      {
+        showSupportWidget: shouldShowSupportWidget(),
+        ...context,
+      },
+      Handlebars.templates["Main.hbs"],
+      parent,
+      el,
+      "MainPage",
+    );
 
     /**
      * Флаг загрузки контекста.
@@ -92,6 +103,7 @@ export default class MainPage extends BasePage {
 
     const newContext = {
       ...this.context,
+      showSupportWidget: shouldShowSupportWidget(),
       selectionEntries: selections,
       heroEntry,
     };
@@ -414,6 +426,10 @@ export default class MainPage extends BasePage {
       );
     }
   }
+}
+
+function shouldShowSupportWidget() {
+  return !canManageSupportTicketStatus(authStore.getState().user?.role);
 }
 
 function buildSelectionEntries(selections = []) {

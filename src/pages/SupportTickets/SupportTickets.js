@@ -1,60 +1,35 @@
 import BasePage from "../BasePage.js";
 import "./SupportTickets.precompiled.js";
 import "../../css/support-tickets.scss";
+import "../../css/admin-tickets.scss";
 
 import HeaderComponent from "../../components/Header/Header.js";
+import SupportTicketsConversationComponent from "../../components/SupportTicketsConversation/SupportTicketsConversation.js";
+import SupportTicketsHeroComponent from "../../components/SupportTicketsHero/SupportTicketsHero.js";
+import SupportTicketsSidebarComponent from "../../components/SupportTicketsSidebar/SupportTicketsSidebar.js";
+import { useSupportTickets } from "../../hooks/useSupportTickets.js";
 import { supportRealtimeService } from "../../js/SupportRealtimeService.js";
-import { supportService } from "../../js/SupportService.js";
 import { router } from "../../router/index.js";
 import { authStore } from "../../store/authStore.js";
-import { getDisplayNameFromEmail } from "../../utils/user.js";
 import {
-  buildSupportConversationMessages,
-  canManageSupportTicketStatus,
-  extractSupportMessages,
-  extractSupportTickets,
   shouldSyncSupportRealtimePayload,
   validateSupportFile,
 } from "../../utils/support.js";
+import {
+  buildSupportConversationContext,
+  buildSupportHeroContext,
+  buildSupportNoticeClass,
+  buildSupportShellContext,
+  buildSupportSidebarContext,
+  DEFAULT_SUPPORT_REPLY_FILE_HINT,
+  normalizeSupportReplyText,
+  normalizeSupportTicketRating,
+  pickSelectedSupportFile,
+  resolveSupportCurrentUser,
+  resolveSupportRatingErrorMessage,
+  SUPPORT_REQUESTS_BLOCKED_MESSAGE,
+} from "../../utils/supportTicketsView.js";
 
-const STATUS_FILTER_OPTIONS = [
-  { value: "all", label: "Все" },
-  { value: "open", label: "Открыты" },
-  { value: "in_progress", label: "В работе" },
-  { value: "waiting_user", label: "Ждут пользователя" },
-  { value: "resolved", label: "Решено" },
-  { value: "closed", label: "Закрыто" },
-];
-
-const STATUS_META = {
-  open: {
-    label: "Открыт",
-    tone: "open",
-  },
-  in_progress: {
-    label: "В работе",
-    tone: "progress",
-  },
-  waiting_user: {
-    label: "Ждёт пользователя",
-    tone: "waiting",
-  },
-  resolved: {
-    label: "Решено",
-    tone: "resolved",
-  },
-  closed: {
-    label: "Закрыто",
-    tone: "resolved",
-  },
-};
-
-const SUPPORT_REQUESTS_BLOCKED_MESSAGE =
-  "Сервис обращений пока недоступен. Перезагрузите страницу после появления ручки.";
-
-/**
- * Нативная страница со списком обращений пользователя и историей диалога.
- */
 export default class SupportTicketsPage extends BasePage {
   constructor(context = {}, parent = null, el = null) {
     if (!el) {
@@ -65,20 +40,12 @@ export default class SupportTicketsPage extends BasePage {
 
     super(
       {
-        isLoading: true,
-        filterOptions: buildFilterOptions("all"),
-        overviewCards: buildOverviewCards([]),
-        ticketsSummary: "",
-        emptyListMessage: "",
-        tickets: [],
-        selectedTicket: null,
-        noticeMessage: "",
-        noticeClass: "support-tickets__notice",
-        noticeTone: "",
-        replyError: "",
-        replyDraft: "",
-        ratingError: "",
-        hasTickets: false,
+        ...buildSupportShellContext({
+          isLoading: true,
+        }),
+        heroContext: {},
+        sidebarContext: {},
+        conversationContext: {},
         ...context,
       },
       Handlebars.templates["SupportTickets.hbs"],
@@ -88,28 +55,22 @@ export default class SupportTicketsPage extends BasePage {
     );
 
     this._authUnsubscribe = null;
-    this._selectedStatus = "all";
-    this._selectedTicketId = "";
-    this._tickets = [];
-    this._selectedMessages = [];
+    this._ticketsHook = null;
+    this._currentUser = resolveSupportCurrentUser();
+    this._activeTicketId = "";
     this._noticeMessage = "";
     this._noticeTone = "";
     this._replyError = "";
     this._replyDraftText = "";
+    this._replyFileMeta = DEFAULT_SUPPORT_REPLY_FILE_HINT;
+    this._hasReplyFileSelection = false;
     this._ratingError = "";
     this._ratingValue = "";
     this._isRequestBlocked = false;
+    this._isRealtimePaused = false;
     this._isRealtimeUnavailable = false;
-    this._isRealtimeSyncing = false;
+    this._isRealtimeRequestInFlight = false;
     this._isViewRefreshInProgress = false;
-    this._currentUser = {
-      id: "",
-      email: "",
-      displayName: "",
-      role: "user",
-      isAdmin: false,
-      canManageStatuses: false,
-    };
   }
 
   init() {
@@ -123,47 +84,28 @@ export default class SupportTicketsPage extends BasePage {
 
         this._authUnsubscribe?.();
         this._authUnsubscribe = null;
-
-        if (!nextState.user) {
-          router.go("/sign-in");
-          return;
-        }
-
-        this._currentUser = this._resolveCurrentUser(nextState.user);
-
-        if (this._currentUser.canManageStatuses) {
-          router.go("/admin/support");
-          return;
-        }
-
-        super.init();
-        if (!this._isViewRefreshInProgress) {
-          await this.loadContext({ preserveSelection: false });
-        }
+        await this._bootstrap(nextState);
       });
 
       return super.init();
     }
 
+    this._bootstrap(state);
+    return this;
+  }
+
+  async _bootstrap(state) {
     if (!state.user) {
       router.go("/sign-in");
-      return this;
+      return;
     }
 
-    this._currentUser = this._resolveCurrentUser(state.user);
-
-    if (this._currentUser.canManageStatuses) {
-      router.go("/admin/support");
-      return this;
-    }
-
+    this._ensureTicketsHook(state.user);
     super.init();
 
     if (!this._isViewRefreshInProgress) {
-      this.loadContext({ preserveSelection: false });
+      await this.loadContext();
     }
-
-    return this;
   }
 
   addEventListeners() {
@@ -191,6 +133,10 @@ export default class SupportTicketsPage extends BasePage {
     this.el.removeEventListener("submit", this._onSubmit);
   }
 
+  beforeDestroy() {
+    this._ticketsHook?.cancelPendingRequests?.();
+  }
+
   setupChildren() {
     const header = this.el.querySelector("#header");
 
@@ -201,158 +147,120 @@ export default class SupportTicketsPage extends BasePage {
     }
 
     this.addChild("header", new HeaderComponent({}, this, header));
+
+    if (this.context.isLoading) {
+      return;
+    }
+
+    const hero = this.el.querySelector("#support-tickets-hero");
+    const sidebar = this.el.querySelector("#support-tickets-sidebar");
+    const conversation = this.el.querySelector("#support-tickets-conversation");
+
+    if (!hero || !sidebar || !conversation) {
+      throw new Error(
+        "SupportTicketsPage: не найдены контейнеры support-компонентов",
+      );
+    }
+
+    this.addChild(
+      "hero",
+      new SupportTicketsHeroComponent(this.context.heroContext, this, hero),
+    );
+    this.addChild(
+      "sidebar",
+      new SupportTicketsSidebarComponent(
+        this.context.sidebarContext,
+        this,
+        sidebar,
+      ),
+    );
+    this.addChild(
+      "conversation",
+      new SupportTicketsConversationComponent(
+        this.context.conversationContext,
+        this,
+        conversation,
+      ),
+    );
   }
 
-  async loadContext({ preserveSelection = true, showLoading = false } = {}) {
-    if (!this._canRequest()) {
+  async loadContext({ source = "manual" } = {}) {
+    if (!this._ticketsHook || this._isRequestBlocked) {
       return;
     }
 
-    if (showLoading) {
-      this._refreshView({ isLoading: true });
+    if (source === "realtime") {
+      if (this._isRealtimePaused || this._isRealtimeRequestInFlight) {
+        return;
+      }
+
+      this._isRealtimeRequestInFlight = true;
     }
 
-    const previousSelectedTicketId = preserveSelection
-      ? this._selectedTicketId
-      : "";
-    const ticketsResult = await supportService.getTickets();
-
-    if (await this._handleUnauthorized(ticketsResult)) {
-      return;
-    }
-
-    if (!ticketsResult.ok) {
-      this._tickets = [];
-      this._selectedMessages = [];
-      this._selectedTicketId = "";
-      this._applyRequestError(ticketsResult, "Не удалось загрузить обращения.");
-      this._refreshView();
-      return;
-    }
-
-    this._tickets = extractSupportTickets(ticketsResult.resp, {
-      currentUserId: this._currentUser.id,
-      currentUserEmail: this._currentUser.email,
-    });
-    this._selectedTicketId = this._resolveSelectedTicketId(
-      previousSelectedTicketId,
-    );
-    this._selectedMessages = [];
-    this._syncRatingDraftFromSelectedTicket({ force: true });
-
-    const messagesResult = await this._loadSelectedMessages({
-      showError: false,
-    });
-
-    if (messagesResult.status === 401) {
-      return;
-    }
-
-    if (
-      !messagesResult.ok &&
-      messagesResult.error &&
-      messagesResult.status !== 404
-    ) {
-      this._noticeMessage = messagesResult.error;
-      this._noticeTone = "error";
-    }
-
-    this._refreshView();
-
-    if (!this._isRealtimeUnavailable) {
-      this._connectRealtime();
-      this._syncRealtimeSubscription();
+    try {
+      const result = await this._ticketsHook.load({
+        preserveSelection: true,
+      });
+      await this._applyHookResult(result);
+    } finally {
+      if (source === "realtime") {
+        this._isRealtimeRequestInFlight = false;
+      }
     }
   }
 
   _onClick = async (event) => {
-    const actionButton = event.target.closest("[data-ticket-action]");
-
-    if (actionButton) {
-      const actionValue = String(actionButton.dataset.ticketAction || "").trim();
-
-      if (!actionValue || actionButton.disabled) {
-        return;
-      }
-
-      await this._applyTicketAction(actionValue);
-      return;
-    }
-
     const ticketCard = event.target.closest("[data-ticket-id]");
 
-    if (!ticketCard) {
+    if (!ticketCard || !this._ticketsHook) {
       return;
     }
 
     const nextTicketId = String(ticketCard.dataset.ticketId || "").trim();
+    const currentTicketId = this._ticketsHook.getSnapshot()?.selectedTicket?.id || "";
 
-    if (!nextTicketId || nextTicketId === this._selectedTicketId) {
+    if (!nextTicketId || nextTicketId === currentTicketId) {
       return;
     }
 
-    this._selectedTicketId = nextTicketId;
-    this._selectedMessages = [];
-    this._replyDraftText = "";
-    this._clearComposerState();
-    this._syncRatingDraftFromSelectedTicket({ force: true });
+    this._resetComposerState();
+    this._clearNotice();
+    this._clearRatingState();
 
-    if (this._canRequest(false)) {
-      const messagesResult = await this._loadSelectedMessages({
-        showError: true,
-      });
-
-      if (messagesResult.status === 401) {
-        return;
-      }
-    }
-
-    this._refreshView();
-    this._connectRealtime();
-    this._syncRealtimeSubscription();
+    const result = await this._ticketsHook.selectTicket(nextTicketId);
+    await this._applyHookResult(result);
   };
 
   _onChange = async (event) => {
+    if (!this._ticketsHook) {
+      return;
+    }
+
     if (event.target.matches('[name="statusFilter"]')) {
-      this._selectedStatus = String(event.target.value || "all");
-      this._replyDraftText = "";
-      this._clearComposerState();
+      this._resetComposerState();
+      this._clearNotice();
+      this._clearRatingState();
+      const result = await this._ticketsHook.setStatusFilter(event.target.value);
+      await this._applyHookResult(result);
+      return;
+    }
 
-      const previousSelectedTicketId = this._selectedTicketId;
-
-      this._selectedTicketId = this._resolveSelectedTicketId(
-        previousSelectedTicketId,
-      );
-      this._syncRatingDraftFromSelectedTicket({ force: true });
-
-      if (previousSelectedTicketId !== this._selectedTicketId) {
-        this._selectedMessages = [];
-
-        if (this._canRequest(false)) {
-          const messagesResult = await this._loadSelectedMessages({
-            showError: false,
-          });
-
-          if (messagesResult.status === 401) {
-            return;
-          }
-        }
-      }
-
-      this._refreshView();
-      this._connectRealtime();
-      this._syncRealtimeSubscription();
+    if (event.target.matches('[name="categoryFilter"]')) {
+      this._resetComposerState();
+      this._clearNotice();
+      this._clearRatingState();
+      const result = await this._ticketsHook.setCategoryFilter(event.target.value);
+      await this._applyHookResult(result);
       return;
     }
 
     if (event.target.matches('[name="replyFile"]')) {
-      const selectedFile = pickSelectedFile(event.target.files?.[0] || null);
-
+      const selectedFile = pickSelectedSupportFile(event.target.files?.[0] || null);
       this._replyError = validateSupportFile(selectedFile);
-      this._noticeMessage = "";
-      this._noticeTone = "";
+      this._setReplyFileMeta(selectedFile);
+      this._clearNotice();
       this._renderReplyState();
-      this._renderReplyFileState(selectedFile);
+      this._renderReplyFileState();
       return;
     }
 
@@ -363,14 +271,26 @@ export default class SupportTicketsPage extends BasePage {
       return;
     }
 
-    if (event.target.matches('[name="reply"]')) {
-      this._replyDraftText = String(event.target.value || "");
-      this._replyError = "";
-      this._renderReplyState();
+    if (event.target.matches('[name="ticketStatus"]')) {
+      this._clearNotice();
+      this._refreshNotice();
     }
   };
 
-  _onInput = (event) => {
+  _onInput = async (event) => {
+    if (!this._ticketsHook) {
+      return;
+    }
+
+    if (event.target.matches('[name="ticketSearch"]')) {
+      this._resetComposerState();
+      this._clearNotice();
+      this._clearRatingState();
+      const result = await this._ticketsHook.setSearchQuery(event.target.value);
+      await this._applyHookResult(result);
+      return;
+    }
+
     if (!event.target.matches('[name="reply"]')) {
       return;
     }
@@ -381,6 +301,14 @@ export default class SupportTicketsPage extends BasePage {
   };
 
   _onSubmit = async (event) => {
+    const statusForm = event.target.closest('[data-action="update-ticket-status"]');
+
+    if (statusForm) {
+      event.preventDefault();
+      await this._handleStatusSubmit(statusForm);
+      return;
+    }
+
     const ratingForm = event.target.closest('[data-action="rate-ticket"]');
 
     if (ratingForm) {
@@ -389,41 +317,43 @@ export default class SupportTicketsPage extends BasePage {
       return;
     }
 
-    const form = event.target.closest('[data-action="reply-ticket"]');
+    const replyForm = event.target.closest('[data-action="reply-ticket"]');
 
-    if (!form) {
+    if (!replyForm) {
       return;
     }
 
     event.preventDefault();
-    await this._handleReplySubmit(form);
+    await this._handleReplySubmit(replyForm);
   };
 
   async _handleReplySubmit(form) {
-    const selectedTicket = this._getSelectedTicket();
-
-    if (!selectedTicket) {
+    if (!this._ticketsHook || !this._canRequest()) {
       return;
     }
 
     const formData = new FormData(form);
-    const replyText = normalizeText(formData.get("reply"));
-    const replyFile = pickSelectedFile(formData.get("replyFile"));
+    const replyText = normalizeSupportReplyText(formData.get("reply"));
+    const replyFile = pickSelectedSupportFile(formData.get("replyFile"));
 
     if (!replyText && !(replyFile instanceof File)) {
       this._replyError = "Напишите ответ или приложите файл.";
-      this._noticeMessage = "";
-      this._noticeTone = "";
+      this._clearNotice();
       this._renderReplyState();
       return;
     }
 
-    if (!this._canRequest()) {
+    const fileError = validateSupportFile(replyFile);
+
+    if (fileError) {
+      this._replyError = fileError;
+      this._clearNotice();
+      this._renderReplyState();
       return;
     }
 
-    const result = await supportService.createTicketMessage(selectedTicket.id, {
-      message: replyText,
+    const result = await this._ticketsHook.replyToSelectedTicket({
+      text: replyText,
       attachment: replyFile,
     });
 
@@ -432,60 +362,67 @@ export default class SupportTicketsPage extends BasePage {
     }
 
     if (!result.ok) {
-      if (result.status === 404) {
-        this._replyError = "";
-        this._applyRequestError(result, "Не удалось отправить сообщение.");
-        this._refreshView();
+      if (result.blocked) {
+        this._applyBlockedState();
+        this._applySnapshot(result.snapshot, { forceRatingSync: true });
         return;
       }
 
       this._replyError = result.error || "Не удалось отправить сообщение.";
-      this._noticeMessage = "";
-      this._noticeTone = "";
+      this._clearNotice();
       this._renderReplyState();
       return;
     }
 
-    const sentAt = new Date().toISOString();
-
-    this._selectedMessages = [
-      ...this._selectedMessages,
-      buildLocalReplyMessage({
-        text: replyText,
-        attachmentName: replyFile?.name || "",
-        senderId: this._currentUser.id,
-        senderName: this._currentUser.displayName,
-        senderEmail: this._currentUser.email,
-        sentAt,
-      }),
-    ];
-    this._touchTicket(selectedTicket.id, {
-      updatedAt: sentAt,
-    });
-    this._replyError = "";
-    this._noticeMessage = "Сообщение отправлено.";
+    this._resetComposerState();
+    this._noticeMessage = result.message || "Сообщение отправлено.";
     this._noticeTone = "info";
-    this._replyDraftText = "";
     form.reset();
-    this._refreshView();
-    this._connectRealtime();
-    this._syncRealtimeSubscription();
+    await this._applyHookResult(result, {
+      scrollMessagesToBottom: true,
+    });
+  }
+
+  async _handleStatusSubmit(form) {
+    if (!this._ticketsHook || !this._canRequest()) {
+      return;
+    }
+
+    const nextStatus = String(
+      new FormData(form).get("ticketStatus") || "",
+    ).trim();
+
+    const result = await this._ticketsHook.setSelectedTicketStatus(nextStatus);
+
+    if (await this._handleUnauthorized(result)) {
+      return;
+    }
+
+    if (!result.ok) {
+      this._noticeMessage =
+        result.error || "Не удалось обновить статус обращения.";
+      this._noticeTone = "error";
+      this._refreshNotice();
+      if (result.blocked) {
+        this._applyBlockedState();
+      }
+      this._applySnapshot(result.snapshot, { forceRatingSync: true });
+      return;
+    }
+
+    this._noticeMessage = result.message || "";
+    this._noticeTone = "info";
+    await this._applyHookResult(result);
   }
 
   async _handleRatingSubmit(form) {
-    const selectedTicket = this._getSelectedTicket();
-    const rating = normalizeTicketRating(
-      new FormData(form).get("ticketRating") || this._ratingValue,
-    );
-
-    if (
-      !selectedTicket ||
-      this._currentUser.role !== "user" ||
-      (selectedTicket.status !== "resolved" &&
-        selectedTicket.status !== "closed")
-    ) {
+    if (!this._ticketsHook || !this._canRequest()) {
       return;
     }
+
+    const rating = normalizeSupportTicketRating(
+      new FormData(form).get("ticketRating") || this._ratingValue,
+    );
 
     if (!rating) {
       this._ratingError = "Выберите оценку от 1 до 5.";
@@ -493,393 +430,163 @@ export default class SupportTicketsPage extends BasePage {
       return;
     }
 
-    if (!this._canRequest()) {
-      return;
-    }
-
-    const result = await supportService.updateTicket(selectedTicket.id, {
-      rating,
-    });
+    const result = await this._ticketsHook.rateSelectedTicket(rating);
 
     if (await this._handleUnauthorized(result)) {
       return;
     }
 
     if (!result.ok) {
-      if (result.status === 404) {
-        this._applyRequestError(result, "Не удалось обновить обращение.");
-        this._refreshView();
+      if (result.blocked) {
+        this._applyBlockedState();
+        this._applySnapshot(result.snapshot, { forceRatingSync: true });
         return;
       }
 
-      this._ratingError = resolveRatingErrorMessage(result);
+      this._ratingError = resolveSupportRatingErrorMessage(result);
       this._renderRatingState();
       return;
     }
 
-    this._touchTicket(selectedTicket.id, {
-      rating,
-      updatedAt: new Date().toISOString(),
-    });
     this._ratingValue = String(rating);
     this._ratingError = "";
-    this._noticeMessage = `Оценка для обращения #${selectedTicket.id} сохранена.`;
+    this._noticeMessage = result.message || "";
     this._noticeTone = "info";
-    this._refreshView();
+    await this._applyHookResult(result);
   }
 
-  async _applyTicketAction(nextStatus) {
-    const selectedTicket = this._getSelectedTicket();
-
-    if (!selectedTicket || !STATUS_META[nextStatus]) {
+  async _applyHookResult(
+    result = {},
+    { scrollMessagesToBottom = false } = {},
+  ) {
+    if (result.aborted) {
       return;
     }
-
-    if (!canApplyActionByRole(this._currentUser.role, nextStatus)) {
-      return;
-    }
-
-    if (!this._canRequest()) {
-      return;
-    }
-
-    const result = await supportService.updateTicket(selectedTicket.id, {
-      status: nextStatus,
-    });
 
     if (await this._handleUnauthorized(result)) {
       return;
     }
 
-    if (!result.ok) {
-      if (result.status === 404) {
-        this._applyRequestError(
-          result,
-          "Не удалось обновить статус обращения.",
-        );
-        this._refreshView();
-        return;
-      }
-
-      this._noticeMessage =
-        result.error || "Не удалось обновить статус обращения.";
+    if (result.blocked) {
+      this._applyBlockedState();
+    } else if (result.ok) {
+      this._resumeRequestState();
+    } else if (result.error) {
+      this._noticeMessage = result.error;
       this._noticeTone = "error";
-      this._refreshView();
-      return;
     }
 
-    this._touchTicket(selectedTicket.id, {
-      status: nextStatus,
-      updatedAt: new Date().toISOString(),
-    });
-    this._syncRatingDraftFromSelectedTicket({ force: true });
-    this._noticeMessage = `Статус обращения #${selectedTicket.id} обновлён.`;
-    this._noticeTone = "info";
-
-    const previousSelectedTicketId = this._selectedTicketId;
-
-    this._selectedTicketId = this._resolveSelectedTicketId(
-      previousSelectedTicketId,
-    );
-
-    if (previousSelectedTicketId !== this._selectedTicketId) {
-      this._selectedMessages = [];
-
-      if (this._canRequest(false)) {
-        const messagesResult = await this._loadSelectedMessages({
-          showError: false,
-        });
-
-        if (messagesResult.status === 401) {
-          return;
-        }
-      }
-    }
-
-    this._refreshView();
-    this._connectRealtime();
-    this._syncRealtimeSubscription();
-  }
-
-  async _loadSelectedMessages({ showError = true } = {}) {
-    if (!this._selectedTicketId) {
-      this._selectedMessages = [];
-
-      return {
-        ok: true,
-        status: 200,
-        resp: [],
-        error: "",
-      };
-    }
-
-    if (!this._canRequest(false)) {
-      this._selectedMessages = [];
-
-      return {
-        ok: false,
-        status: 404,
-        resp: null,
-        error: SUPPORT_REQUESTS_BLOCKED_MESSAGE,
-      };
-    }
-
-    const result = await supportService.getTicketMessages(
-      this._selectedTicketId,
-    );
-
-    if (await this._handleUnauthorized(result)) {
-      return {
-        ok: false,
-        status: 401,
-        resp: null,
-        error: "Требуется повторная авторизация",
-      };
-    }
-
-    if (!result.ok) {
-      this._selectedMessages = [];
-
-      if (result.status === 404) {
-        this._applyRequestError(
-          result,
-          "Не удалось загрузить сообщения обращения.",
-        );
-      } else if (showError) {
-        this._noticeMessage =
-          result.error || "Не удалось загрузить сообщения обращения.";
-        this._noticeTone = "error";
-      }
-
-      return result;
-    }
-
-    const selectedTicket = this._getSelectedTicket();
-    const extractedMessages = extractSupportMessages(result.resp, {
-      currentUserId: this._currentUser.id || selectedTicket?.userId,
-      currentUserEmail: this._currentUser.email,
+    this._applySnapshot(result.snapshot, {
+      forceRatingSync: result.snapshot?.selectedTicket?.id !== this._activeTicketId,
+      scrollMessagesToBottom,
     });
 
-    this._selectedMessages = buildSupportConversationMessages(
-      selectedTicket,
-      extractedMessages,
-      {
-        currentUserId: this._currentUser.id || selectedTicket?.userId,
-        currentUserEmail: this._currentUser.email,
-        currentUserDisplayName: this._currentUser.displayName,
-      },
-    );
-
-    return result;
+    if (!this._isRequestBlocked && !this._isRealtimeUnavailable) {
+      this._connectRealtime();
+      this._syncRealtimeSubscription();
+    }
   }
 
-  _buildViewContext(overrides = {}) {
-    const filteredTickets = this._getFilteredTickets();
-    const selectedTicket =
-      filteredTickets.find((ticket) => ticket.id === this._selectedTicketId) ||
-      null;
-    const selectedFilterLabel = getFilterLabel(this._selectedStatus);
+  _applySnapshot(
+    snapshot = this._ticketsHook?.getSnapshot() || {},
+    {
+      forceRatingSync = false,
+      scrollMessagesToBottom = false,
+    } = {},
+  ) {
+    const nextSelectedTicketId = snapshot.selectedTicket?.id || "";
 
-    return {
-      isLoading: false,
-      isAdmin: this._currentUser.isAdmin,
-      filterOptions: buildFilterOptions(this._selectedStatus),
-      overviewCards: buildOverviewCards(this._tickets),
-      ticketsSummary: buildTicketsSummary(
-        filteredTickets.length,
-        this._selectedStatus,
-        selectedFilterLabel,
-      ),
-      emptyListMessage: buildEmptyListMessage(this._selectedStatus),
-      tickets: filteredTickets.map((ticket) =>
-        buildTicketCardView(ticket, this._selectedTicketId),
-      ),
-      selectedTicket: selectedTicket
-        ? buildSelectedTicketView(
-            selectedTicket,
-            this._selectedMessages,
-            {
-              id: this._currentUser.id,
-              email: this._currentUser.email,
-              displayName: this._currentUser.displayName,
-              role: this._currentUser.role,
-              isAdmin: this._currentUser.isAdmin,
-              canManageStatuses: this._currentUser.canManageStatuses,
-              ratingValue: this._ratingValue,
-            },
-          )
-        : null,
-      noticeMessage: this._noticeMessage,
-      noticeClass: buildNoticeClass(this._noticeTone),
-      noticeTone: this._noticeTone,
-      replyError: this._replyError,
-      replyDraft: this._replyDraftText,
-      ratingError: this._ratingError,
-      hasTickets: Boolean(filteredTickets.length),
-      ...overrides,
-    };
+    this._syncRatingDraftFromSelectedTicket(snapshot.selectedTicket, {
+      force: forceRatingSync,
+    });
+    this._activeTicketId = nextSelectedTicketId;
+    this._refreshView(snapshot, { scrollMessagesToBottom });
   }
 
-  _refreshView(overrides = {}) {
+  _refreshView(
+    snapshot = this._ticketsHook?.getSnapshot() || {},
+    { scrollMessagesToBottom = false } = {},
+  ) {
     if (!this.el) {
       return;
     }
 
+    const nextContext = this._buildPageContext(snapshot);
+    const needsShellRefresh =
+      this.context.isLoading ||
+      !this.getChild("hero") ||
+      !this.getChild("sidebar") ||
+      !this.getChild("conversation");
+    const scrollState = needsShellRefresh ? null : this._capturePanelScrollState();
+
     this._isViewRefreshInProgress = true;
 
     try {
-      this.refresh(this._buildViewContext(overrides));
+      if (needsShellRefresh) {
+        this.context = nextContext;
+        this.refresh(nextContext);
+      } else {
+        this.context = nextContext;
+        this.getChild("hero")?.refresh(nextContext.heroContext);
+        this.getChild("sidebar")?.refresh(nextContext.sidebarContext);
+        this.getChild("conversation")?.refresh(nextContext.conversationContext);
+      }
     } finally {
       this._isViewRefreshInProgress = false;
     }
-  }
 
-  _getFilteredTickets() {
-    if (this._selectedStatus === "all") {
-      return this._tickets;
-    }
-
-    return this._tickets.filter(
-      (ticket) => ticket.status === this._selectedStatus,
-    );
-  }
-
-  _getSelectedTicket() {
-    return (
-      this._tickets.find((ticket) => ticket.id === this._selectedTicketId) ||
-      null
-    );
-  }
-
-  _resolveSelectedTicketId(preferredTicketId = "") {
-    const filteredTickets = this._getFilteredTickets();
-
-    if (!filteredTickets.length) {
-      return "";
-    }
-
-    if (
-      preferredTicketId &&
-      filteredTickets.some((ticket) => ticket.id === preferredTicketId)
-    ) {
-      return preferredTicketId;
-    }
-
-    return filteredTickets[0]?.id || "";
-  }
-
-  _touchTicket(ticketId, updates = {}) {
-    const normalizedTicketId = String(ticketId || "").trim();
-
-    if (!normalizedTicketId) {
+    if (needsShellRefresh) {
+      if (scrollMessagesToBottom) {
+        this._scrollMessagesToBottom("auto");
+      }
       return;
     }
 
-    this._tickets = this._tickets.map((ticket) =>
-      ticket.id === normalizedTicketId
-        ? {
-            ...ticket,
-            ...updates,
-          }
-        : ticket,
-    );
+    this._restorePanelScrollState(scrollState, {
+      scrollMessagesToBottom,
+    });
   }
 
-  _clearComposerState() {
-    this._replyError = "";
-    this._ratingError = "";
-
-    if (this._isRequestBlocked) {
-      this._noticeMessage = SUPPORT_REQUESTS_BLOCKED_MESSAGE;
-      this._noticeTone = "error";
-      return;
-    }
-
-    this._noticeMessage = "";
-    this._noticeTone = "";
-  }
-
-  _renderReplyState() {
-    const errorNode = this.el.querySelector("#support-reply-error");
-    const noticeNode = this.el.querySelector("#support-tickets-notice");
-
-    if (errorNode) {
-      errorNode.textContent = this._replyError || "";
-    }
-
-    if (!noticeNode) {
-      return;
-    }
-
-    noticeNode.textContent = this._noticeMessage || "";
-    noticeNode.className = "support-tickets__notice";
-
-    if (this._noticeMessage && this._noticeTone) {
-      noticeNode.classList.add(`support-tickets__notice--${this._noticeTone}`);
-    }
-  }
-
-  _renderRatingState() {
-    const errorNode = this.el.querySelector("#support-rating-error");
-
-    if (errorNode) {
-      errorNode.textContent = this._ratingError || "";
-    }
-  }
-
-  _renderReplyFileState(file = null) {
-    const fileMetaNode = this.el.querySelector("#support-reply-file-meta");
-
-    if (!fileMetaNode) {
-      return;
-    }
-
-    if (file instanceof File && file.name) {
-      fileMetaNode.textContent = `Файл: ${file.name}`;
-      fileMetaNode.classList.add("support-tickets__reply-file-meta--filled");
-      return;
-    }
-
-    fileMetaNode.textContent = "Можно приложить PNG, JPG, WEBP или PDF до 10 МБ";
-    fileMetaNode.classList.remove("support-tickets__reply-file-meta--filled");
-  }
-
-  _resolveCurrentUser(user = authStore.getState().user || {}) {
-    const id = String(user?.id || user?.user_id || "").trim();
-    const email = String(user?.email || "user@vkino.tech").trim();
-    const role = String(user?.role || "user").trim().toLowerCase() || "user";
+  _buildPageContext(snapshot = {}) {
+    const shellContext = buildSupportShellContext({
+      isLoading: false,
+      currentUser: this._currentUser,
+    });
 
     return {
-      id,
-      email,
-      displayName: getDisplayNameFromEmail(email) || "Вы",
-      role,
-      isAdmin: isAdminRole(role),
-      canManageStatuses: canManageSupportTicketStatus(role),
+      ...shellContext,
+      heroContext: buildSupportHeroContext(snapshot, this._currentUser),
+      sidebarContext: buildSupportSidebarContext(snapshot, this._currentUser),
+      conversationContext: buildSupportConversationContext(
+        snapshot,
+        this._currentUser,
+        {
+          noticeMessage: this._noticeMessage,
+          noticeTone: this._noticeTone,
+          replyError: this._replyError,
+          replyDraft: this._replyDraftText,
+          replyFileMeta: this._replyFileMeta,
+          ratingError: this._ratingError,
+          ratingValue: this._ratingValue,
+        },
+      ),
     };
   }
 
-  _syncRatingDraftFromSelectedTicket({ force = false } = {}) {
-    const selectedTicket = this._getSelectedTicket();
-
-    if (
-      !selectedTicket ||
-      (selectedTicket.status !== "resolved" &&
-        selectedTicket.status !== "closed")
-    ) {
-      this._ratingValue = "";
-      this._ratingError = "";
+  _ensureTicketsHook(user) {
+    if (this._ticketsHook) {
       return;
     }
 
-    const normalizedTicketRating = normalizeTicketRating(selectedTicket.rating);
-    const normalizedDraftRating = normalizeTicketRating(this._ratingValue);
-
-    if (force || !normalizedDraftRating) {
-      this._ratingValue = normalizedTicketRating
-        ? String(normalizedTicketRating)
-        : "";
-    }
+    this._currentUser = resolveSupportCurrentUser(user);
+    this.context = {
+      ...this.context,
+      ...buildSupportShellContext({
+        isLoading: true,
+        currentUser: this._currentUser,
+      }),
+    };
+    this._ticketsHook = useSupportTickets(this._currentUser);
   }
 
   _connectRealtime() {
@@ -895,52 +602,56 @@ export default class SupportTicketsPage extends BasePage {
   }
 
   _syncRealtimeSubscription() {
-    if (this._isRequestBlocked) {
+    if (this._isRequestBlocked || this._isRealtimePaused) {
       supportRealtimeService.disconnect();
       return;
     }
 
-    if (!this._selectedTicketId) {
+    const selectedTicketId =
+      this._ticketsHook?.getSnapshot()?.selectedTicket?.id || "";
+
+    if (!selectedTicketId) {
       supportRealtimeService.unsubscribe();
       return;
     }
 
-    supportRealtimeService.subscribe(this._selectedTicketId);
+    supportRealtimeService.subscribe(selectedTicketId);
   }
 
   _handleRealtimeMessage = async (payload) => {
+    const selectedTicketId =
+      this._ticketsHook?.getSnapshot()?.selectedTicket?.id || "";
+
     if (
       this._isRequestBlocked ||
-      this._isRealtimeSyncing ||
-      !shouldSyncSupportRealtimePayload(payload, this._selectedTicketId)
+      this._isRealtimePaused ||
+      this._isRealtimeRequestInFlight ||
+      !shouldSyncSupportRealtimePayload(payload, selectedTicketId)
     ) {
       return;
     }
 
-    this._isRealtimeSyncing = true;
+    this._isRealtimeRequestInFlight = true;
 
     try {
-      const messagesResult = await this._loadSelectedMessages({
-        showError: false,
-      });
+      const result = await this._ticketsHook.handleRealtimeSync();
 
-      if (messagesResult.status === 401) {
+      if (result.aborted) {
         return;
       }
 
-      if (messagesResult.ok) {
-        this._touchTicket(this._selectedTicketId, {
-          updatedAt: new Date().toISOString(),
-        });
-        this._noticeMessage = "Диалог обновлён в реальном времени.";
+      if (await this._handleUnauthorized(result)) {
+        return;
+      }
+
+      if (result.ok) {
+        this._noticeMessage = result.message || "Диалог обновлён в реальном времени.";
         this._noticeTone = "info";
       }
 
-      this._refreshView();
-      this._connectRealtime();
-      this._syncRealtimeSubscription();
+      await this._applyHookResult(result);
     } finally {
-      this._isRealtimeSyncing = false;
+      this._isRealtimeRequestInFlight = false;
     }
   };
 
@@ -952,7 +663,7 @@ export default class SupportTicketsPage extends BasePage {
     this._noticeMessage =
       "WS недоступен. Пробуем восстановить соединение автоматически.";
     this._noticeTone = "error";
-    this._refreshView();
+    this._refreshNotice();
   };
 
   _handleRealtimeStatusChange = (status) => {
@@ -971,16 +682,15 @@ export default class SupportTicketsPage extends BasePage {
         this._noticeTone = "info";
       }
 
-      this._refreshView();
+      this._refreshNotice();
       return;
     }
 
     if (status === "reconnecting") {
-      this._isRealtimeUnavailable = false;
       this._noticeMessage =
         "Соединение с чатом потеряно. Пытаемся переподключиться...";
       this._noticeTone = "error";
-      this._refreshView();
+      this._refreshNotice();
     }
   };
 
@@ -1002,350 +712,171 @@ export default class SupportTicketsPage extends BasePage {
     if (showNotice) {
       this._noticeMessage = SUPPORT_REQUESTS_BLOCKED_MESSAGE;
       this._noticeTone = "error";
-      this._refreshView();
+      this._refreshNotice();
     }
 
     return false;
   }
 
-  _applyRequestError(result, fallbackMessage) {
-    if (result?.status === 404) {
-      this._isRequestBlocked = true;
+  _applyBlockedState() {
+    this._isRequestBlocked = true;
+    this._isRealtimePaused = true;
+    this._noticeMessage = SUPPORT_REQUESTS_BLOCKED_MESSAGE;
+    this._noticeTone = "error";
+    supportRealtimeService.disconnect();
+  }
+
+  _resumeRequestState() {
+    this._isRequestBlocked = false;
+    this._isRealtimePaused = false;
+  }
+
+  _resetComposerState() {
+    this._replyDraftText = "";
+    this._replyError = "";
+    this._setReplyFileMeta(null);
+  }
+
+  _clearNotice() {
+    if (this._isRequestBlocked) {
       this._noticeMessage = SUPPORT_REQUESTS_BLOCKED_MESSAGE;
       this._noticeTone = "error";
-      supportRealtimeService.disconnect();
       return;
     }
 
-    this._noticeMessage = result?.error || fallbackMessage;
-    this._noticeTone = "error";
+    this._noticeMessage = "";
+    this._noticeTone = "";
   }
-}
 
-function buildFilterOptions(selectedStatus) {
-  return STATUS_FILTER_OPTIONS.map((option) => ({
-    ...option,
-    selectedAttr: option.value === selectedStatus ? " selected" : "",
-  }));
-}
+  _clearRatingState() {
+    this._ratingError = "";
+  }
 
-function buildSelectedTicketView(ticket, messages = [], userContext = {}) {
-  const statusMeta = getStatusMeta(ticket.status);
-  const actionButtons = buildTicketActionButtons();
-  const resolvedRating = normalizeTicketRating(
-    userContext.ratingValue || ticket.rating,
-  );
-  const canRate =
-    userContext.role === "user" &&
-    (ticket.status === "resolved" || ticket.status === "closed");
+  _setReplyFileMeta(file = null) {
+    this._hasReplyFileSelection = Boolean(file instanceof File && file.name);
+    this._replyFileMeta = this._hasReplyFileSelection
+      ? `Файл: ${file.name}`
+      : DEFAULT_SUPPORT_REPLY_FILE_HINT;
+  }
 
-  return {
-    id: ticket.id,
-    subject: ticket.subject,
-    statusLabel: statusMeta.label,
-    statusTone: statusMeta.tone,
-    subtitle: `Обращение #${ticket.id} • ${ticket.subject}`,
-    updatedAtLabel: `Обновлено ${formatCardDate(ticket.updatedAt || ticket.createdAt)}`,
-    messagesCountLabel: `${messages.length} ${pluralizeSupportMessages(messages.length)}`,
-    hasMessages: Boolean(messages.length),
-    messages: messages.map((message) => ({
-      messageClass: message.isFromCurrentUser
-        ? "support-tickets__message support-tickets__message--outgoing"
-        : "support-tickets__message",
-      senderLabel:
-        message.senderName ||
-        (message.isFromCurrentUser
-          ? userContext.displayName || "Вы"
-          : "Поддержка"),
-      sentAtLabel: formatMessageDate(message.sentAt),
-      text: message.text,
-      attachmentName: message.attachmentName,
-      isOutgoing: message.isFromCurrentUser,
-    })),
-    actionButtons,
-    hasActionButtons: Boolean(actionButtons.length),
-    canRate,
-    ratingSummary: resolvedRating
-      ? `Текущая оценка: ${resolvedRating} из 5`
-      : "Оценка ещё не выставлена.",
-    ratingSubmitLabel: resolvedRating ? "Обновить оценку" : "Сохранить оценку",
-    ratingOptions: buildRatingOptions(resolvedRating),
-  };
-}
-
-function buildTicketCardView(ticket, selectedTicketId) {
-  const statusMeta = getStatusMeta(ticket.status);
-
-  return {
-    id: ticket.id,
-    cardClass:
-      ticket.id === selectedTicketId
-        ? "support-tickets__ticket-card support-tickets__ticket-card--active"
-        : "support-tickets__ticket-card",
-    subject: ticket.subject,
-    statusLabel: statusMeta.label,
-    statusTone: statusMeta.tone,
-    metaLabel: `#${ticket.id}`,
-    updatedAtLabel: formatCardDate(ticket.updatedAt || ticket.createdAt),
-    isActive: ticket.id === selectedTicketId,
-  };
-}
-
-function buildOverviewCards(tickets = []) {
-  const summary = tickets.reduce(
-    (acc, ticket) => {
-      acc.total += 1;
-
-      if (ticket.status === "open" || ticket.status === "waiting_user") {
-        acc.attention += 1;
-      }
-
-      if (ticket.status === "in_progress") {
-        acc.inProgress += 1;
-      }
-
-      if (ticket.status === "resolved" || ticket.status === "closed") {
-        acc.resolved += 1;
-      }
-
-      return acc;
-    },
-    {
-      total: 0,
-      attention: 0,
-      inProgress: 0,
-      resolved: 0,
-    },
-  );
-
-  return [
-    {
-      label: "Всего обращений",
-      value: String(summary.total),
-      caption: "Вся история поддержки",
-    },
-    {
-      label: "Нужен ответ",
-      value: String(summary.attention),
-      caption: "Новые и ожидающие",
-    },
-    {
-      label: "В работе",
-      value: String(summary.inProgress),
-      caption: "Обращения в процессе",
-    },
-    {
-      label: "Закрыто",
-      value: String(summary.resolved),
-      caption: "Уже решённые кейсы",
-    },
-  ];
-}
-
-function buildTicketsSummary(count, selectedStatus, selectedFilterLabel) {
-  if (!count) {
-    if (selectedStatus === "all") {
-      return "Пока нет обращений. Создайте первое, чтобы начать диалог с поддержкой.";
+  _syncRatingDraftFromSelectedTicket(ticket = null, { force = false } = {}) {
+    if (
+      !ticket ||
+      (ticket.status !== "resolved" && ticket.status !== "closed")
+    ) {
+      this._ratingValue = "";
+      this._ratingError = "";
+      return;
     }
 
-    return `В фильтре «${selectedFilterLabel}» пока пусто.`;
+    const normalizedTicketRating = normalizeSupportTicketRating(ticket.rating);
+    const normalizedDraftRating = normalizeSupportTicketRating(this._ratingValue);
+
+    if (force || !normalizedDraftRating) {
+      this._ratingValue = normalizedTicketRating
+        ? String(normalizedTicketRating)
+        : "";
+    }
   }
 
-  if (selectedStatus === "all") {
-    return `${count} ${pluralizeSupportTickets(count)} в вашей истории поддержки.`;
+  _refreshNotice() {
+    const noticeNode = this.el.querySelector("#support-tickets-notice");
+
+    if (!noticeNode) {
+      return;
+    }
+
+    noticeNode.textContent = this._noticeMessage || "";
+    noticeNode.className = buildSupportNoticeClass(this._noticeTone);
   }
 
-  return `${count} ${pluralizeSupportTickets(count)} со статусом «${selectedFilterLabel}».`;
-}
+  _renderReplyState() {
+    const errorNode = this.el.querySelector("#support-reply-error");
 
-function buildEmptyListMessage(selectedStatus) {
-  if (selectedStatus === "all") {
-    return "Создайте первое обращение, чтобы быстро связаться с поддержкой и отслеживать ответ прямо в диалоге.";
+    if (errorNode) {
+      errorNode.textContent = this._replyError || "";
+    }
+
+    this._refreshNotice();
   }
 
-  return `По статусу «${getFilterLabel(selectedStatus)}» обращений пока нет. Попробуйте другой фильтр или создайте новое обращение.`;
-}
+  _renderReplyFileState() {
+    const fileMetaNode = this.el.querySelector("#support-reply-file-meta");
 
-function buildTicketActionButtons() {
-  return [];
-}
+    if (!fileMetaNode) {
+      return;
+    }
 
-function canApplyActionByRole(role, nextStatus) {
-  if (canManageSupportTicketStatus(role)) {
-    return (
-      nextStatus === "open" ||
-      nextStatus === "in_progress" ||
-      nextStatus === "waiting_user" ||
-      nextStatus === "resolved" ||
-      nextStatus === "closed"
+    fileMetaNode.textContent = this._replyFileMeta;
+    fileMetaNode.classList.toggle(
+      "support-tickets__reply-file-meta--filled",
+      this._hasReplyFileSelection,
     );
   }
 
-  return false;
-}
+  _renderRatingState() {
+    const errorNode = this.el.querySelector("#support-rating-error");
 
-function buildNoticeClass(tone) {
-  if (!tone) {
-    return "support-tickets__notice";
+    if (errorNode) {
+      errorNode.textContent = this._ratingError || "";
+    }
   }
 
-  return `support-tickets__notice support-tickets__notice--${tone}`;
-}
+  _capturePanelScrollState() {
+    if (!this.el) {
+      return null;
+    }
 
-function getFilterLabel(status) {
-  return (
-    STATUS_FILTER_OPTIONS.find((option) => option.value === status)?.label ||
-    STATUS_FILTER_OPTIONS[0].label
-  );
-}
+    const ticketList = this.el.querySelector("#support-ticket-list");
+    const messages = this.el.querySelector(".support-tickets__messages");
 
-function getStatusMeta(status) {
-  return STATUS_META[status] || STATUS_META.open;
-}
-
-function formatCardDate(value) {
-  const parsedDate = new Date(value);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return value;
+    return {
+      ticketListScrollTop: ticketList?.scrollTop || 0,
+      messagesScrollTop: messages?.scrollTop || 0,
+      shouldStickMessagesToBottom: Boolean(
+        messages &&
+          messages.scrollHeight - messages.clientHeight - messages.scrollTop <= 48,
+      ),
+    };
   }
 
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(parsedDate);
-}
+  _restorePanelScrollState(
+    scrollState,
+    { scrollMessagesToBottom = false } = {},
+  ) {
+    if (!scrollState || !this.el) {
+      return;
+    }
 
-function formatMessageDate(value) {
-  const parsedDate = new Date(value);
+    const ticketList = this.el.querySelector("#support-ticket-list");
+    const messages = this.el.querySelector(".support-tickets__messages");
 
-  if (Number.isNaN(parsedDate.getTime())) {
-    return value;
+    if (ticketList) {
+      ticketList.scrollTop = scrollState.ticketListScrollTop;
+    }
+
+    if (messages) {
+      if (scrollMessagesToBottom || scrollState.shouldStickMessagesToBottom) {
+        this._scrollMessagesToBottom(scrollMessagesToBottom ? "smooth" : "auto");
+        return;
+      }
+
+      messages.scrollTop = scrollState.messagesScrollTop;
+    }
   }
 
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "numeric",
-    month: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(parsedDate);
-}
+  _scrollMessagesToBottom(behavior = "auto") {
+    const messages = this.el?.querySelector(".support-tickets__messages");
 
-function normalizeText(value) {
-  return String(value || "").trim();
-}
+    if (!messages) {
+      return;
+    }
 
-function pluralizeSupportTickets(count) {
-  const absCount = Math.abs(Number(count));
-  const lastTwoDigits = absCount % 100;
-  const lastDigit = absCount % 10;
-
-  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
-    return "обращений";
+    requestAnimationFrame(() => {
+      messages.scrollTo({
+        top: messages.scrollHeight,
+        behavior,
+      });
+    });
   }
-
-  if (lastDigit === 1) {
-    return "обращение";
-  }
-
-  if (lastDigit >= 2 && lastDigit <= 4) {
-    return "обращения";
-  }
-
-  return "обращений";
-}
-
-function pluralizeSupportMessages(count) {
-  const absCount = Math.abs(Number(count));
-  const lastTwoDigits = absCount % 100;
-  const lastDigit = absCount % 10;
-
-  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
-    return "сообщений";
-  }
-
-  if (lastDigit === 1) {
-    return "сообщение";
-  }
-
-  if (lastDigit >= 2 && lastDigit <= 4) {
-    return "сообщения";
-  }
-
-  return "сообщений";
-}
-
-function buildRatingOptions(selectedRating = 0) {
-  return [1, 2, 3, 4, 5].map((value) => ({
-    value: String(value),
-    label: `${value} из 5`,
-    selectedAttr: value === selectedRating ? " selected" : "",
-  }));
-}
-
-function buildLocalReplyMessage({
-  senderId = "",
-  text = "",
-  attachmentName = "",
-  senderName = "",
-  senderEmail = "",
-  sentAt = "",
-} = {}) {
-  return {
-    id: crypto.randomUUID?.() ?? String(Date.now()),
-    senderId,
-    senderName,
-    senderEmail,
-    sentAt: sentAt || new Date().toISOString(),
-    text: text || (attachmentName ? "Прикреплён файл" : ""),
-    attachmentName,
-    isFromAdmin: false,
-    isFromCurrentUser: true,
-  };
-}
-
-function isAdminRole(role = "") {
-  return String(role || "").trim().toLowerCase() === "admin";
-}
-
-function pickSelectedFile(value) {
-  if (!(value instanceof File)) {
-    return null;
-  }
-
-  if (!value.name && value.size === 0) {
-    return null;
-  }
-
-  return value;
-}
-
-function normalizeTicketRating(value) {
-  const rating = Number(value);
-
-  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-    return 0;
-  }
-
-  return rating;
-}
-
-function resolveRatingErrorMessage(result = {}) {
-  const rawError = String(
-    result.error ||
-      result.resp?.Error ||
-      result.resp?.error ||
-      result.resp?.message ||
-      "",
-  )
-    .trim()
-    .toLowerCase();
-
-  if (result.status === 400 && rawError.includes("invalid_json_body")) {
-    return "Текущий контракт PATCH /support/tickets/{id} на бэке пока не принимает поле rating.";
-  }
-
-  return result.error || "Не удалось сохранить оценку.";
 }
