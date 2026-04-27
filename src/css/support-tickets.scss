@@ -1060,6 +1060,8 @@
 
   .support-tickets__sidebar,
   .support-tickets__chat {
+    flex: none;
+    width: 100%;
     min-height: auto;
   }
 
@@ -1118,6 +1120,11 @@
   .support-tickets__reply-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .support-tickets__title-wrap {
+    flex: none;
+    width: 100%;
   }
 
   .support-tickets__section-controls {

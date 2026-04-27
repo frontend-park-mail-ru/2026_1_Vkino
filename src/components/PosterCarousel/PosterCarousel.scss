@@ -53,10 +53,13 @@
 .poster-carousel__viewport-wrap {
   position: relative;
   width: 100%;
+  min-width: 0;
 }
 
 .poster-carousel__viewport {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow: hidden;
   scroll-behavior: smooth;
   scrollbar-width: none;
@@ -130,7 +133,7 @@
 }
 
 .poster-carousel--centered-hero .poster-carousel__slide--hero {
-  width: clamp(800px, 28vw, 380px);
+  width: clamp(260px, 28vw, 380px);
   height: clamp(300px, 33vw, 380px);
   opacity: 0.58;
   filter: saturate(0.8);
@@ -140,7 +143,7 @@
 }
 
 .poster-carousel--centered-hero .poster-carousel__slide--hero.is-active {
-  width: clamp(900px, 40vw, 560px);
+  width: clamp(360px, 40vw, 560px);
   height: clamp(320px, 36vw, 420px);
   opacity: 1;
   filter: none;
@@ -280,22 +283,22 @@
   }
 
   .poster-carousel--centered-hero .poster-carousel__track {
-    width: max-content;
-    justify-content: flex-start;
-    min-width: max-content;
-    padding-inline: 24px;
+    width: 100%;
+    justify-content: center;
+    min-width: 0;
+    padding-inline: 12px;
   }
 
   .poster-carousel--centered-hero .poster-carousel__slide--hero {
-    width: 62vw;
-    min-width: 260px;
+    width: min(62vw, 320px);
+    min-width: 0;
     max-width: 320px;
     height: 260px;
     transform: scale(0.94);
   }
 
   .poster-carousel--centered-hero .poster-carousel__slide--hero.is-active {
-    width: 80vw;
+    width: min(80vw, 420px);
     max-width: 420px;
     height: 280px;
     transform: scale(1);
