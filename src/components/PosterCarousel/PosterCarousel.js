@@ -303,8 +303,11 @@ function buildCarouselContext(context = {}) {
       ...movie,
       size: centeredHero ? "hero" : movie.size || posterSize,
       variant: centeredHero ? "hero" : movie.variant || posterVariant,
+      actionText: movie.actionText || context.actionText,
       slotKey: movie.slotKey || `${context.slug || "carousel"}-${index}`,
       slideIndex: index,
+      progress: movie.progress || null,
+      showProgress: Boolean(context.showProgress && movie.progress),
     })),
   };
 }

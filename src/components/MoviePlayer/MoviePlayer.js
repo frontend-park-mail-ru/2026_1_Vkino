@@ -6,6 +6,7 @@ import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
 
 const CONTROLS_HIDE_DELAY_MS = 2200;
 const SEEK_STEP_SECONDS = 10;
+const PROGRESS_SAVE_THROTTLE_MS = 10_000;
 
 export default class MoviePlayerComponent extends BaseComponent {
   constructor(context = {}, parent = null, el = null) {
@@ -32,8 +33,9 @@ export default class MoviePlayerComponent extends BaseComponent {
     this.playerService = playerService;
     this.videoEl = null;
     this._controlsHideTimeout = null;
-    this._autosaveInterval = null;
+    this._throttledProgressSaveAt = 0;
     this._pendingCurrentTime = 0;
+    this._urlStartSeconds = 0;
     this._pendingAutoplay = false;
     this._isSeeking = false;
     this._bodyLockSnapshot = null;
@@ -88,7 +90,12 @@ export default class MoviePlayerComponent extends BaseComponent {
     this.videoEl = null;
   }
 
-  async open(movieData, initialEpisodeId = null) {
+  async open(movieData, initialEpisodeId = null, options = {}) {
+    this._urlStartSeconds = Math.max(
+      0,
+      Math.floor(Number(options.startSeconds) || 0),
+    );
+
     const normalizedMovie = normalizeMovieData(movieData);
     const initialEpisode = this._resolveInitialEpisode(
       normalizedMovie,
@@ -129,7 +136,7 @@ export default class MoviePlayerComponent extends BaseComponent {
 
     this.pause();
     await this.saveProgress({ force: true });
-    this._stopAutosave();
+    this._urlStartSeconds = 0;
     this._clearControlsHideTimeout();
     await this._exitFullscreenIfNeeded();
     this._restoreBodyScroll();
@@ -202,7 +209,7 @@ export default class MoviePlayerComponent extends BaseComponent {
     };
 
     this.pause();
-    this._stopAutosave();
+    this._throttledProgressSaveAt = 0;
     this._lastSavedSecond = -1;
     this.updateUI();
 
@@ -221,11 +228,6 @@ export default class MoviePlayerComponent extends BaseComponent {
     }
 
     const playbackUrl = normalizeString(resp?.playback_url);
-
-    console.log("MoviePlayer playback_url =", playbackUrl, {
-      episodeId: normalizedEpisodeId,
-      response: resp,
-    });
 
     if (!playbackUrl) {
       this.context = {
@@ -247,7 +249,13 @@ export default class MoviePlayerComponent extends BaseComponent {
       ? await this.restoreProgress(normalizedEpisodeId, playbackPositionSeconds)
       : 0;
 
-    this._pendingCurrentTime = restoredProgressSeconds;
+    let seekSeconds = restoredProgressSeconds;
+    if (this._urlStartSeconds > 0) {
+      seekSeconds = this._urlStartSeconds;
+    }
+    this._urlStartSeconds = 0;
+
+    this._pendingCurrentTime = seekSeconds;
     this._pendingAutoplay = Boolean(autoplay);
 
     this.context = {
@@ -257,7 +265,7 @@ export default class MoviePlayerComponent extends BaseComponent {
         title: normalizeString(resp?.title) || this.context.episodeTitle,
         playbackUrl,
         durationSeconds: Number(resp?.duration_seconds) || 0,
-        positionSeconds: restoredProgressSeconds,
+        positionSeconds: seekSeconds,
       },
       isLoading: false,
       hasError: false,
@@ -360,6 +368,14 @@ export default class MoviePlayerComponent extends BaseComponent {
   }
 
   async saveProgress({ force = false, resetOnEnded = false } = {}) {
+    const isAuthenticated = authStore.getState().status === "authenticated";
+    if (this.context.isAuthenticated !== isAuthenticated) {
+      this.context = {
+        ...this.context,
+        isAuthenticated,
+      };
+    }
+
     if (!this.context.isAuthenticated) {
       return {
         ok: true,
@@ -385,6 +401,15 @@ export default class MoviePlayerComponent extends BaseComponent {
       0,
       Math.min(Math.floor(rawCurrentTime), duration || Number.MAX_SAFE_INTEGER),
     );
+
+    console.debug("[Player] saveProgress called", {
+      force,
+      resetOnEnded,
+      episodeId,
+      currentTime: normalizedCurrentTime,
+      duration,
+      isAuthenticated: this.context.isAuthenticated,
+    });
 
     if (!force && normalizedCurrentTime === this._lastSavedSecond) {
       return {
@@ -721,25 +746,6 @@ export default class MoviePlayerComponent extends BaseComponent {
     }
   }
 
-  _startAutosave() {
-    if (this._autosaveInterval) {
-      return;
-    }
-
-    this._autosaveInterval = window.setInterval(() => {
-      this.saveProgress();
-    }, 15000);
-  }
-
-  _stopAutosave() {
-    if (!this._autosaveInterval) {
-      return;
-    }
-
-    window.clearInterval(this._autosaveInterval);
-    this._autosaveInterval = null;
-  }
-
   _lockBodyScroll() {
     if (this._bodyLockSnapshot) {
       return;
@@ -945,7 +951,39 @@ export default class MoviePlayerComponent extends BaseComponent {
       progressPercent: calculateProgressPercent(currentTime, duration),
     };
     this.updateUI();
+    this._maybeThrottledProgressSave();
   };
+
+  _maybeThrottledProgressSave() {
+    const isAuthenticated = authStore.getState().status === "authenticated";
+    if (this.context.isAuthenticated !== isAuthenticated) {
+      this.context = {
+        ...this.context,
+        isAuthenticated,
+      };
+    }
+
+    if (!this.context.isPlaying || !this.context.isAuthenticated) {
+      return;
+    }
+
+    const now = Date.now();
+    const throttleMs = PROGRESS_SAVE_THROTTLE_MS;
+    console.debug("[Player] _maybeThrottledProgressSave", {
+      now,
+      lastSavedAt: this._throttledProgressSaveAt,
+      throttleMs,
+      currentTime: Number(this.videoEl?.currentTime) || 0,
+      duration: Number(this.videoEl?.duration) || this.context.duration || 0,
+      isAuthenticated: this.context.isAuthenticated,
+    });
+    if (now - this._throttledProgressSaveAt < throttleMs) {
+      return;
+    }
+    this._throttledProgressSaveAt = now;
+    void this.saveProgress();
+  }
+
 
   _onPlay = () => {
     this.context = {
@@ -955,11 +993,19 @@ export default class MoviePlayerComponent extends BaseComponent {
       hasError: false,
     };
     this.updateUI();
-    this._startAutosave();
+    this._throttledProgressSaveAt = Date.now();
     this._scheduleControlsHide();
   };
 
   _onPause = () => {
+    console.debug("[Player] _onPause", {
+      episodeId: this.context.activeEpisodeId,
+      currentTime: Number(this.videoEl?.currentTime) || 0,
+      duration: Number(this.videoEl?.duration) || this.context.duration || 0,
+      isAuthenticated: this.context.isAuthenticated,
+    });
+
+    void this.saveProgress({ force: true });
     this.context = {
       ...this.context,
       isPlaying: false,
@@ -968,10 +1014,18 @@ export default class MoviePlayerComponent extends BaseComponent {
     };
     this.updateUI();
     this._clearControlsHideTimeout();
-    this.saveProgress({ force: true });
+    this._throttledProgressSaveAt = 0;
   };
 
   _onEnded = () => {
+    console.debug("[Player] _onEnded", {
+      episodeId: this.context.activeEpisodeId,
+      currentTime: Number(this.videoEl?.currentTime) || 0,
+      duration: Number(this.videoEl?.duration) || this.context.duration || 0,
+      isAuthenticated: this.context.isAuthenticated,
+    });
+
+    void this.saveProgress({ force: true, resetOnEnded: true });
     this.context = {
       ...this.context,
       isPlaying: false,
@@ -979,8 +1033,7 @@ export default class MoviePlayerComponent extends BaseComponent {
       areControlsVisible: true,
     };
     this.updateUI();
-    this._stopAutosave();
-    this.saveProgress({ force: true, resetOnEnded: true });
+    this._throttledProgressSaveAt = 0;
   };
 
   _onVolumeChange = () => {

@@ -17,3 +17,4 @@ handlebars ./src/pages/WatchParty/WatchParty.hbs -f ./src/pages/WatchParty/Watch
 handlebars ./src/pages/SupportTickets/SupportTickets.hbs -f ./src/pages/SupportTickets/SupportTickets.precompiled.js
 handlebars ./src/pages/AdminTickets/AdminTickets.hbs -f ./src/pages/AdminTickets/AdminTickets.precompiled.js
 handlebars ./src/pages/SupportCreate/SupportCreate.hbs -f ./src/pages/SupportCreate/SupportCreate.precompiled.js
+handlebars ./src/pages/Friends/Friends.hbs -f ./src/pages/Friends/Friends.precompiled.js

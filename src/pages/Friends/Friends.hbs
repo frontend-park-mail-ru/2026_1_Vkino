@@ -1,0 +1,133 @@
+<div class="page page_friends">
+  <header id="header"></header>
+  <div class="friends-page__toast" data-role="friends-toast" role="status" aria-live="polite" hidden></div>
+  <main class="friends-page">
+    <h1 class="friends-page__title">Друзья</h1>
+
+    {{#if isLoading}}
+      <div class="friends-page__skeleton" aria-hidden="true">
+        <div class="friends-page__skeleton-line"></div>
+        <div class="friends-page__skeleton-grid">
+          <div class="friends-page__skeleton-card"></div>
+          <div class="friends-page__skeleton-card"></div>
+          <div class="friends-page__skeleton-card"></div>
+        </div>
+      </div>
+    {{else}}
+      {{#if errorMessage}}
+        <div role="alert" class="friends-page__error-banner">{{errorMessage}}</div>
+      {{/if}}
+
+      <section class="friends-search">
+        <h2 class="friends-search__title">Найти друзей</h2>
+        <form id="friend-search-form" class="vk-header__search-form friends-search__form" data-menu="search">
+          <input id="friend-search-input" class="vk-header__search-input friends-search__input" type="search" value="{{searchQuery}}" placeholder="Поиск по email..." autocomplete="off" />
+          <button class="vk-header__search-submit friends-search__button" type="button" aria-label="Поиск">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="5.5"></circle>
+              <path d="M15.5 15.5L20 20"></path>
+            </svg>
+          </button>
+        </form>
+        <ul class="friends-search__results">
+          {{#each searchResults}}
+            <li class="friends-search__result-item">
+              <span class="friends-search__result-email">{{this.email}}</span>
+              {{#if this.isFriend}}
+                <span class="friends-search__result-badge is-friend">В друзьях</span>
+              {{else}}
+                <button
+                  type="button"
+                  class="btn btn-sm friends-search__result-action"
+                  data-action="send-request"
+                  data-user-id="{{this.id}}"
+                  {{#if this.hasPendingRequest}}disabled{{/if}}
+                >
+                  {{#if this.hasPendingRequest}}Заявка отправлена{{else}}Добавить{{/if}}
+                </button>
+              {{/if}}
+            </li>
+          {{/each}}
+        </ul>
+      </section>
+
+      {{#if incomingRequests.length}}
+      <section class="friend-requests">
+        <h2 class="friend-requests__title">Входящие заявки</h2>
+        <ul class="requests-list">
+          {{#each incomingRequests}}
+            <li class="request-item" data-request-id="{{this.id}}">
+              <span class="request-email">{{this.email}}</span>
+              <div class="request-actions">
+                <button type="button" class="request-btn request-btn--accept" data-action="accept-request">Принять</button>
+                <button type="button" class="request-btn request-btn--decline" data-action="decline-request">Отклонить</button>
+              </div>
+            </li>
+          {{/each}}
+        </ul>
+      </section>
+      {{/if}}
+
+      {{#if outgoingRequests.length}}
+      <section class="friend-requests outgoing">
+        <h2 class="friend-requests__title">Мои заявки</h2>
+        <ul class="requests-list">
+          {{#each outgoingRequests}}
+            <li class="request-item" data-request-id="{{this.id}}">
+              <span class="request-email">{{this.email}}</span>
+              <div class="request-actions">
+                <span class="request-since">{{this.sinceLabel}}</span>
+                <button type="button" class="request-btn request-btn--decline" data-action="cancel-request">Отменить</button>
+              </div>
+            </li>
+          {{/each}}
+        </ul>
+      </section>
+      {{/if}}
+
+      <section class="friends-list">
+        <h2 class="friends-list__title">Друзья ({{friends.length}})</h2>
+        {{#if friends.length}}
+          <ul class="friends-grid">
+            {{#each friends}}
+              <li class="friend-card" data-user-id="{{this.id}}">
+                <div class="friend-card__avatar">
+                  {{#if this.avatarUrl}}
+                    <img src="{{this.avatarUrl}}" alt="{{this.displayName}}" />
+                  {{else}}
+                    <div class="avatar-placeholder">{{this.initials}}</div>
+                  {{/if}}
+                </div>
+                <div class="friend-card__info">
+                  <span class="friend-card__name">{{this.displayName}}</span>
+                  <span class="friend-card__email">{{this.email}}</span>
+                  {{#if this.sinceLabel}}
+                    <span class="friend-card__since">Друг с {{this.sinceLabel}}</span>
+                  {{/if}}
+                </div>
+                <button class="friend-card__remove" type="button" data-action="remove-friend" data-user-id="{{this.id}}" aria-label="Удалить из друзей">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                  </svg>
+                </button>
+              </li>
+            {{/each}}
+          </ul>
+        {{else}}
+          <div class="empty-state-card">
+            <div class="empty-state-icon empty-state-icon--friends" aria-hidden="true">
+              <svg class="empty-state-icon__svg" viewBox="0 0 24 24" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="1.5" fill="none" />
+                <line x1="19" y1="8" x2="19" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                <line x1="16" y1="11" x2="22" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+            </div>
+            <p class="empty-state-text">У вас пока нет друзей</p>
+            <p class="empty-state-subtext">Найдите людей по email и отправьте заявку</p>
+          </div>
+        {{/if}}
+      </section>
+    {{/if}}
+  </main>
+</div>

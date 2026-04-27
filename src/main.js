@@ -11,6 +11,7 @@ import WatchPartyPage from "./pages/WatchParty/WatchParty.js";
 import SupportCreatePage from "./pages/SupportCreate/SupportCreate.js";
 import SupportTicketsPage from "./pages/SupportTickets/SupportTickets.js";
 import AdminTicketsPage from "./pages/AdminTickets/AdminTickets.js";
+import FriendsPage from "./pages/Friends/Friend.js";
 
 import "./css/index.scss";
 
@@ -87,6 +88,31 @@ async function start() {
           root,
         ),
     )
+    .registerRoute(
+      "/favorites",
+      (root) =>
+        new CatalogPage(
+          {
+            catalogKey: "favorites",
+            basePath: "/favorites",
+          },
+          null,
+          root,
+        ),
+    )
+    .registerRoute(
+      "/profile/history",
+      (root) =>
+        new CatalogPage(
+          {
+            catalogKey: "history",
+            basePath: "/profile/history",
+          },
+          null,
+          root,
+        ),
+    )
+    .registerRoute("/friends", (root) => new FriendsPage({}, null, root))
     .registerRoute(
       "/selection/:title",
       (root) => new CatalogPage({ catalogKey: "selection" }, null, root),

@@ -58,11 +58,17 @@ export class PlayerService {
       };
     }
 
+    const payload = {
+      position_sec: normalizedPosition,
+    };
+    console.debug("[PlayerService] Saving progress", {
+      episodeId: normalizedEpisodeId,
+      payload,
+    });
+
     return this.api.put(
       `/episode/${encodeURIComponent(normalizedEpisodeId)}/progress`,
-      {
-        position_seconds: normalizedPosition,
-      },
+      payload,
     );
   }
 }

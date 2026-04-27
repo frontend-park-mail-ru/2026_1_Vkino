@@ -2,8 +2,11 @@ import BasePage from "../BasePage.js";
 import "./Movie.precompiled.js";
 import HeaderComponent from "../../components/Header/Header.js";
 import { movieService } from "../../js/MovieService.js";
+import { userService } from "../../js/UserService.js";
 import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
 import MoviePlayerComponent from "../../components/MoviePlayer/MoviePlayer.js";
+import { authStore } from "../../store/authStore.js";
+import { router } from "../../router/index.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
 import { extractMovie } from "../../utils/apiResponse.js";
 
@@ -48,6 +51,7 @@ export default class MoviePage extends BasePage {
     this._contextLoaded = false;
     this._onOpenPlayerClickBound = this._onOpenPlayerClick.bind(this);
     this._onPopStateBound = this._onPopState.bind(this);
+    this._onToggleFavoriteBound = this._onToggleFavorite.bind(this);
   }
 
   init() {
@@ -96,12 +100,16 @@ export default class MoviePage extends BasePage {
     const moviePayload = extractMovie(resp);
 
     this._contextLoaded = true;
+    const isFavorite = Boolean(moviePayload?.is_favorite);
     this.refresh({
       ...this.context,
       loading: false,
       hasError: false,
       errorText: "",
-      movie: mapMovieDtoToViewModel(moviePayload || {}),
+      movie: {
+        ...mapMovieDtoToViewModel(moviePayload || {}),
+        isFavorite,
+      },
     });
 
     this._syncPlayerWithLocation();
@@ -133,17 +141,25 @@ export default class MoviePage extends BasePage {
     const openPlayerButton = this.el.querySelector(
       '[data-action="open-player"]',
     );
+    const favoriteButton = this.el.querySelector(
+      '[data-action="toggle-favorite"]',
+    );
     openPlayerButton?.addEventListener("click", this._onOpenPlayerClickBound);
+    favoriteButton?.addEventListener("click", this._onToggleFavoriteBound);
   }
 
   removeEventListeners() {
     const openPlayerButton = this.el?.querySelector(
       '[data-action="open-player"]',
     );
+    const favoriteButton = this.el?.querySelector(
+      '[data-action="toggle-favorite"]',
+    );
     openPlayerButton?.removeEventListener(
       "click",
       this._onOpenPlayerClickBound,
     );
+    favoriteButton?.removeEventListener("click", this._onToggleFavoriteBound);
   }
 
   beforeDestroy() {
@@ -207,17 +223,27 @@ export default class MoviePage extends BasePage {
       return;
     }
 
+    const fromLocation = readWatchState(window.location, this.context.movie);
     const initialEpisode = resolveInitialEpisode(this.context.movie);
-    await this._openPlayer(initialEpisode?.id || "");
+    const episodeId =
+      fromLocation.shouldOpen && fromLocation.episodeId
+        ? fromLocation.episodeId
+        : (initialEpisode?.id || "");
+    const startSeconds = fromLocation.shouldOpen
+      ? fromLocation.startSeconds
+      : 0;
+
+    await this._openPlayer(episodeId, { startSeconds });
   }
 
-  async _openPlayer(initialEpisodeId = "") {
+  async _openPlayer(initialEpisodeId = "", options = {}) {
     const player = this.getChild("movie-player");
 
     if (!player || this.context.loading || this.context.hasError) {
       return;
     }
 
+    const startSeconds = Math.max(0, Math.floor(Number(options.startSeconds) || 0));
     const normalizedEpisodeId = normalizeString(initialEpisodeId);
 
     if (!isPlayerWatchLocation(window.location)) {
@@ -228,11 +254,11 @@ export default class MoviePage extends BasePage {
           episodeId: normalizedEpisodeId,
         },
         "",
-        buildWatchUrl(this.context.movie.id, normalizedEpisodeId),
+        buildWatchUrl(this.context.movie.id, normalizedEpisodeId, startSeconds),
       );
     }
 
-    await player.open(this.context.movie, normalizedEpisodeId);
+    await player.open(this.context.movie, normalizedEpisodeId, { startSeconds });
   }
 
   _requestPlayerClose() {
@@ -259,11 +285,56 @@ export default class MoviePage extends BasePage {
       return;
     }
 
-    await player.open(this.context.movie, watchState.episodeId);
+    await player.open(this.context.movie, watchState.episodeId, {
+      startSeconds: watchState.startSeconds,
+    });
   }
 
   async _onPopState() {
     await this._syncPlayerWithLocation();
+  }
+
+  async _onToggleFavorite(event) {
+    event.preventDefault();
+
+    if (!authStore.getState().user) {
+      const returnTo = encodeURIComponent(
+        window.location.pathname + window.location.search,
+      );
+      router.go(`/sign-in?return_to=${returnTo}`);
+      return;
+    }
+
+    const movieId = event.currentTarget.dataset.movieId || this.context.movie.id;
+    const wasFavorite = Boolean(this.context.movie?.isFavorite);
+
+    this.refresh({
+      ...this.context,
+      movie: {
+        ...this.context.movie,
+        isFavorite: !wasFavorite,
+      },
+    });
+
+    const result = await userService.toggleFavorite(movieId);
+    if (result.ok) {
+      this.refresh({
+        ...this.context,
+        movie: {
+          ...this.context.movie,
+          isFavorite: Boolean(result.resp?.is_favorite),
+        },
+      });
+      return;
+    }
+
+    this.refresh({
+      ...this.context,
+      movie: {
+        ...this.context.movie,
+        isFavorite: wasFavorite,
+      },
+    });
   }
 }
 
@@ -322,6 +393,7 @@ function createEmptyMovieData(movieId = "") {
     ratings: [],
     cast: [],
     similar: [],
+    isFavorite: false,
   };
 }
 
@@ -573,16 +645,28 @@ function isPlayerWatchLocation(location) {
 }
 
 function readWatchState(location, movie = {}) {
+  const params = new URLSearchParams(location.search);
+  let startSeconds = 0;
+  const startRaw = normalizeString(params.get("start"));
+
+  if (startRaw) {
+    const n = Number(startRaw);
+
+    if (Number.isFinite(n) && n >= 0) {
+      startSeconds = Math.floor(n);
+    }
+  }
+
   const shouldOpen = isPlayerWatchLocation(location);
 
   if (!shouldOpen) {
     return {
       shouldOpen: false,
       episodeId: "",
+      startSeconds: 0,
     };
   }
 
-  const params = new URLSearchParams(location.search);
   const requestedEpisodeId = normalizeString(params.get("episode"));
   const episodes = Array.isArray(movie.episodes) ? movie.episodes : [];
   const fallbackEpisodeId = resolveInitialEpisode(movie)?.id || "";
@@ -593,10 +677,11 @@ function readWatchState(location, movie = {}) {
   return {
     shouldOpen: true,
     episodeId: hasRequestedEpisode ? requestedEpisodeId : fallbackEpisodeId,
+    startSeconds,
   };
 }
 
-function buildWatchUrl(movieId, episodeId = "") {
+function buildWatchUrl(movieId, episodeId = "", startSeconds = 0) {
   const encodedMovieId = encodeURIComponent(normalizeString(movieId));
   const params = new URLSearchParams();
   params.set("watch", "1");
@@ -605,6 +690,11 @@ function buildWatchUrl(movieId, episodeId = "") {
     params.set("episode", normalizeString(episodeId));
   }
 
-  const query = params.toString();
-  return `/movie/${encodedMovieId}${query ? `?${query}` : ""}`;
+  const s = Math.max(0, Math.floor(Number(startSeconds) || 0));
+
+  if (s > 0) {
+    params.set("start", String(s));
+  }
+
+  return `/movie/${encodedMovieId}?${params.toString()}`;
 }

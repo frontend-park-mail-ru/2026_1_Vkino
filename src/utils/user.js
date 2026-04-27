@@ -12,13 +12,12 @@ export function getDisplayNameFromEmail(email = "") {
     return "";
   }
 
-  const atIndex = normalized.indexOf("@");
-
-  if (atIndex === -1) {
-    return normalized;
-  }
-
-  return normalized.slice(0, atIndex);
+  const [localPart] = normalized.split("@");
+  return localPart
+    .split(/[._-]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
 }
 
 /**
@@ -45,4 +44,20 @@ export function formatBirthdate(birthdate = "") {
     month: "long",
     year: "numeric",
   }).format(parsedDate);
+}
+
+export function formatDate(dateString = "") {
+  const normalized = String(dateString || "").trim();
+  if (!normalized) {
+    return "";
+  }
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) {
+    return normalized;
+  }
+  return date.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }

@@ -100,6 +100,15 @@ function getVariantConfig(variant) {
     };
   }
 
+  if (variant === "landscape") {
+    return {
+      showAlwaysContent: false,
+      showOverlay: true,
+      showDescription: true,
+      showButton: true,
+    };
+  }
+
   return {
     showAlwaysContent: false,
     showOverlay: true,
