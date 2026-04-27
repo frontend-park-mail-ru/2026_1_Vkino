@@ -1,12 +1,13 @@
-import BasePage from "../BasePage.js";
-import "./Catalog.precompiled.js";
-import "../../css/catalog.scss";
+import BasePage from "@/pages/BasePage.js";
+import "@/pages/Catalog/Catalog.precompiled.js";
+import "@/css/catalog.scss";
 
-import HeaderComponent from "../../components/Header/Header.js";
-import MoviePosterComponent from "../../components/MoviePoster/MoviePoster.js";
-import PaginationComponent from "../../components/Pagination/Pagination.js";
-import { movieService } from "../../js/MovieService.js";
-import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
+import HeaderComponent from "@/components/Header/Header.js";
+import MoviePosterComponent from "@/components/MoviePoster/MoviePoster.js";
+import PaginationComponent from "@/components/Pagination/Pagination.js";
+import { movieService } from "@/js/MovieService.js";
+import { getCacheFallbackNotice } from "@/utils/apiMeta.js";
+import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
 
 const DEFAULT_PAGE_SIZE = 12;
 
@@ -59,6 +60,7 @@ export default class CatalogPage extends BasePage {
         isLoading: !hasProvidedItems,
         hasError: false,
         errorMessage: "",
+        cacheMessage: "",
         catalogKey: "",
         items: hasProvidedItems ? context.items : [],
         ...context,
@@ -83,9 +85,10 @@ export default class CatalogPage extends BasePage {
   }
 
   async loadContext() {
-    const { ok, status, resp, error } = await movieService.getSelectionsByTitles(
+    const selectionsResult = await movieService.getSelectionsByTitles(
       resolveRequestedSelectionTitles(this.context),
     );
+    const { ok, status, resp, error } = selectionsResult;
 
     if (!ok) {
       this.refresh(
@@ -94,6 +97,7 @@ export default class CatalogPage extends BasePage {
           isLoading: false,
           hasError: true,
           errorMessage: mapCatalogLoadError(status, error),
+          cacheMessage: "",
           items: [],
           totalPages: 1,
         }),
@@ -117,6 +121,7 @@ export default class CatalogPage extends BasePage {
         isLoading: false,
         hasError: false,
         errorMessage: "",
+        cacheMessage: getCacheFallbackNotice(selectionsResult),
         items: paginationState.items,
         currentPage: paginationState.currentPage,
         totalPages: paginationState.totalPages,
@@ -207,6 +212,7 @@ export default class CatalogPage extends BasePage {
         isLoading: true,
         hasError: false,
         errorMessage: "",
+        cacheMessage: "",
         items: [],
       }),
     );
