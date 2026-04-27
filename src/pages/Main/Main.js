@@ -1,6 +1,7 @@
 import BasePage from "../BasePage.js";
 import "./Main.precompiled.js";
 
+import { getCacheFallbackNotice } from "../../utils/apiMeta.js";
 import { extractSelections } from "../../utils/apiResponse.js";
 import { consumePendingMainScrollTarget } from "../../components/Header/Header.js";
 import { movieService } from "../../js/MovieService.js";
@@ -41,7 +42,16 @@ export default class MainPage extends BasePage {
       throw new Error("Main: не передан корневой элемент для MainPage");
     }
 
-    super(context, Handlebars.templates["Main.hbs"], parent, el, "MainPage");
+    super(
+      {
+        cacheMessage: "",
+        ...context,
+      },
+      Handlebars.templates["Main.hbs"],
+      parent,
+      el,
+      "MainPage",
+    );
 
     /**
      * Флаг загрузки контекста.
@@ -92,6 +102,7 @@ export default class MainPage extends BasePage {
 
     const newContext = {
       ...this.context,
+      cacheMessage: getCacheFallbackNotice(selectionsResult),
       selectionEntries: selections,
       heroEntry,
     };

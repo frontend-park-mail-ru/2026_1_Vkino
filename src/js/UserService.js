@@ -92,7 +92,7 @@ export class UserService {
     const result = await this.api.post("/refresh");
     this._saveAccessToken(result);
 
-    if (!result.ok) {
+    if (!result.ok && shouldClearSessionAfterRefreshFailure(result.status)) {
       this._clearSessionLocal();
     }
 
@@ -153,3 +153,7 @@ export class UserService {
  * @type {UserService}
  */
 export const userService = new UserService(apiService);
+
+function shouldClearSessionAfterRefreshFailure(status) {
+  return status >= 400 && status < 500 && status !== 408 && status !== 429;
+}
