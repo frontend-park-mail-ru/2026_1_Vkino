@@ -21,7 +21,7 @@
       <section class="friends-search">
         <h2 class="friends-search__title">Найти друзей</h2>
         <form id="friend-search-form" class="vk-header__search-form friends-search__form" data-menu="search">
-          <input id="friend-search-input" class="vk-header__search-input friends-search__input" type="search" value="{{searchQuery}}" placeholder="Поиск по email..." autocomplete="off" />
+          <input id="friend-search-input" class="vk-header__search-input friends-search__input" type="search" placeholder="Поиск по email..." autocomplete="off" />
           <button class="vk-header__search-submit friends-search__button" type="button" aria-label="Поиск">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="11" cy="11" r="5.5"></circle>
@@ -32,7 +32,19 @@
         <ul class="friends-search__results">
           {{#each searchResults}}
             <li class="friends-search__result-item">
-              <span class="friends-search__result-email">{{this.email}}</span>
+              <div class="friends-search__result-main">
+                <div class="friends-search__result-avatar">
+                  {{#if this.avatarUrl}}
+                    <img src="{{this.avatarUrl}}" alt="" />
+                  {{else}}
+                    <span class="friends-search__result-initials">{{this.initials}}</span>
+                  {{/if}}
+                </div>
+                <div class="friends-search__result-text">
+                  <span class="friends-search__result-name">{{this.displayName}}</span>
+                  <span class="friends-search__result-email">{{this.email}}</span>
+                </div>
+              </div>
               {{#if this.isFriend}}
                 <span class="friends-search__result-badge is-friend">В друзьях</span>
               {{else}}

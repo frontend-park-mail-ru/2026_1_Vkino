@@ -1,13 +1,13 @@
-import BasePage from "../BasePage.js";
+import BasePage from "@/pages/BasePage.js";
 import "./Friends.precompiled.js";
-import "../../css/friends.scss";
-import HeaderComponent from "../../components/Header/Header.js";
-import { userService } from "../../js/UserService.js";
-import { router } from "../../router/index.js";
-import { authStore } from "../../store/authStore.js";
-import { getDisplayNameFromEmail, formatDate } from "../../utils/user.js";
-import { resolveAvatarUrl } from "../../utils/avatar.js";
-import { createDebouncedSearch } from "../../utils/SearchHelper.js";
+import "@/css/friends.scss";
+import HeaderComponent from "@/components/Header/Header.js";
+import { userService } from "@/js/UserService.js";
+import { router } from "@/router/index.js";
+import { authStore } from "@/store/authStore.js";
+import { getDisplayNameFromEmail, formatDate } from "@/utils/user.js";
+import { resolveAvatarUrl } from "@/utils/avatar.js";
+import { createDebouncedSearch } from "@/utils/SearchHelper.js";
 
 export default class FriendsPage extends BasePage {
   constructor(context = {}, parent = null, el = null) {
@@ -96,10 +96,7 @@ export default class FriendsPage extends BasePage {
     }
 
     const query = String(input.value || "").trim();
-    this.refresh({
-      ...this.context,
-      searchQuery: query,
-    });
+    this.context.searchQuery = query;
 
     this._debouncedSearch(query);
   };
@@ -112,9 +109,21 @@ export default class FriendsPage extends BasePage {
       this.refresh({
         ...this.context,
         searchResults: [],
+        searchQuery: "",
       });
+      this._restoreSearchInput("", 0, 0);
       return;
     }
+
+    const inputEl = this.el?.querySelector("#friend-search-input");
+    const valueSnapshot = inputEl ? inputEl.value : normalizedQuery;
+    const hadFocus = document.activeElement === inputEl;
+    const selStart = hadFocus
+      ? (inputEl.selectionStart ?? valueSnapshot.length)
+      : valueSnapshot.length;
+    const selEnd = hadFocus
+      ? (inputEl.selectionEnd ?? valueSnapshot.length)
+      : valueSnapshot.length;
 
     const result = await userService.searchUsers(normalizedQuery, { limit: 10 });
     if (requestToken !== this._searchRequestToken) {
@@ -124,12 +133,35 @@ export default class FriendsPage extends BasePage {
     const raw = result.ok ? result.resp?.users || [] : [];
     this.refresh({
       ...this.context,
+      searchQuery: valueSnapshot.trim(),
       searchResults: enrichSearchResults(raw, {
         friends: this.context.friends,
         outgoingRequests: this.context.outgoingRequests,
       }),
     });
+    this._restoreSearchInput(valueSnapshot, selStart, selEnd);
   };
+
+  /**
+   * После полного refresh DOM поля ввода пересоздаётся — восстанавливаем значение и курсор.
+   */
+  _restoreSearchInput(value, selStart, selEnd) {
+    const inp = this.el?.querySelector("#friend-search-input");
+    if (!inp) {
+      return;
+    }
+
+    inp.value = value;
+    inp.focus();
+    const max = value.length;
+    const a = Math.max(0, Math.min(selStart, max));
+    const b = Math.max(0, Math.min(selEnd, max));
+    try {
+      inp.setSelectionRange(a, b);
+    } catch {
+      /* type=search может не поддерживать выделение в части браузеров */
+    }
+  }
 
   _onClick = async (event) => {
     const actionBtn = event.target.closest("[data-action]");
@@ -253,10 +285,16 @@ function normalizeRequests(items = []) {
 function normalizeFriends(items = []) {
   return items.map((friend) => {
     const displayName = getDisplayNameFromEmail(friend.email) || "Пользователь";
+    const avatarSource =
+      friend.avatar_url ||
+      friend.avatarUrl ||
+      friend.avatar_file_key ||
+      friend.avatarFileKey ||
+      "";
     return {
       ...friend,
       displayName,
-      avatarUrl: resolveAvatarUrl(friend.avatar_file_key),
+      avatarUrl: resolveAvatarUrl(avatarSource),
       initials: displayName.charAt(0).toUpperCase(),
       sinceLabel: formatDate(friend.created_at),
     };
@@ -276,9 +314,22 @@ function enrichSearchResults(users = [], rel = {}) {
       String(r.user_id ?? r.to_user_id ?? ""),
     ),
   );
-  return users.map((u) => ({
-    ...u,
-    isFriend: friendIds.has(String(u.id)),
-    hasPendingRequest: pendingTo.has(String(u.id)),
-  }));
+  return users.map((u) => {
+    const displayName = getDisplayNameFromEmail(u.email) || "Пользователь";
+    // вообще avatar_url, но на всякий пока оставлю 
+    const avatarSource =
+      u.avatar_url ||
+      u.avatarUrl ||
+      u.avatar_file_key ||
+      u.avatarFileKey ||
+      "";
+    return {
+      ...u,
+      displayName,
+      avatarUrl: resolveAvatarUrl(avatarSource),
+      initials: displayName.charAt(0).toUpperCase(),
+      isFriend: friendIds.has(String(u.id)),
+      hasPendingRequest: pendingTo.has(String(u.id)),
+    };
+  });
 }

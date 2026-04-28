@@ -419,6 +419,25 @@
   padding: 24px 0;
 }
 
+.profile-empty-row {
+  display: flex;
+  gap: 24px;
+  margin-top: 2.2rem;
+}
+
+.profile-empty-row .profile-section {
+  margin-top: 0;
+}
+
+.profile-empty-row .profile-section--empty {
+  flex: 1 1 0;
+}
+
+.profile-empty-row .empty-state-card {
+  max-width: none;
+  width: 100%;
+}
+
 .profile-section--empty .profile-section-title {
   justify-content: center;
   width: 100%;
@@ -452,6 +471,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  text-decoration: none;
 }
 
 .empty-state-icon svg {
@@ -693,6 +713,11 @@
 }
 
 @media (max-width: 640px) {
+  .profile-empty-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+
   .profile-banner {
     flex-direction: column;
     align-items: flex-start;

@@ -59,7 +59,7 @@ export class PlayerService {
     }
 
     const payload = {
-      position_sec: normalizedPosition,
+      position_seconds: normalizedPosition,
     };
     console.debug("[PlayerService] Saving progress", {
       episodeId: normalizedEpisodeId,

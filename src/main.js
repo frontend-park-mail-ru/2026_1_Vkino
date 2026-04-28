@@ -11,7 +11,7 @@ import WatchPartyPage from "./pages/WatchParty/WatchParty.js";
 import SupportCreatePage from "./pages/SupportCreate/SupportCreate.js";
 import SupportTicketsPage from "./pages/SupportTickets/SupportTickets.js";
 import AdminTicketsPage from "./pages/AdminTickets/AdminTickets.js";
-import FriendsPage from "./pages/Friends/Friend.js";
+import FriendsPage from "./pages/Friends/Friends.js";
 
 import "./css/index.scss";
 

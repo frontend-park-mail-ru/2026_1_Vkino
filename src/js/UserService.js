@@ -148,7 +148,7 @@ export class UserService {
   }
 
   /**
-   * Переключает статус фильма в избранном.
+   * Переключает фильм в любимый / нелюбимый
    * @async
    * @param {string|number} movieId ID фильма.
    * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
@@ -188,7 +188,7 @@ export class UserService {
   }
 
   /**
-   * Возвращает недавно просмотренные фильмы (с порогом прогресса на бэкенде).
+   * Возвращает недавно просмотренные фильмы (с порогом прогресса просмотра на бэкенде).
    * @async
    * @param {{limit?: number}} [options={}] параметры выборки.
    * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.

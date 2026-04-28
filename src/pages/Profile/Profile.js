@@ -48,6 +48,9 @@ export default class ProfilePage extends BasePage {
         friendsPreview: [],
         hasMoreFriends: false,
         remainingCount: 0,
+        isFavoritesEmpty: true,
+        isFriendsEmpty: true,
+        shouldGroupEmptyStates: false,
         ...context,
       },
       Handlebars.templates["Profile.hbs"],
@@ -147,21 +150,32 @@ export default class ProfilePage extends BasePage {
       );
     }
 
+    const continueWatching = continueResult.ok
+      ? normalizeWatchProgress(continueResult.resp?.items || [], {
+          actionText: "Продолжить просмотр",
+        })
+      : [];
+    const watchHistory = historyResult.ok
+      ? normalizeWatchProgress(historyResult.resp?.items || [], {
+          actionText: "Смотреть",
+        })
+      : [];
+    const favorites = favoritesResult.ok
+      ? normalizeMovieCards(favoritesResult.resp?.movies || [])
+      : [];
+    const friendsPreview = friendsResult.ok
+      ? normalizeFriendsPreview(friendsResult.resp?.friends || [])
+      : [];
+    const isFavoritesEmpty = favorites.length === 0;
+    const isFriendsEmpty = friendsPreview.length === 0;
+
     this.refresh({
       ...this.context,
       ...buildProfileIdentity(profile),
-      continueWatching: continueResult.ok
-        ? normalizeWatchProgress(continueResult.resp?.items || [])
-        : [],
-      watchHistory: historyResult.ok
-        ? normalizeWatchProgress(historyResult.resp?.items || [])
-        : [],
-      favorites: favoritesResult.ok
-        ? normalizeMovieCards(favoritesResult.resp?.movies || [])
-        : [],
-      friendsPreview: friendsResult.ok
-        ? normalizeFriendsPreview(friendsResult.resp?.friends || [])
-        : [],
+      continueWatching,
+      watchHistory,
+      favorites,
+      friendsPreview,
       hasMoreFriends: Boolean(
         friendsResult.ok &&
           Number(friendsResult.resp?.total_count || 0) >
@@ -174,6 +188,9 @@ export default class ProfilePage extends BasePage {
               (friendsResult.resp?.friends?.length || 0),
           )
         : 0,
+      isFavoritesEmpty,
+      isFriendsEmpty,
+      shouldGroupEmptyStates: isFavoritesEmpty && isFriendsEmpty,
       isLoading: false,
       errorMessage: profileResult.ok
         ? ""
@@ -323,7 +340,12 @@ function buildProfileCarousels(context = {}) {
   );
 }
 
-function normalizeWatchProgress(items = []) {
+function normalizeWatchProgress(items = [], options = {}) {
+  const actionText =
+    options.actionText != null && options.actionText !== ""
+      ? options.actionText
+      : "Продолжить просмотр";
+
   return items.map((item) => {
     const durationRaw = getFirstFiniteNumber([
       item.duration_seconds,
@@ -404,7 +426,7 @@ function normalizeWatchProgress(items = []) {
       meta: isSeries
         ? `Сезон ${seasonNumber}, Серия ${episodeNumber} • ${normalizedProgressPercent}%`
         : `${normalizedProgressPercent}%`,
-      actionText: "Продолжить просмотр",
+      actionText,
       progress: {
         percent: normalizedProgressPercent,
         displayPercent: visibleProgressPercent,
@@ -433,10 +455,16 @@ function normalizeId(value) {
 function normalizeFriendsPreview(friends = []) {
   return friends.map((friend) => {
     const displayName = getDisplayNameFromEmail(friend.email) || "Пользователь";
+    const avatarSource =
+      friend.avatar_url ||
+      friend.avatarUrl ||
+      friend.avatar_file_key ||
+      friend.avatarFileKey ||
+      "";
     return {
       id: String(friend.id),
       displayName,
-      avatarUrl: resolveAvatarUrl(friend.avatar_file_key),
+      avatarUrl: resolveAvatarUrl(avatarSource),
       initials: displayName.charAt(0).toUpperCase(),
       href: `/profile/${friend.id}`,
     };

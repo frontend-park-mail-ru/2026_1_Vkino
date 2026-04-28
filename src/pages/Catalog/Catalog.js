@@ -97,12 +97,15 @@ export default class CatalogPage extends BasePage {
   }
 
   async loadContext() {
+    // Пагинация: для избранного — offset/limit и total_count с бэка (честный totalPages).
+    // Курсорный next_cursor для общего каталога подборок — отдельная задача (нужен контракт movie-service).
     if (this.context.catalogKey === "favorites") {
+      const pageSize = this.context.pageSize || DEFAULT_PAGE_SIZE;
       const { ok, status, resp, error } = await userService.getFavorites({
-        limit: this.context.pageSize || DEFAULT_PAGE_SIZE,
+        limit: pageSize,
         offset:
           (normalizePositiveInteger(this.context.currentPage, 1) - 1) *
-          (this.context.pageSize || DEFAULT_PAGE_SIZE),
+          pageSize,
       });
 
       if (!ok) {
@@ -121,6 +124,11 @@ export default class CatalogPage extends BasePage {
       }
 
       const items = normalizeCatalogItems(resp?.movies || []);
+      const totalItems = Number(
+        resp?.total_count ?? resp?.totalCount ?? items.length,
+      );
+      const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
       this.refresh(
         buildCatalogContext({
           ...this.context,
@@ -129,7 +137,7 @@ export default class CatalogPage extends BasePage {
           errorMessage: "",
           items,
           currentPage: normalizePositiveInteger(this.context.currentPage, 1),
-          totalPages: 1,
+          totalPages,
         }),
       );
       applyCatalogDocumentTitle("favorites", "Избранное");
@@ -317,6 +325,14 @@ function buildCatalogContext(context = {}) {
   const pageSize = normalizePositiveInteger(context.pageSize, DEFAULT_PAGE_SIZE);
   const basePath = normalizeString(context.basePath) || window.location.pathname;
   const items = normalizeCatalogItems(context.items);
+  const catalogKeyNorm = normalizeString(context.catalogKey).toLowerCase();
+  const isLoading = Boolean(context.isLoading);
+  const hasError = Boolean(context.hasError);
+  const showFavoritesEmpty =
+    !isLoading &&
+    !hasError &&
+    catalogKeyNorm === "favorites" &&
+    items.length === 0;
 
   return {
     ...context,
@@ -332,6 +348,7 @@ function buildCatalogContext(context = {}) {
     })),
     pagination: buildPaginationContext(currentPage, totalPages, basePath),
     skeletonItems: buildSkeletonItems(pageSize),
+    showFavoritesEmpty,
   };
 }
 
