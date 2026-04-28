@@ -1,13 +1,12 @@
-import BasePage from "@/pages/BasePage.js";
+import BasePage from "@/pages/BasePage";
 import "@/pages/Catalog/Catalog.precompiled.js";
 import "@/css/catalog.scss";
 
-import HeaderComponent from "@/components/Header/Header.js";
-import MoviePosterComponent from "@/components/MoviePoster/MoviePoster.js";
-import PaginationComponent from "@/components/Pagination/Pagination.js";
-import { movieService } from "@/js/MovieService.js";
-import { getCacheFallbackNotice } from "@/utils/apiMeta.js";
-import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
+import HeaderComponent from "../../components/Header/Header.js";
+import MoviePosterComponent from "../../components/MoviePoster/MoviePoster.js";
+import PaginationComponent from "../../components/Pagination/Pagination.js";
+import { movieService } from "../../js/MovieService.js";
+import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
 
 const DEFAULT_PAGE_SIZE = 12;
 
@@ -98,97 +97,9 @@ export default class CatalogPage extends BasePage {
   }
 
   async loadContext() {
-<<<<<<< HEAD
-    // Пагинация: для избранного — offset/limit и total_count с бэка (честный totalPages).
-    // Курсорный next_cursor для общего каталога подборок — отдельная задача (нужен контракт movie-service).
-    if (this.context.catalogKey === "favorites") {
-      const pageSize = this.context.pageSize || DEFAULT_PAGE_SIZE;
-      const { ok, status, resp, error } = await userService.getFavorites({
-        limit: pageSize,
-        offset:
-          (normalizePositiveInteger(this.context.currentPage, 1) - 1) *
-          pageSize,
-      });
-
-      if (!ok) {
-        this.refresh(
-          buildCatalogContext({
-            ...this.context,
-            isLoading: false,
-            hasError: true,
-            errorMessage: mapCatalogLoadError(status, error),
-            items: [],
-            totalPages: 1,
-          }),
-        );
-        applyCatalogDocumentTitle(this.context.catalogKey, "Избранное");
-        return;
-      }
-
-      const items = normalizeCatalogItems(resp?.movies || []);
-      const totalItems = Number(
-        resp?.total_count ?? resp?.totalCount ?? items.length,
-      );
-      const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-
-      this.refresh(
-        buildCatalogContext({
-          ...this.context,
-          isLoading: false,
-          hasError: false,
-          errorMessage: "",
-          items,
-          currentPage: normalizePositiveInteger(this.context.currentPage, 1),
-          totalPages,
-        }),
-      );
-      applyCatalogDocumentTitle("favorites", "Избранное");
-      return;
-    }
-
-    if (this.context.catalogKey === "history") {
-      const { ok, status, resp, error } = await userService.getWatchHistory({
-        limit: 200,
-      });
-
-      if (!ok) {
-        this.refresh(
-          buildCatalogContext({
-            ...this.context,
-            isLoading: false,
-            hasError: true,
-            errorMessage: mapCatalogLoadError(status, error),
-            items: [],
-            totalPages: 1,
-          }),
-        );
-        applyCatalogDocumentTitle("history", "Недавно просмотренные");
-        return;
-      }
-
-      const items = normalizeHistoryWatchItems(resp?.items || []);
-      this.refresh(
-        buildCatalogContext({
-          ...this.context,
-          isLoading: false,
-          hasError: false,
-          errorMessage: "",
-          items,
-          currentPage: 1,
-          totalPages: 1,
-        }),
-      );
-      applyCatalogDocumentTitle("history", "Недавно просмотренные");
-      return;
-    }
-
     const { ok, status, resp, error } = await movieService.getSelectionsByTitles(
-=======
-    const selectionsResult = await movieService.getSelectionsByTitles(
->>>>>>> master
       resolveRequestedSelectionTitles(this.context),
     );
-    const { ok, status, resp, error } = selectionsResult;
 
     if (!ok) {
       this.refresh(
