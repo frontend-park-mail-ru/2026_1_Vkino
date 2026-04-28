@@ -6,7 +6,6 @@ import { initAuthValidation, setError } from "../../js/password/validation.js";
 import { initRegisterBottleEffect } from "../../js/register.js";
 import { router } from "../../router/index.js";
 import { authStore } from "../../store/authStore.js";
-import { SupportWidgetController } from "../../utils/supportWidget.js";
 
 /**
  * @typedef {Object} AuthUserData
@@ -43,7 +42,6 @@ export default class SignUpPage extends BasePage {
     this._destroyPasswordToggle = null;
     this._destroyValidation = null;
     this._destroyBottleEffect = null;
-    this._supportWidget = null;
   }
 
   /**
@@ -75,7 +73,6 @@ export default class SignUpPage extends BasePage {
     });
 
     this._destroyBottleEffect = initRegisterBottleEffect(this.el);
-    this._supportWidget = new SupportWidgetController(this.el).init();
   }
 
   /**
@@ -97,11 +94,6 @@ export default class SignUpPage extends BasePage {
     if (this._destroyBottleEffect) {
       this._destroyBottleEffect();
       this._destroyBottleEffect = null;
-    }
-
-    if (this._supportWidget) {
-      this._supportWidget.destroy();
-      this._supportWidget = null;
     }
   }
 

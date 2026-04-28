@@ -2,6 +2,12 @@
 
 <div class="main">
   <div class="main-content" id="main-content">
+    {{#if cacheMessage}}
+      <div class="page-status-banner page-status-banner_warning" role="status">
+        <span>{{cacheMessage}}</span>
+      </div>
+    {{/if}}
+
     <section
       class="main-hero-slot"
       id="hero-carousel"
@@ -23,65 +29,67 @@
     </div>
   </div>
 
-  <div class="main-support-widget" data-role="support-widget">
-    <div
-      class="main-support-widget__toast"
-      data-role="support-widget-toast"
-      role="status"
-      aria-live="polite"
-    ></div>
+  {{#if showSupportWidget}}
+    <div class="main-support-widget" data-role="support-widget">
+      <div
+        class="main-support-widget__toast"
+        data-role="support-widget-toast"
+        role="status"
+        aria-live="polite"
+      ></div>
 
-    <button
-      class="main-support-widget__trigger"
-      type="button"
-      data-action="toggle-support-widget"
-      aria-label="Открыть форму обращения в поддержку"
-      aria-expanded="false"
-    >
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path
-          d="M9.1 9.25a3.15 3.15 0 1 1 5.38 2.23c-.82.86-1.48 1.38-1.48 2.52"
-        ></path>
-        <circle cx="12" cy="17.2" r="0.9"></circle>
-        <path
-          d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2S2 6.48 2 12s4.48 10 10 10Z"
-        ></path>
-      </svg>
-    </button>
+      <button
+        class="main-support-widget__trigger"
+        type="button"
+        data-action="toggle-support-widget"
+        aria-label="Открыть форму обращения в поддержку"
+        aria-expanded="false"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M9.1 9.25a3.15 3.15 0 1 1 5.38 2.23c-.82.86-1.48 1.38-1.48 2.52"
+          ></path>
+          <circle cx="12" cy="17.2" r="0.9"></circle>
+          <path
+            d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2S2 6.48 2 12s4.48 10 10 10Z"
+          ></path>
+        </svg>
+      </button>
 
-    <section
-      class="main-support-widget__panel"
-      data-role="support-widget-panel"
-      aria-hidden="true"
-    >
-      <div class="main-support-widget__panel-header">
-        <div class="main-support-widget__panel-copy">
-          <span class="main-support-widget__eyebrow">Поддержка</span>
-          <strong class="main-support-widget__title">Новое обращение</strong>
+      <section
+        class="main-support-widget__panel"
+        data-role="support-widget-panel"
+        aria-hidden="true"
+      >
+        <div class="main-support-widget__panel-header">
+          <div class="main-support-widget__panel-copy">
+            <span class="main-support-widget__eyebrow">Поддержка</span>
+            <strong class="main-support-widget__title">Новое обращение</strong>
+          </div>
+
+          <button
+            class="main-support-widget__close"
+            type="button"
+            data-action="close-support-widget"
+            aria-label="Закрыть форму обращения"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 6L18 18"></path>
+              <path d="M18 6L6 18"></path>
+            </svg>
+          </button>
         </div>
 
-        <button
-          class="main-support-widget__close"
-          type="button"
-          data-action="close-support-widget"
-          aria-label="Закрыть форму обращения"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6 6L18 18"></path>
-            <path d="M18 6L6 18"></path>
-          </svg>
-        </button>
-      </div>
-
-      <div class="main-support-widget__frame-wrap">
-        <iframe
-          class="main-support-widget__frame"
-          data-role="support-widget-frame"
-          data-src="/support/new?embed=1"
-          title="Форма обращения в поддержку"
-          loading="lazy"
-        ></iframe>
-      </div>
-    </section>
-  </div>
+        <div class="main-support-widget__frame-wrap">
+          <iframe
+            class="main-support-widget__frame"
+            data-role="support-widget-frame"
+            data-src="/support/new?embed=1"
+            title="Форма обращения в поддержку"
+            loading="lazy"
+          ></iframe>
+        </div>
+      </section>
+    </div>
+  {{/if}}
 </div>

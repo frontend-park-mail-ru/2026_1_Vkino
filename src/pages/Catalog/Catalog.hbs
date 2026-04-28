@@ -8,6 +8,12 @@
       </header>
     </section>
 
+    {{#if cacheMessage}}
+      <div class="page-status-banner page-status-banner_warning" role="status">
+        <span>{{cacheMessage}}</span>
+      </div>
+    {{/if}}
+
     {{#if isLoading}}
       <section class="catalog-page__grid catalog-page__grid--loading">
         {{#each skeletonItems}}

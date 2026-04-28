@@ -8,6 +8,8 @@ export const SUPPORT_CATEGORY_OPTIONS = [
   { value: "other", label: "Другое" },
 ];
 
+export const SUPPORT_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
 const REALTIME_IGNORED_ACTIONS = new Set([
   "subscribe",
   "subscribed",
@@ -109,14 +111,14 @@ export function extractSupportStatistics(payload, fallbackTickets = []) {
       statsSource.Count,
       fallback.total,
     ),
-    newCount: toNumber(
-      statsSource.new,
-      statsSource.New,
+    openCount: toNumber(
       statsSource.open,
       statsSource.Open,
-      statsSource.new_count,
-      statsSource.newCount,
-      fallback.newCount,
+      statsSource.new,
+      statsSource.New,
+      statsSource.open_count,
+      statsSource.openCount,
+      fallback.openCount,
     ),
     inProgressCount: toNumber(
       statsSource.in_progress,
@@ -125,12 +127,27 @@ export function extractSupportStatistics(payload, fallbackTickets = []) {
       statsSource.Processing,
       fallback.inProgressCount,
     ),
+    waitingUserCount: toNumber(
+      statsSource.waiting_user,
+      statsSource.waitingUser,
+      statsSource.waiting,
+      statsSource.Waiting,
+      fallback.waitingUserCount,
+    ),
     resolvedCount: toNumber(
       statsSource.resolved,
       statsSource.Resolved,
+      fallback.resolvedCount,
+    ),
+    closedCount: toNumber(
       statsSource.closed,
       statsSource.Closed,
-      fallback.resolvedCount,
+      fallback.closedCount,
+    ),
+    averageRating: toDecimal(
+      statsSource.average_rating,
+      statsSource.averageRating,
+      fallback.averageRating,
     ),
   };
 }
@@ -145,6 +162,14 @@ export function normalizeSupportTicket(ticket = {}, options = {}) {
     ticket.ID,
     ticket.ticket_id,
     ticket.ticketId,
+  );
+  const userId = pickString(
+    ticket.user_id,
+    ticket.userId,
+    ticket.author_id,
+    ticket.authorId,
+    ticket.user?.id,
+    ticket.author?.id,
   );
   const { categoryPrimary, categorySecondary, categoryKey } =
     resolveSupportCategory(ticket);
@@ -165,12 +190,31 @@ export function normalizeSupportTicket(ticket = {}, options = {}) {
     ticket.lastMessageAt,
     createdAt,
   );
+  const rating = normalizeSupportTicketRating(
+    pickSupportRatingCandidate(
+      ticket.rating,
+      ticket.user_rating,
+      ticket.userRating,
+      ticket.feedback_rating,
+      ticket.feedbackRating,
+      ticket.satisfaction_rating,
+      ticket.satisfactionRating,
+      ticket.score,
+    ),
+  );
 
   return {
     id,
+    userId,
     subject:
       pickString(ticket.subject, ticket.title, ticket.topic, ticket.name) ||
       (id ? `Обращение #${id}` : "Обращение"),
+    description: pickString(
+      ticket.description,
+      ticket.body,
+      ticket.message,
+      ticket.content,
+    ),
     status: normalizeSupportStatus(
       pickString(ticket.status, ticket.state, ticket.ticket_status),
     ),
@@ -188,6 +232,27 @@ export function normalizeSupportTicket(ticket = {}, options = {}) {
       ) ||
       options.currentUserEmail ||
       "",
+    attachmentFileKey: pickString(
+      ticket.attachment_file_key,
+      ticket.attachmentFileKey,
+      ticket.file_key,
+      ticket.fileKey,
+    ),
+    attachmentName:
+      pickString(
+        ticket.attachment_name,
+        ticket.attachmentName,
+        ticket.file_name,
+        ticket.fileName,
+      ) || getSupportFileDisplayName(
+        pickString(
+          ticket.attachment_file_key,
+          ticket.attachmentFileKey,
+          ticket.file_key,
+          ticket.fileKey,
+        ),
+      ),
+    rating,
     categoryPrimary,
     categorySecondary,
     categoryKey,
@@ -199,6 +264,16 @@ export function normalizeSupportMessage(message = {}, options = {}) {
     return createEmptyMessage();
   }
 
+  const senderId = pickString(
+    message.sender_id,
+    message.senderId,
+    message.user_id,
+    message.userId,
+    message.author_id,
+    message.authorId,
+    message.sender?.id,
+    message.user?.id,
+  );
   const senderEmail = pickString(
     message.sender_email,
     message.senderEmail,
@@ -239,8 +314,31 @@ export function normalizeSupportMessage(message = {}, options = {}) {
   const currentUserEmail = String(options.currentUserEmail || "")
     .trim()
     .toLowerCase();
+  const currentUserId = String(options.currentUserId || "").trim();
+  const attachmentFileKey = pickString(
+    message.content_file_key,
+    message.contentFileKey,
+    message.attachment_file_key,
+    message.attachmentFileKey,
+    message.file_key,
+    message.fileKey,
+    message.attachment?.key,
+    message.file?.key,
+  );
+  const attachmentName =
+    pickString(
+      message.attachment_name,
+      message.attachmentName,
+      message.file_name,
+      message.fileName,
+      message.attachment?.name,
+      message.file?.name,
+    ) || getSupportFileDisplayName(attachmentFileKey);
   const isFromCurrentUser =
-    currentUserEmail && senderEmail.toLowerCase() === currentUserEmail;
+    Boolean(
+      (currentUserId && senderId && senderId === currentUserId) ||
+      (currentUserEmail && senderEmail.toLowerCase() === currentUserEmail),
+    );
 
   return {
     id:
@@ -252,6 +350,7 @@ export function normalizeSupportMessage(message = {}, options = {}) {
       ) ||
       crypto.randomUUID?.() ||
       String(Date.now()),
+    senderId,
     senderName,
     senderEmail,
     sentAt:
@@ -269,15 +368,9 @@ export function normalizeSupportMessage(message = {}, options = {}) {
         message.text,
         message.content,
         message.body,
-      ) || "",
-    attachmentName: pickString(
-      message.attachment_name,
-      message.attachmentName,
-      message.file_name,
-      message.fileName,
-      message.attachment?.name,
-      message.file?.name,
-    ),
+      ) || (attachmentName ? "Прикреплён файл" : ""),
+    attachmentFileKey,
+    attachmentName,
     isFromAdmin,
     isFromCurrentUser: Boolean(isFromCurrentUser),
   };
@@ -366,8 +459,8 @@ export function normalizeSupportStatus(value = "") {
     .trim()
     .toLowerCase();
 
-  if (!normalized || normalized === "open") {
-    return "new";
+  if (!normalized || normalized === "open" || normalized === "new") {
+    return "open";
   }
 
   if (
@@ -378,16 +471,21 @@ export function normalizeSupportStatus(value = "") {
     return "in_progress";
   }
 
-  if (normalized === "waiting" || normalized === "pending") {
-    return "waiting";
+  if (
+    normalized === "waiting_user" ||
+    normalized === "waiting-user" ||
+    normalized === "waiting" ||
+    normalized === "pending"
+  ) {
+    return "waiting_user";
   }
 
-  if (
-    normalized === "resolved" ||
-    normalized === "closed" ||
-    normalized === "done"
-  ) {
+  if (normalized === "resolved" || normalized === "done") {
     return "resolved";
+  }
+
+  if (normalized === "closed" || normalized === "close") {
+    return "closed";
   }
 
   return normalized;
@@ -447,9 +545,9 @@ export function buildStatisticsCards(statistics = {}) {
       value: String(statistics.total ?? 0),
     },
     {
-      key: "new",
-      label: "Новые",
-      value: String(statistics.newCount ?? 0),
+      key: "open",
+      label: "Открыты",
+      value: String(statistics.openCount ?? 0),
     },
     {
       key: "in_progress",
@@ -457,47 +555,131 @@ export function buildStatisticsCards(statistics = {}) {
       value: String(statistics.inProgressCount ?? 0),
     },
     {
+      key: "waiting_user",
+      label: "Ждут пользователя",
+      value: String(statistics.waitingUserCount ?? 0),
+    },
+    {
       key: "resolved",
-      label: "Закрытые",
+      label: "Решены",
       value: String(statistics.resolvedCount ?? 0),
+    },
+    {
+      key: "closed",
+      label: "Закрыты",
+      value: String(statistics.closedCount ?? 0),
+    },
+    {
+      key: "average_rating",
+      label: "Средняя оценка",
+      value: formatAverageRating(statistics.averageRating),
     },
   ];
 }
 
+export function buildSupportConversationMessages(
+  ticket = {},
+  messages = [],
+  options = {},
+) {
+  const normalizedMessages = Array.isArray(messages) ? [...messages] : [];
+  const initialMessage = buildInitialTicketMessage(ticket, options);
+
+  if (!initialMessage) {
+    return normalizedMessages;
+  }
+
+  const firstMessage = normalizedMessages[0];
+
+  if (
+    firstMessage &&
+    firstMessage.senderId === initialMessage.senderId &&
+    firstMessage.text === initialMessage.text &&
+    firstMessage.attachmentFileKey === initialMessage.attachmentFileKey
+  ) {
+    return normalizedMessages;
+  }
+
+  return [initialMessage, ...normalizedMessages];
+}
+
+export function canManageSupportTicketStatus(role = "") {
+  const normalizedRole = String(role || "")
+    .trim()
+    .toLowerCase();
+
+  return (
+    normalizedRole === "admin" ||
+    normalizedRole === "support_l1" ||
+    normalizedRole === "support_l2"
+  );
+}
+
 function buildStatisticsFromTickets(tickets = []) {
-  return tickets.reduce(
+  const summary = tickets.reduce(
     (accumulator, ticket) => {
       const status = normalizeSupportStatus(ticket?.status);
+      const rating = normalizeSupportTicketRating(ticket?.rating);
 
       accumulator.total += 1;
 
-      if (status === "resolved") {
+      if (status === "closed") {
+        accumulator.closedCount += 1;
+      } else if (status === "resolved") {
         accumulator.resolvedCount += 1;
       } else if (status === "in_progress") {
         accumulator.inProgressCount += 1;
+      } else if (status === "waiting_user") {
+        accumulator.waitingUserCount += 1;
       } else {
-        accumulator.newCount += 1;
+        accumulator.openCount += 1;
+      }
+
+      if (rating) {
+        accumulator.ratingSum += rating;
+        accumulator.ratingCount += 1;
       }
 
       return accumulator;
     },
     {
       total: 0,
-      newCount: 0,
+      openCount: 0,
       inProgressCount: 0,
+      waitingUserCount: 0,
       resolvedCount: 0,
+      closedCount: 0,
+      ratingSum: 0,
+      ratingCount: 0,
     },
   );
+
+  return {
+    total: summary.total,
+    openCount: summary.openCount,
+    inProgressCount: summary.inProgressCount,
+    waitingUserCount: summary.waitingUserCount,
+    resolvedCount: summary.resolvedCount,
+    closedCount: summary.closedCount,
+    averageRating: summary.ratingCount
+      ? summary.ratingSum / summary.ratingCount
+      : 0,
+  };
 }
 
 function createEmptyTicket() {
   return {
     id: "",
+    userId: "",
     subject: "",
-    status: "new",
+    description: "",
+    status: "open",
     createdAt: "",
     updatedAt: "",
     userEmail: "",
+    attachmentFileKey: "",
+    attachmentName: "",
+    rating: 0,
     categoryPrimary: "",
     categorySecondary: "",
     categoryKey: "",
@@ -507,14 +689,61 @@ function createEmptyTicket() {
 function createEmptyMessage() {
   return {
     id: "",
+    senderId: "",
     senderName: "",
     senderEmail: "",
     sentAt: "",
     text: "",
+    attachmentFileKey: "",
     attachmentName: "",
     isFromAdmin: false,
     isFromCurrentUser: false,
   };
+}
+
+export function validateSupportFile(file) {
+  if (!(file instanceof File)) {
+    return "";
+  }
+
+  if (file.size > SUPPORT_MAX_FILE_SIZE_BYTES) {
+    return "Файл должен быть не больше 10 МБ.";
+  }
+
+  if (!isSupportedSupportFile(file)) {
+    return "Поддерживаются только PNG, JPG, WEBP и PDF.";
+  }
+
+  return "";
+}
+
+export function isSupportedSupportFile(file) {
+  const fileType = String(file?.type || "").toLowerCase();
+  const fileName = String(file?.name || "").toLowerCase();
+
+  return (
+    fileType === "image/png" ||
+    fileType === "image/jpeg" ||
+    fileType === "image/webp" ||
+    fileType === "application/pdf" ||
+    fileName.endsWith(".png") ||
+    fileName.endsWith(".jpg") ||
+    fileName.endsWith(".jpeg") ||
+    fileName.endsWith(".webp") ||
+    fileName.endsWith(".pdf")
+  );
+}
+
+export function getSupportFileDisplayName(fileKey = "") {
+  const normalizedKey = String(fileKey || "").trim();
+
+  if (!normalizedKey) {
+    return "";
+  }
+
+  const parts = normalizedKey.split("/");
+
+  return parts[parts.length - 1] || normalizedKey;
 }
 
 function pickArrayCandidate(source, keys = []) {
@@ -565,6 +794,94 @@ function inferNameFromEmail(email = "") {
   const [namePart = ""] = normalized.split("@");
 
   return namePart;
+}
+
+function normalizeSupportTicketRating(value) {
+  const rating = Number(value);
+
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return 0;
+  }
+
+  return rating;
+}
+
+function pickSupportRatingCandidate(...values) {
+  for (const value of values) {
+    if (value === null || value === undefined) {
+      continue;
+    }
+
+    if (typeof value === "string" && !value.trim()) {
+      continue;
+    }
+
+    return value;
+  }
+
+  return null;
+}
+
+function formatAverageRating(value) {
+  const rating = Number(value);
+
+  if (!Number.isFinite(rating) || rating <= 0) {
+    return "0.0";
+  }
+
+  return rating.toFixed(1);
+}
+
+function toDecimal(...values) {
+  for (const value of values) {
+    const normalized = Number(value);
+
+    if (Number.isFinite(normalized)) {
+      return normalized;
+    }
+  }
+
+  return 0;
+}
+
+function buildInitialTicketMessage(ticket = {}, options = {}) {
+  const description = String(ticket.description || "").trim();
+  const attachmentFileKey = String(ticket.attachmentFileKey || "").trim();
+  const attachmentName =
+    String(ticket.attachmentName || "").trim() ||
+    getSupportFileDisplayName(attachmentFileKey);
+
+  if (!description && !attachmentFileKey) {
+    return null;
+  }
+
+  const ticketUserId = String(ticket.userId || "").trim();
+  const ticketUserEmail = String(ticket.userEmail || "").trim();
+  const currentUserId = String(options.currentUserId || "").trim();
+  const currentUserEmail = String(options.currentUserEmail || "")
+    .trim()
+    .toLowerCase();
+  const isFromCurrentUser = Boolean(
+    (ticketUserId && currentUserId && ticketUserId === currentUserId) ||
+      (ticketUserEmail && currentUserEmail && ticketUserEmail.toLowerCase() === currentUserEmail),
+  );
+
+  return {
+    id: `ticket-${ticket.id || "new"}-description`,
+    senderId: ticketUserId,
+    senderName:
+      inferNameFromEmail(ticketUserEmail) ||
+      (isFromCurrentUser
+        ? String(options.currentUserDisplayName || "Вы").trim()
+        : "Пользователь"),
+    senderEmail: ticketUserEmail,
+    sentAt: ticket.createdAt || new Date().toISOString(),
+    text: description || (attachmentName ? "Прикреплён файл" : ""),
+    attachmentFileKey,
+    attachmentName,
+    isFromAdmin: false,
+    isFromCurrentUser,
+  };
 }
 
 function pickString(...values) {

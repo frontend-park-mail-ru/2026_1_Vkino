@@ -1,0 +1,123 @@
+<div class="support-tickets__section-header{{#if isStaff}} admin-tickets__section-header{{/if}}">
+  <div class="support-tickets__title-wrap">
+    <span class="support-tickets__title-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <path d="M5 6.5h14"></path>
+        <path d="M5 12h14"></path>
+        <path d="M5 17.5h9"></path>
+      </svg>
+    </span>
+
+    <div class="{{#if isStaff}}admin-tickets__title-copy{{else}}support-tickets__title-copy{{/if}}">
+      <div class="{{#if isStaff}}admin-tickets__eyebrow{{else}}support-tickets__eyebrow support-tickets__eyebrow--compact{{/if}}">
+        {{eyebrow}}
+      </div>
+      <h2 class="support-tickets__title">{{title}}</h2>
+      <p class="support-tickets__section-caption">{{ticketsSummary}}</p>
+    </div>
+  </div>
+
+  {{#if isStaff}}
+    <div class="admin-tickets__filters">
+      {{#if hasSearch}}
+        <label class="admin-tickets__filter admin-tickets__filter--search">
+          <span>Поиск</span>
+          <input
+            class="admin-tickets__search-input"
+            name="ticketSearch"
+            type="search"
+            value="{{searchQuery}}"
+            placeholder="ID, email или тема обращения"
+            autocomplete="off"
+          />
+        </label>
+      {{/if}}
+
+      <div class="admin-tickets__filter-row">
+        <label class="support-tickets__filter">
+          <span>Статус</span>
+          <select class="support-tickets__select" name="statusFilter">
+            {{#each statusOptions}}
+              <option value="{{this.value}}" {{this.selectedAttr}}>
+                {{this.label}}
+              </option>
+            {{/each}}
+          </select>
+        </label>
+
+        {{#if hasCategoryFilter}}
+          <label class="support-tickets__filter">
+            <span>Категория</span>
+            <select class="support-tickets__select" name="categoryFilter">
+              {{#each categoryOptions}}
+                <option value="{{this.value}}" {{this.selectedAttr}}>
+                  {{this.label}}
+                </option>
+              {{/each}}
+            </select>
+          </label>
+        {{/if}}
+      </div>
+    </div>
+  {{else}}
+    <div class="support-tickets__section-controls">
+      {{#if hasCreateAction}}
+        <a class="support-tickets__mini-link" href="/support/new" router-link>
+          Новое обращение
+        </a>
+      {{/if}}
+
+      <label class="support-tickets__filter">
+        <span>Статус</span>
+        <select class="support-tickets__select" name="statusFilter">
+          {{#each statusOptions}}
+            <option value="{{this.value}}" {{this.selectedAttr}}>
+              {{this.label}}
+            </option>
+          {{/each}}
+        </select>
+      </label>
+    </div>
+  {{/if}}
+</div>
+
+<div class="support-tickets__ticket-list{{#if isStaff}} admin-tickets__ticket-list{{/if}}" id="support-ticket-list">
+  {{#if hasTickets}}
+    {{#each tickets}}
+      <button class="{{this.cardClass}}" type="button" data-ticket-id="{{this.id}}">
+        <div class="support-tickets__ticket-top">
+          <strong class="support-tickets__ticket-subject">{{this.subject}}</strong>
+          <span class="{{this.statusClass}}">{{this.statusLabel}}</span>
+        </div>
+
+        {{#if this.userEmail}}
+          <div class="admin-tickets__ticket-email">{{this.userEmail}}</div>
+        {{/if}}
+
+        <div class="support-tickets__ticket-meta">
+          <span>{{this.metaLabel}}</span>
+          <time>{{this.timeLabel}}</time>
+        </div>
+      </button>
+    {{/each}}
+  {{else}}
+    <div class="support-tickets__empty-list">
+      <div class="support-tickets__empty-state">
+        <span class="support-tickets__empty-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M5 6.5h14"></path>
+            <path d="M5 12h14"></path>
+            <path d="M5 17.5h9"></path>
+          </svg>
+        </span>
+        <strong class="support-tickets__empty-title">Пока пусто</strong>
+        <p class="support-tickets__empty-text">{{emptyListMessage}}</p>
+        {{#if showEmptyAction}}
+          <a class="support-tickets__empty-action" href="/support/new" router-link>
+            Создать обращение
+          </a>
+        {{/if}}
+      </div>
+    </div>
+  {{/if}}
+</div>

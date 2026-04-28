@@ -10,6 +10,7 @@ type JsonRecord = Record<string, unknown>;
 type RequestData = JsonRecord | FormData | null;
 
 type RequestHeaders = Record<string, string>;
+const RESPONSE_SOURCE_HEADER = "x-vkino-response-source";
 
 interface RequestOptions {
   method?: HttpMethod;
@@ -23,11 +24,17 @@ interface RawTextResponse {
 
 type ParsedResponseBody = JsonRecord | RawTextResponse | null;
 
+export interface ResponseMeta {
+  source: string;
+  servedFromCache: boolean;
+}
+
 export interface ApiResponse<T = ParsedResponseBody> {
   ok: boolean;
   status: number;
   resp: T | null;
   error: string;
+  meta: ResponseMeta;
 }
 
 export class ApiService {
@@ -153,6 +160,7 @@ export class ApiService {
         status: 0,
         resp: null,
         error: getErrorMessage(error),
+        meta: createResponseMeta("network-error"),
       };
     }
 
@@ -173,6 +181,7 @@ export class ApiService {
       status: response.status,
       resp: parsedBody as T | null,
       error: extractErrorMessage(parsedBody),
+      meta: extractResponseMeta(response),
     };
   }
 
@@ -251,6 +260,21 @@ function getErrorMessage(error: unknown): string {
   }
 
   return "Network error";
+}
+
+function extractResponseMeta(response: Response): ResponseMeta {
+  const source =
+    String(response.headers.get(RESPONSE_SOURCE_HEADER) || "network").trim() ||
+    "network";
+
+  return createResponseMeta(source);
+}
+
+function createResponseMeta(source: string): ResponseMeta {
+  return {
+    source,
+    servedFromCache: source === "cache-fallback",
+  };
 }
 
 // читаем baseUrl из .env (с сервера) или ставим дефолтный для dev

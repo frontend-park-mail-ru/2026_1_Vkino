@@ -1,9 +1,11 @@
 <div
-  class="movie-player {{#if isOpen}}is-open{{/if}} {{#if areControlsVisible}}is-controls-visible{{/if}}"
+  class="movie-player {{#if isOpen}}is-open{{/if}} {{#if areControlsVisible}}is-controls-visible{{/if}} {{#if isEmbedded}}movie-player--embedded{{/if}}"
   data-role="player-overlay"
   aria-hidden="{{#if isOpen}}false{{else}}true{{/if}}"
 >
-  <div class="movie-player__backdrop" data-action="close"></div>
+  {{#unless isEmbedded}}
+    <div class="movie-player__backdrop" data-action="close"></div>
+  {{/unless}}
 
   <section
     class="movie-player__shell"
@@ -11,22 +13,25 @@
     aria-label="Видеоплеер"
   >
     <div class="movie-player__surface">
-      <header class="movie-player__topbar">
-        <button
-          class="movie-player__icon-button"
-          type="button"
-          data-action="close"
-          aria-label="Закрыть плеер"
-        >
-          ✕
-        </button>
+      {{#if showTopbar}}
+        <header class="movie-player__topbar">
+          {{#if showCloseButton}}
+            <button
+              class="movie-player__icon-button"
+              type="button"
+              data-action="close"
+              aria-label="Закрыть плеер"
+            >
+              ✕
+            </button>
+          {{/if}}
 
-        <div class="movie-player__heading">
-          <p class="movie-player__eyebrow">{{movieTitle}}</p>
-          <h2 class="movie-player__title">{{episodeTitle}}</h2>
-        </div>
-
-      </header>
+          <div class="movie-player__heading">
+            <p class="movie-player__eyebrow">{{movieTitle}}</p>
+            <h2 class="movie-player__title">{{episodeTitle}}</h2>
+          </div>
+        </header>
+      {{/if}}
 
       <div
         class="movie-player__content {{#if hasEpisodes}}movie-player__content--with-sidebar{{/if}}"
@@ -97,14 +102,16 @@
 
             <div class="movie-player__control-row">
               <div class="movie-player__control-group">
-                <button
-                  class="movie-player__icon-control"
-                  type="button"
-                  data-action="seek-backward"
-                  aria-label="Перемотать назад на 10 секунд"
-                >
-                  <img src="/icons/skip_previous.svg" alt="" aria-hidden="true" />
-                </button>
+                {{#if showSeekControls}}
+                  <button
+                    class="movie-player__icon-control"
+                    type="button"
+                    data-action="seek-backward"
+                    aria-label="Перемотать назад на 10 секунд"
+                  >
+                    <img src="/icons/skip_previous.svg" alt="" aria-hidden="true" />
+                  </button>
+                {{/if}}
 
                 <button
                   class="movie-player__icon-control movie-player__icon-control--play"
@@ -139,42 +146,57 @@
                   <span data-role="duration-time">{{durationLabel}}</span>
                 </p>
 
-                <button
-                  class="movie-player__icon-control"
-                  type="button"
-                  data-action="toggle-mute"
-                  aria-label="Включить или выключить звук"
-                >
-                  <img
-                    class="movie-player__icon movie-player__icon--sound"
-                    src="/icons/sound_level.svg"
-                    alt=""
-                    aria-hidden="true"
-                  />
-                  <span class="movie-player__mute-slash" aria-hidden="true"></span>
-                </button>
+                {{#if showMuteControl}}
+                  <button
+                    class="movie-player__icon-control"
+                    type="button"
+                    data-action="toggle-mute"
+                    aria-label="Включить или выключить звук"
+                  >
+                    <img
+                      class="movie-player__icon movie-player__icon--sound"
+                      src="/icons/sound_level.svg"
+                      alt=""
+                      aria-hidden="true"
+                    />
+                    <span class="movie-player__mute-slash" aria-hidden="true"></span>
+                  </button>
+                {{/if}}
               </div>
 
               <div class="movie-player__control-group">
-                <button
-                  class="movie-player__icon-control"
-                  type="button"
-                  data-action="toggle-fullscreen"
-                  aria-label="Переключить полноэкранный режим"
-                >
-                  <img
-                    class="movie-player__icon movie-player__icon--fullscreen"
-                    src="/icons/fullscreen.svg"
-                    alt=""
-                    aria-hidden="true"
-                  />
-                  <img
-                    class="movie-player__icon movie-player__icon--fullscreen-exit"
-                    src="/icons/fullscreen_exit.svg"
-                    alt=""
-                    aria-hidden="true"
-                  />
-                </button>
+                {{#if showChatControl}}
+                  <button
+                    class="movie-player__icon-control movie-player__icon-control--chat"
+                    type="button"
+                    data-action="open-chat"
+                    aria-label="Открыть чат"
+                  >
+                    Чат
+                  </button>
+                {{/if}}
+
+                {{#if showFullscreenControl}}
+                  <button
+                    class="movie-player__icon-control"
+                    type="button"
+                    data-action="toggle-fullscreen"
+                    aria-label="Переключить полноэкранный режим"
+                  >
+                    <img
+                      class="movie-player__icon movie-player__icon--fullscreen"
+                      src="/icons/fullscreen.svg"
+                      alt=""
+                      aria-hidden="true"
+                    />
+                    <img
+                      class="movie-player__icon movie-player__icon--fullscreen-exit"
+                      src="/icons/fullscreen_exit.svg"
+                      alt=""
+                      aria-hidden="true"
+                    />
+                  </button>
+                {{/if}}
               </div>
             </div>
           </div>

@@ -14,6 +14,16 @@
     visibility 0.24s ease;
 }
 
+.movie-player--embedded {
+  position: relative;
+  inset: auto;
+  z-index: 1;
+  padding: 0;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
 .movie-player.is-open {
   opacity: 1;
   visibility: visible;
@@ -27,6 +37,10 @@
     radial-gradient(circle at top, rgba(185, 82, 27, 0.18), transparent 38%),
     rgba(3, 2, 2, 0.88);
   backdrop-filter: blur(12px);
+}
+
+.movie-player--embedded .movie-player__backdrop {
+  display: none;
 }
 
 .movie-player__shell {
@@ -49,10 +63,21 @@
   overflow: hidden;
 }
 
+.movie-player--embedded .movie-player__shell {
+  width: 100%;
+  height: auto;
+  max-height: none;
+  border-radius: 24px;
+}
+
 .movie-player__surface {
   width: 100%;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+}
+
+.movie-player--embedded .movie-player__surface {
   min-height: 0;
 }
 
@@ -151,8 +176,17 @@
   padding: 22px;
 }
 
+.movie-player--embedded .movie-player__content {
+  height: auto;
+  padding: 0;
+}
+
 .movie-player__content--with-sidebar {
   grid-template-columns: minmax(0, 1.8fr) minmax(320px, 0.78fr);
+}
+
+.movie-player--embedded .movie-player__content--with-sidebar {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .movie-player__video-column {
@@ -173,6 +207,12 @@
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.04),
     0 16px 48px rgba(0, 0, 0, 0.34);
+}
+
+.movie-player--embedded .movie-player__video-frame {
+  min-height: clamp(280px, 42vw, 640px);
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .movie-player__video {
@@ -295,6 +335,14 @@
     transform 0.2s ease;
 }
 
+.movie-player--embedded .movie-player__controls {
+  padding: 16px 18px 18px;
+}
+
+.movie-player--embedded .movie-player__sidebar {
+  display: none;
+}
+
 .movie-player__timeline {
   width: 100%;
 }
@@ -368,6 +416,21 @@
 
 .movie-player__icon-control:hover {
   background: rgba(255, 108, 47, 0.12);
+}
+
+.movie-player__icon-control--chat {
+  width: auto;
+  min-width: 2.6rem;
+  padding: 0 0.7rem;
+  color: #fff4e4;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: rgba(255, 108, 47, 0.16);
+  border-color: rgba(255, 108, 47, 0.22);
+}
+
+.movie-player__icon-control--chat:hover {
+  background: rgba(255, 108, 47, 0.24);
 }
 
 .movie-player__time {

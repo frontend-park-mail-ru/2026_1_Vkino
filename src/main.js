@@ -10,8 +10,8 @@ import CatalogPage from "./pages/Catalog/Catalog.js";
 import WatchPartyPage from "./pages/WatchParty/WatchParty.js";
 import SupportCreatePage from "./pages/SupportCreate/SupportCreate.js";
 import SupportTicketsPage from "./pages/SupportTickets/SupportTickets.js";
-import AdminTicketsPage from "./pages/AdminTickets/AdminTickets.js";
 import FriendsPage from "./pages/Friends/Friends.js";
+
 
 import "./css/index.scss";
 
@@ -118,10 +118,14 @@ async function start() {
       (root) => new CatalogPage({ catalogKey: "selection" }, null, root),
     )
     .registerRoute("/watch-party", (root) => new WatchPartyPage({}, null, root))
+    .registerRoute(
+      "/watch-party/:roomId",
+      (root) => new WatchPartyPage({}, null, root),
+    )
     .registerRoute("/support", (root) => new SupportTicketsPage({}, null, root))
     .registerRoute(
       "/admin/support",
-      (root) => new AdminTicketsPage({}, null, root),
+      (root) => new SupportTicketsPage({}, null, root),
     )
     .registerRoute(
       "/support/new",

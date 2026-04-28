@@ -13,11 +13,15 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .main-content > * {
   padding-left: var(--space-8);
   padding-right: var(--space-8);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .main-hero-slot {
@@ -245,6 +249,15 @@
 }
 
 @media (max-width: 720px) {
+  .main-content {
+    gap: var(--space-6);
+  }
+
+  .main-content > * {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
   .main-support-widget {
     right: 1rem;
     bottom: 0;

@@ -4,3 +4,5 @@
 **/*.precompiled.js
 .env
 /dist
+*.md
+!README.md
