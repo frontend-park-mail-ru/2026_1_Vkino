@@ -2,11 +2,11 @@ import BasePage from "@/pages/BasePage";
 import "@/pages/Catalog/Catalog.precompiled.js";
 import "@/css/catalog.scss";
 
-import HeaderComponent from "../../components/Header/Header.js";
-import MoviePosterComponent from "../../components/MoviePoster/MoviePoster.js";
-import PaginationComponent from "../../components/Pagination/Pagination.js";
-import { movieService } from "../../js/MovieService.js";
-import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
+import HeaderComponent from "@/components/Header/Header.js";
+import MoviePosterComponent from "@/components/MoviePoster/MoviePoster.js";
+import PaginationComponent from "@/components/Pagination/Pagination.js";
+import { movieService } from "@/js/MovieService.js";
+import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
 
 const DEFAULT_PAGE_SIZE = 12;
 
@@ -624,31 +624,6 @@ function applyCatalogDocumentTitle(catalogKey, titleFallback = "") {
   if (title) {
     document.title = `${title} — VKino`;
   }
-}
-
-function normalizeHistoryWatchItems(items = []) {
-  if (!Array.isArray(items)) {
-    return [];
-  }
-
-  return items
-    .map((item, index) => {
-      const position = Math.max(0, Math.floor(Number(item.position_seconds) || 0));
-      const startPart =
-        position > 0 ? `&start=${position}` : "";
-
-      return normalizeCatalogItem(
-        {
-          id: item.movie_id,
-          title: item.movie_title,
-          poster_url: item.poster_url,
-          content_type: item.content_type,
-          href: `/movie/${item.movie_id}?watch=1&episode=${item.episode_id || item.movie_id}${startPart}`,
-        },
-        index,
-      );
-    })
-    .filter(Boolean);
 }
 
 function findSelectionByTitle(selections = [], title = "") {

@@ -49,6 +49,24 @@ export function resolveMediaUrl(value, bucket = MEDIA_BUCKETS.cards) {
   return `${MEDIA_BASE_URL}/${bucket}/${finalizedKey}`;
 }
 
+/**
+ * Resolves an avatar URL from a user/friend entity.
+ */
+export function resolveAvatarUrl(entity, options = {}) {
+  const { resolveMediaUrl: resolveUrl } = options;
+  const url =
+    entity.avatar_url ||
+    entity.avatarUrl ||
+    entity.avatar_file_key ||
+    entity.avatarFileKey ||
+    "";
+
+  if (url && !url.startsWith("http") && typeof resolveUrl === "function") {
+    return resolveUrl(url, MEDIA_BUCKETS.avatars);
+  }
+  return url;
+}
+
 function normalizeBucketKey(value) {
   return value
     .replace(/^cards\//, "")

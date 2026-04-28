@@ -6,7 +6,7 @@ import { userService } from "@/js/UserService.js";
 import { router } from "@/router/index.js";
 import { authStore } from "@/store/authStore.js";
 import { getDisplayNameFromEmail, formatDate } from "@/utils/user.js";
-import { resolveAvatarUrl } from "@/utils/avatar.js";
+import { resolveAvatarUrl, resolveMediaUrl } from "@/utils/media.js";
 import { createDebouncedSearch } from "@/utils/SearchHelper.js";
 
 export default class FriendsPage extends BasePage {
@@ -48,22 +48,41 @@ export default class FriendsPage extends BasePage {
     return this;
   }
 
-  async loadContext() {
+  async loadContext(options = {}) {
+    const { searchQuery } = options;
     const [incoming, outgoing, friends] = await Promise.all([
       userService.getFriendRequests({ direction: "incoming", limit: 50 }),
       userService.getFriendRequests({ direction: "outgoing", limit: 50 }),
       userService.getFriendsList({ limit: 50, offset: 0 }),
     ]);
+    const nextFriends = friends.ok
+      ? normalizeFriends(friends.resp?.friends || [])
+      : [];
+    const nextOutgoing = outgoing.ok
+      ? normalizeRequests(outgoing.resp?.requests || [])
+      : [];
+    const nextSearchQuery = String(searchQuery || "").trim();
+    let nextSearchResults = [];
+
+    if (nextSearchQuery) {
+      const result = await userService.searchUsers(nextSearchQuery, { limit: 10 });
+      const raw = result.ok ? result.resp?.users || [] : [];
+      nextSearchResults = enrichSearchResults(raw, {
+        friends: nextFriends,
+        outgoingRequests: nextOutgoing,
+      });
+    }
+
     this.refresh({
       ...this.context,
       isLoading: false,
       incomingRequests: incoming.ok
         ? normalizeRequests(incoming.resp?.requests || [])
         : [],
-      outgoingRequests: outgoing.ok
-        ? normalizeRequests(outgoing.resp?.requests || [])
-        : [],
-      friends: friends.ok ? normalizeFriends(friends.resp?.friends || []) : [],
+      outgoingRequests: nextOutgoing,
+      friends: nextFriends,
+      searchQuery: nextSearchQuery,
+      searchResults: nextSearchResults,
       errorMessage:
         incoming.ok && outgoing.ok && friends.ok
           ? ""
@@ -182,10 +201,7 @@ export default class FriendsPage extends BasePage {
           );
           return;
         }
-        await this.loadContext();
-        if (String(this.context.searchQuery || "").trim()) {
-          await this._performSearch(this.context.searchQuery);
-        }
+        await this.loadContext({ searchQuery: this.context.searchQuery });
       }
       return;
     }
@@ -285,16 +301,11 @@ function normalizeRequests(items = []) {
 function normalizeFriends(items = []) {
   return items.map((friend) => {
     const displayName = getDisplayNameFromEmail(friend.email) || "Пользователь";
-    const avatarSource =
-      friend.avatar_url ||
-      friend.avatarUrl ||
-      friend.avatar_file_key ||
-      friend.avatarFileKey ||
-      "";
+    const avatarUrl = resolveAvatarUrl(friend, { resolveMediaUrl });
     return {
       ...friend,
       displayName,
-      avatarUrl: resolveAvatarUrl(avatarSource),
+      avatarUrl,
       initials: displayName.charAt(0).toUpperCase(),
       sinceLabel: formatDate(friend.created_at),
     };
@@ -316,17 +327,11 @@ function enrichSearchResults(users = [], rel = {}) {
   );
   return users.map((u) => {
     const displayName = getDisplayNameFromEmail(u.email) || "Пользователь";
-    // вообще avatar_url, но на всякий пока оставлю 
-    const avatarSource =
-      u.avatar_url ||
-      u.avatarUrl ||
-      u.avatar_file_key ||
-      u.avatarFileKey ||
-      "";
+    const avatarUrl = resolveAvatarUrl(u, { resolveMediaUrl });
     return {
       ...u,
       displayName,
-      avatarUrl: resolveAvatarUrl(avatarSource),
+      avatarUrl,
       initials: displayName.charAt(0).toUpperCase(),
       isFriend: friendIds.has(String(u.id)),
       hasPendingRequest: pendingTo.has(String(u.id)),

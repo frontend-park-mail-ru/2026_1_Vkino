@@ -1,4 +1,4 @@
-import { BaseComponent } from "../components/BaseComponent.js";
+import { BaseComponent } from "@/components/BaseComponent.js";
 
 /**
  * Базовый класс для создания страниц.

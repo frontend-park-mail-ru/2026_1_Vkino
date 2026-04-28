@@ -1,6 +1,6 @@
-import { BaseComponent } from "../BaseComponent.js";
+import { BaseComponent } from "@/components/BaseComponent.js";
 import "./MoviePoster.precompiled.js";
-import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
+import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
 
 const DEFAULT_VARIANT = "default";
 const DEFAULT_SIZE = "medium";

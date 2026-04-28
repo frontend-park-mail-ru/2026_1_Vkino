@@ -61,11 +61,6 @@ export class PlayerService {
     const payload = {
       position_seconds: normalizedPosition,
     };
-    console.debug("[PlayerService] Saving progress", {
-      episodeId: normalizedEpisodeId,
-      payload,
-    });
-
     return this.api.put(
       `/episode/${encodeURIComponent(normalizedEpisodeId)}/progress`,
       payload,

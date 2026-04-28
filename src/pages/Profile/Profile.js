@@ -1,16 +1,17 @@
 import BasePage from "../BasePage.js";
 import "./Profile.precompiled.js";
-import "../../css/profile.scss";
+import "@/css/profile.scss";
 
-import HeaderComponent from "../../components/Header/Header.js";
-import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
-import { userService } from "../../js/UserService.js";
-import { router } from "../../router/index.js";
-import { authStore } from "../../store/authStore.js";
-import { resolveAvatarUrl } from "../../utils/avatar.js";
-import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
-import { formatBirthdate, getDisplayNameFromEmail } from "../../utils/user.js";
-import { extractProfile } from "../../utils/apiResponse.js";
+import HeaderComponent from "@/components/Header/Header.js";
+import PosterCarouselComponent from "@/components/PosterCarousel/PosterCarousel.js";
+import { userService } from "@/js/UserService.js";
+import { router } from "@/router/index.js";
+import { authStore } from "@/store/authStore.js";
+import { resolveAvatarUrl as resolveDefaultAvatarUrl } from "@/utils/avatar.js";
+import { MEDIA_BUCKETS, resolveAvatarUrl, resolveMediaUrl } from "@/utils/media.js";
+import { normalizeTimeFields } from "@/utils/time.js";
+import { formatBirthdate, getDisplayNameFromEmail } from "@/utils/user.js";
+import { extractProfile } from "@/utils/apiResponse.js";
 
 /**
  * Страница профиля текущего пользователя.
@@ -41,7 +42,7 @@ export default class ProfilePage extends BasePage {
         displayName: "",
         email: "",
         birthdateLabel: "",
-        avatarUrl: resolveAvatarUrl(""),
+        avatarUrl: resolveDefaultAvatarUrl(""),
         continueWatching: [],
         watchHistory: [],
         favorites: [],
@@ -141,13 +142,6 @@ export default class ProfilePage extends BasePage {
 
     if (profileResult.ok) {
       authStore.updateUserProfile(profile);
-    }
-
-    if (continueResult.ok) {
-      console.debug(
-        "[Profile] Continue watching sample:",
-        continueResult.resp?.items?.[0] || null,
-      );
     }
 
     const continueWatching = continueResult.ok
@@ -299,7 +293,7 @@ function buildProfileIdentity(profile = {}) {
     displayName,
     email,
     birthdateLabel: formatBirthdate(profile.birthdate),
-    avatarUrl: resolveAvatarUrl(profile.avatar_url),
+    avatarUrl: resolveDefaultAvatarUrl(profile.avatar_url),
   };
 }
 
@@ -347,43 +341,9 @@ function normalizeWatchProgress(items = [], options = {}) {
       : "Продолжить просмотр";
 
   return items.map((item) => {
-    const durationRaw = getFirstFiniteNumber([
-      item.duration_seconds,
-      item.duration,
-      item.total_seconds,
-      item.duration_ms,
-      item.durationMs,
-      item.progress?.duration_seconds,
-      item.progress?.duration_ms,
-    ]);
-    const positionRaw = getFirstFiniteNumber([
-      item.position_seconds,
-      item.current_position_seconds,
-      item.progress_seconds,
-      item.position_ms,
-      item.current_position_ms,
-      item.progress?.position_seconds,
-      item.progress?.position_ms,
-      item.progress?.seconds,
-    ]);
-
-    const hasMsField =
-      item.duration_ms !== undefined ||
-      item.durationMs !== undefined ||
-      item.position_ms !== undefined ||
-      item.current_position_ms !== undefined ||
-      item.progress?.duration_ms !== undefined ||
-      item.progress?.position_ms !== undefined;
-    const useMilliseconds = hasMsField || durationRaw > 43200;
-
-    const duration =
-      useMilliseconds && durationRaw > 0
-        ? Math.floor(durationRaw / 1000)
-        : Math.floor(durationRaw);
-    const position =
-      useMilliseconds && positionRaw > 0
-        ? Math.floor(positionRaw / 1000)
-        : Math.floor(positionRaw);
+    const { duration: durationRaw, position: positionRaw } = normalizeTimeFields(item);
+    const duration = Number.isFinite(durationRaw) ? durationRaw : 0;
+    const position = Number.isFinite(positionRaw) ? positionRaw : 0;
 
     const rawApiProgressPercent = Number(
       item.progress_percent ?? item.progressPercent ?? item.progress?.percent,
@@ -437,17 +397,6 @@ function normalizeWatchProgress(items = [], options = {}) {
   });
 }
 
-function getFirstFiniteNumber(values = []) {
-  for (const value of values) {
-    const numericValue = Number(value);
-    if (Number.isFinite(numericValue) && numericValue >= 0) {
-      return numericValue;
-    }
-  }
-
-  return 0;
-}
-
 function normalizeId(value) {
   return String(value ?? "").trim();
 }
@@ -455,16 +404,10 @@ function normalizeId(value) {
 function normalizeFriendsPreview(friends = []) {
   return friends.map((friend) => {
     const displayName = getDisplayNameFromEmail(friend.email) || "Пользователь";
-    const avatarSource =
-      friend.avatar_url ||
-      friend.avatarUrl ||
-      friend.avatar_file_key ||
-      friend.avatarFileKey ||
-      "";
     return {
       id: String(friend.id),
       displayName,
-      avatarUrl: resolveAvatarUrl(avatarSource),
+      avatarUrl: resolveAvatarUrl(friend, { resolveMediaUrl }),
       initials: displayName.charAt(0).toUpperCase(),
       href: `/profile/${friend.id}`,
     };

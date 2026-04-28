@@ -1,11 +1,11 @@
 import BasePage from "../BasePage.js";
 import "./SignIn.precompiled.js";
 
-import { initPasswordToggle } from "../../js/password/eye-btn.js";
-import { initAuthValidation, setError } from "../../js/password/validation.js";
-import { router } from "../../router/index.js";
-import { authStore } from "../../store/authStore.js";
-import { SupportWidgetController } from "../../utils/supportWidget.js";
+import { initPasswordToggle } from "@/js/password/eye-btn.js";
+import { initAuthValidation, setError } from "@/js/password/validation.js";
+import { router } from "@/router/index.js";
+import { authStore } from "@/store/authStore.js";
+import { SupportWidgetController } from "@/utils/supportWidget.js";
 
 /**
  * Класс страницы авторизации.

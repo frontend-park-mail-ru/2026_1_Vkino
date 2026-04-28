@@ -1,15 +1,15 @@
 import BasePage from "../BasePage.js";
 import "./Movie.precompiled.js";
-import HeaderComponent from "../../components/Header/Header.js";
-import { movieService } from "../../js/MovieService.js";
-import { userService } from "../../js/UserService.js";
-import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
-import MoviePlayerComponent from "../../components/MoviePlayer/MoviePlayer.js";
-import { authStore } from "../../store/authStore.js";
-import { router } from "../../router/index.js";
-import { getCacheFallbackNotice } from "../../utils/apiMeta.js";
-import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
-import { extractMovie } from "../../utils/apiResponse.js";
+import HeaderComponent from "@/components/Header/Header.js";
+import { movieService } from "@/js/MovieService.js";
+import { userService } from "@/js/UserService.js";
+import PosterCarouselComponent from "@/components/PosterCarousel/PosterCarousel.js";
+import MoviePlayerComponent from "@/components/MoviePlayer/MoviePlayer.js";
+import { authStore } from "@/store/authStore.js";
+import { router } from "@/router/index.js";
+import { getCacheFallbackNotice } from "@/utils/apiMeta.js";
+import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
+import { extractMovie } from "@/utils/apiResponse.js";
 
 const DEFAULT_POSTER_URL = "/img/cards/interstellar.webp";
 

@@ -1,3 +1,5 @@
+@use "components/empty-state";
+
 .page_profile {
   min-height: 100vh;
   background:
@@ -450,40 +452,6 @@
   color: var(--accent);
   opacity: 0.85;
   display: block;
-}
-
-.empty-state-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 24px;
-  background: var(--bg-surface);
-  border: 1px dashed var(--border-color);
-  border-radius: var(--radius-md);
-  max-width: 320px;
-  text-align: center;
-}
-
-.empty-state-icon {
-  color: var(--accent);
-  opacity: 0.75;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-}
-
-.empty-state-icon svg {
-  width: 48px;
-  height: 48px;
-  display: block;
-}
-
-.empty-state-text {
-  font-size: 14px;
-  color: var(--text-secondary);
-  margin: 0;
 }
 
 .empty-state-subtext {

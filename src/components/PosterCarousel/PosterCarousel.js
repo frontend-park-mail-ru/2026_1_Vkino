@@ -1,5 +1,5 @@
-import { BaseComponent } from "../BaseComponent.js";
-import MoviePosterComponent from "../MoviePoster/MoviePoster.js";
+import { BaseComponent } from "@/components/BaseComponent.js";
+import MoviePosterComponent from "@/components/MoviePoster/MoviePoster.js";
 import "./PosterCarousel.precompiled.js";
 
 export default class PosterCarouselComponent extends BaseComponent {

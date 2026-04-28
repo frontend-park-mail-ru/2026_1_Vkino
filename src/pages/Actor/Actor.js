@@ -1,15 +1,15 @@
 import BasePage from "../BasePage.js";
 import "./Actor.precompiled.js";
 
-import { movieService } from "../../js/MovieService.js";
-import { getCacheFallbackNotice } from "../../utils/apiMeta.js";
-import HeaderComponent from "../../components/Header/Header.js";
-import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
-import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
+import { movieService } from "@/js/MovieService.js";
+import { getCacheFallbackNotice } from "@/utils/apiMeta.js";
+import HeaderComponent from "@/components/Header/Header.js";
+import PosterCarouselComponent from "@/components/PosterCarousel/PosterCarousel.js";
+import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
 import {
   extractActor,
   extractSelections,
-} from "../../utils/apiResponse.js";
+} from "@/utils/apiResponse.js";
 
 /**
  * Старница актера

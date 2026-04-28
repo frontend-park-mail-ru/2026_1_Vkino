@@ -1,8 +1,8 @@
-import { BaseComponent } from "../BaseComponent.js";
+import { BaseComponent } from "@/components/BaseComponent.js";
 import "./MoviePlayer.precompiled.js";
-import { authStore } from "../../store/authStore.js";
-import { playerService } from "../../js/PlayerService.js";
-import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
+import { authStore } from "@/store/authStore.js";
+import { playerService } from "@/js/PlayerService.js";
+import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
 
 const CONTROLS_HIDE_DELAY_MS = 2200;
 const SEEK_STEP_SECONDS = 10;
@@ -422,15 +422,6 @@ export default class MoviePlayerComponent extends BaseComponent {
       0,
       Math.min(Math.floor(rawCurrentTime), duration || Number.MAX_SAFE_INTEGER),
     );
-
-    console.debug("[Player] saveProgress called", {
-      force,
-      resetOnEnded,
-      episodeId,
-      currentTime: normalizedCurrentTime,
-      duration,
-      isAuthenticated: this.context.isAuthenticated,
-    });
 
     if (!force && normalizedCurrentTime === this._lastSavedSecond) {
       return {
@@ -1032,14 +1023,6 @@ export default class MoviePlayerComponent extends BaseComponent {
 
     const now = Date.now();
     const throttleMs = PROGRESS_SAVE_THROTTLE_MS;
-    console.debug("[Player] _maybeThrottledProgressSave", {
-      now,
-      lastSavedAt: this._throttledProgressSaveAt,
-      throttleMs,
-      currentTime: Number(this.videoEl?.currentTime) || 0,
-      duration: Number(this.videoEl?.duration) || this.context.duration || 0,
-      isAuthenticated: this.context.isAuthenticated,
-    });
     if (now - this._throttledProgressSaveAt < throttleMs) {
       return;
     }
@@ -1061,13 +1044,6 @@ export default class MoviePlayerComponent extends BaseComponent {
   };
 
   _onPause = () => {
-    console.debug("[Player] _onPause", {
-      episodeId: this.context.activeEpisodeId,
-      currentTime: Number(this.videoEl?.currentTime) || 0,
-      duration: Number(this.videoEl?.duration) || this.context.duration || 0,
-      isAuthenticated: this.context.isAuthenticated,
-    });
-
     void this.saveProgress({ force: true });
     this.context = {
       ...this.context,
@@ -1081,13 +1057,6 @@ export default class MoviePlayerComponent extends BaseComponent {
   };
 
   _onEnded = () => {
-    console.debug("[Player] _onEnded", {
-      episodeId: this.context.activeEpisodeId,
-      currentTime: Number(this.videoEl?.currentTime) || 0,
-      duration: Number(this.videoEl?.duration) || this.context.duration || 0,
-      isAuthenticated: this.context.isAuthenticated,
-    });
-
     void this.saveProgress({ force: true, resetOnEnded: true });
     this.context = {
       ...this.context,

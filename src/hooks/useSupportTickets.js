@@ -1,4 +1,4 @@
-import { supportService } from "../js/SupportService.js";
+import { supportService } from "@/js/SupportService.js";
 import {
   buildSupportConversationMessages,
   buildStatisticsCards,
@@ -8,7 +8,7 @@ import {
   extractSupportTickets,
   normalizeSupportMessage,
   SUPPORT_CATEGORY_OPTIONS,
-} from "../utils/support.js";
+} from "@/utils/support.js";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "Все" },
