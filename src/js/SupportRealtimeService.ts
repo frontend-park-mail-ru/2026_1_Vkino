@@ -1,11 +1,23 @@
 import { ApiService, apiService } from "./api.ts";
-import type { AnyRecord } from "@/types/shared.ts";
+
+type SupportRealtimeStatus = "open" | "closed" | "reconnecting";
+
+interface SupportRealtimeHandlers {
+  onMessage?: (payload: unknown) => void;
+  onError?: (event: Event) => void;
+  onStatusChange?: (status: SupportRealtimeStatus) => void;
+}
 
 const SUPPORT_WS_BASE_PATH = "/support/tickets";
 const SUPPORT_WS_RECONNECT_DELAY_MS = 3000;
 
 export class SupportRealtimeService {
-  [key: string]: any;
+  private api: ApiService;
+  private socket: WebSocket | null;
+  private handlers: SupportRealtimeHandlers;
+  private currentTicketId: string;
+  private _reconnectTimerId: number;
+  private _shouldReconnect: boolean;
 
   constructor(apiServiceInstance: ApiService) {
     this.api = apiServiceInstance;
@@ -16,7 +28,7 @@ export class SupportRealtimeService {
     this._shouldReconnect = false;
   }
 
-  connect(handlers: AnyRecord = {}) {
+  connect(handlers: SupportRealtimeHandlers = {}) {
     this.handlers = {
       ...this.handlers,
       ...handlers,
@@ -36,7 +48,7 @@ export class SupportRealtimeService {
     }
   }
 
-  subscribe(ticketId) {
+  subscribe(ticketId: string | number) {
     const normalizedTicketId = String(ticketId || "").trim();
 
     if (!normalizedTicketId) {
@@ -57,7 +69,7 @@ export class SupportRealtimeService {
     this._openSocket(normalizedTicketId);
   }
 
-  unsubscribe(ticketId = this.currentTicketId) {
+  unsubscribe(ticketId: string | number = this.currentTicketId) {
     const normalizedTicketId = String(ticketId || "").trim();
 
     if (!normalizedTicketId || normalizedTicketId !== this.currentTicketId) {
@@ -75,7 +87,7 @@ export class SupportRealtimeService {
     this._teardownSocket({ notifyClose: false });
   }
 
-  _handleOpen = (event) => {
+  _handleOpen = (event: Event) => {
     if (event.currentTarget !== this.socket) {
       return;
     }
@@ -85,7 +97,7 @@ export class SupportRealtimeService {
     this.handlers.onStatusChange?.("open");
   };
 
-  _handleMessage = (event) => {
+  _handleMessage = (event: MessageEvent) => {
     if (event.currentTarget !== this.socket) {
       return;
     }
@@ -103,7 +115,7 @@ export class SupportRealtimeService {
     this.handlers.onMessage?.(payload);
   };
 
-  _handleError = (event) => {
+  _handleError = (event: Event) => {
     if (event.currentTarget !== this.socket) {
       return;
     }
@@ -111,7 +123,7 @@ export class SupportRealtimeService {
     this.handlers.onError?.(event);
   };
 
-  _handleClose = (event) => {
+  _handleClose = (event: Event) => {
     if (event.currentTarget !== this.socket) {
       return;
     }
@@ -124,7 +136,7 @@ export class SupportRealtimeService {
     }
   };
 
-  _openSocket(ticketId) {
+  _openSocket(ticketId: string | number) {
     const normalizedTicketId = String(ticketId || "").trim();
 
     if (!normalizedTicketId) {
@@ -188,14 +200,19 @@ export class SupportRealtimeService {
     }, SUPPORT_WS_RECONNECT_DELAY_MS);
   }
 
-  _buildSocketUrl(ticketId) {
+  _buildSocketUrl(ticketId: string | number) {
+    const normalizedTicketId = String(ticketId || "").trim();
     const explicitUrl = String(
       import.meta.env.VITE_SUPPORT_WS_URL || "",
     ).trim();
     const fallbackUrl = apiService.buildUrl(
-      `${SUPPORT_WS_BASE_PATH}/${encodeURIComponent(ticketId)}/subscribe`,
+      `${SUPPORT_WS_BASE_PATH}/${encodeURIComponent(normalizedTicketId)}/subscribe`,
     );
-    const baseUrl = resolveWsBaseUrl(explicitUrl, fallbackUrl, ticketId);
+    const baseUrl = resolveWsBaseUrl(
+      explicitUrl,
+      fallbackUrl,
+      normalizedTicketId,
+    );
     const wsUrl = baseUrl.replace(/^http/i, "ws");
     const url = new URL(wsUrl, window.location.origin);
     const accessToken = this.api.getAccessToken();

@@ -4,7 +4,7 @@ import "./Pagination.precompiled.js";
 export default class PaginationComponent extends BaseComponent {
   constructor(
     context: AnyRecord = {},
-    parent: BaseComponent | null = null,
+    parent: BaseComponent<any> | null = null,
     el: Element | null = null,
   ) {
     if (!parent) {

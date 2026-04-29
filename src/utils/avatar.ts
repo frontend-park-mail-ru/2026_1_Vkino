@@ -13,7 +13,7 @@ export const DEFAULT_AVATAR_URL = "/img/user-avatar.png";
  * @param {string|null|undefined} avatarUrl исходный URL аватара
  * @returns {string} нормализованный URL аватара
  */
-export function resolveAvatarUrl(avatarUrl) {
+export function resolveAvatarUrl(avatarUrl: unknown): string {
   const normalized = String(avatarUrl || "").trim();
 
   if (!normalized) {

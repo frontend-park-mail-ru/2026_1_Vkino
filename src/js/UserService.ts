@@ -1,96 +1,71 @@
-import { ApiService, apiService } from "./api.ts";
+import { ApiService, apiService, createApiErrorResult } from "./api.ts";
+import type { ApiResult } from "./api.ts";
+import type { EntityId } from "@/types/shared.ts";
+import type {
+  AuthCredentials,
+  AuthTokenPayload,
+  ChangePasswordPayload,
+  FriendRequestDto,
+  FriendRequestQuery,
+  PaginationQuery,
+  SearchUsersQuery,
+  SignUpCredentials,
+  ToggleFavoriteResponse,
+  UserCollectionResponse,
+  UserProfileDto,
+} from "@/types/user.ts";
 
 /**
- * Сервис авторизации. Надстройка нам ApiService
- * Управляет ручками, связанными с авторизацией, регистрацией, обнолением токенов, информацией пользователя и разлогином.
+ * Сервис авторизации. Надстройка над ApiService.
+ * Управляет ручками, связанными с авторизацией, профилем и друзьями.
  */
 export class UserService {
-  [key: string]: any;
-  /**
-   * Конструирует экземпляр UserService.
-   * @constructor
-   * @param {ApiService} экземпляр ApiService
-   */
-  constructor(apiService: ApiService) {
-    this.apiRoot = apiService;
-    this.api = apiService.withNamespace("/user");
+  private apiRoot: ApiService;
+  private api: ApiService;
+
+  constructor(apiServiceInstance: ApiService) {
+    this.apiRoot = apiServiceInstance;
+    this.api = apiServiceInstance.withNamespace("/user");
   }
 
-  /**
-   * Сохраняет access token из ответа сервера в localStorage.
-   * @private
-   * @param {Object} result результат запроса к API
-   * @param {boolean} result.ok флаг успешности запроса
-   * @param {Object} result.resp ответ сервера
-   * @param {string} result.resp.access_token токен доступа
-   */
-  _saveAccessToken(result) {
+  private _saveAccessToken(result: ApiResult<AuthTokenPayload>): void {
     const accessToken = result?.resp?.access_token;
 
-    if (result?.ok && accessToken) {
+    if (result.ok && accessToken) {
       this.apiRoot.setAccessToken(accessToken);
     }
   }
 
-  /**
-   * Очищаем localStorage
-   * @private
-   */
-  _clearSessionLocal() {
+  private _clearSessionLocal(): void {
     this.apiRoot.clearAccessToken();
   }
 
-  /**
-   * Получаем accessToken
-   * @returns {string|null} токен доступа или null, если токен не найден
-   */
-  getAccessToken() {
+  getAccessToken(): string | null {
     return this.apiRoot.getAccessToken();
   }
 
-  /**
-   * Обнуляем сессию
-   */
-  clearAccessToken() {
+  clearAccessToken(): void {
     this._clearSessionLocal();
   }
 
-  /**
-   * Авторизуем пользователя.
-   * @async
-   * @param {Object} authUserData данные для авторизации
-   * @param {string} authUserData.email email пользователя
-   * @param {string} authUserData.password пароль пользователя
-   * @returns {Promise<Object>} результат запроса
-   */
-  async signIn(authUserData) {
-    const result = await this.api.post("/sign-in", authUserData);
+  async signIn(
+    authUserData: AuthCredentials,
+  ): Promise<ApiResult<AuthTokenPayload>> {
+    const result = await this.api.post<AuthTokenPayload>("/sign-in", authUserData);
     this._saveAccessToken(result);
     return result;
   }
 
-  /**
-   * Регистрируем нового пользователя.
-   * @async
-   * @param {Object} authUserData данные для регистрации
-   * @param {string} authUserData.email email пользователя
-   * @param {string} authUserData.password пароль пользователя
-   * @param {string} authUserData.name имя пользователя
-   * @returns {Promise<Object>} результат запроса
-   */
-  async signUp(authUserData) {
-    const result = await this.api.post("/sign-up", authUserData);
+  async signUp(
+    authUserData: SignUpCredentials,
+  ): Promise<ApiResult<AuthTokenPayload>> {
+    const result = await this.api.post<AuthTokenPayload>("/sign-up", authUserData);
     this._saveAccessToken(result);
     return result;
   }
 
-  /**
-   * Обновляет access token с помощью refresh token.
-   * @async
-   * @returns {Promise<Object>} результат запроса
-   */
-  async refresh() {
-    const result = await this.api.post("/refresh");
+  async refresh(): Promise<ApiResult<AuthTokenPayload>> {
+    const result = await this.api.post<AuthTokenPayload>("/refresh");
     this._saveAccessToken(result);
 
     if (!result.ok && shouldClearSessionAfterRefreshFailure(result.status)) {
@@ -100,33 +75,20 @@ export class UserService {
     return result;
   }
 
-  /**
-   * Получает информацию о текущем авторизованном пользователе.
-   * @async
-   * @returns {Promise<Object>} результат запроса с данными пользователя
-   */
-  async me() {
-    return this.api.get("/me");
+  async me(): Promise<ApiResult<UserProfileDto>> {
+    return this.api.get<UserProfileDto>("/me");
   }
 
-  /**
-   * Разлогин пользователя.
-   * @async
-   * @returns {Promise<Object>} результат запроса
-   */
-  async logout() {
-    const result = await this.api.post("/logout");
+  async logout(): Promise<ApiResult<AuthTokenPayload>> {
+    const result = await this.api.post<AuthTokenPayload>("/logout");
     this._clearSessionLocal();
     return result;
   }
 
-  /**
-   * Обновляет профиль пользователя.
-   * Передаёт дату рождения и аватарку одним multipart запросом.
-   * @param {string|null} birthdate
-   * @param {File|null} avatarFile
-   */
-  async updateProfile(birthdate, avatarFile = null) {
+  async updateProfile(
+    birthdate: string | null,
+    avatarFile: File | null = null,
+  ): Promise<ApiResult<UserProfileDto>> {
     const formData = new FormData();
 
     if (birthdate !== null && birthdate !== undefined) {
@@ -137,146 +99,116 @@ export class UserService {
       formData.append("avatar", avatarFile);
     }
 
-    return this.api.put("/profile", formData);
+    return this.api.put<UserProfileDto>("/profile", formData);
   }
 
-  /**
-   * Меняет пароль пользователя.
-   * @param {{old_password: string, new_password: string}} payload
-   */
-  async changePassword(payload) {
-    return this.api.post("/change-password", payload);
+  async changePassword(
+    payload: ChangePasswordPayload,
+  ): Promise<ApiResult<AuthTokenPayload>> {
+    return this.api.post<AuthTokenPayload>("/change-password", payload);
   }
 
-  /**
-   * Переключает фильм в любимый / нелюбимый
-   * @async
-   * @param {string|number} movieId ID фильма.
-   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
-   */
-  async toggleFavorite(movieId) {
-    return this.api.put(`/favorites/${movieId}`);
+  async toggleFavorite(
+    movieId: EntityId,
+  ): Promise<ApiResult<ToggleFavoriteResponse>> {
+    return this.api.put<ToggleFavoriteResponse>(`/favorites/${movieId}`);
   }
 
-  /**
-   * Возвращает список избранных фильмов пользователя.
-   * @async
-   * @param {{limit?: number, offset?: number}} [options={}] параметры пагинации.
-   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
-   */
-  async getFavorites({ limit = 10, offset = 0 } = {}) {
-    return this.api.get("/favorites", { query: { limit, offset } });
+  async getFavorites(
+    { limit = 10, offset = 0 }: PaginationQuery = {},
+  ): Promise<ApiResult<UserCollectionResponse>> {
+    return this.api.get<UserCollectionResponse>("/favorites", {
+      query: { limit, offset },
+    });
   }
 
-  /**
-   * Возвращает подборку "Продолжить просмотр".
-   * @async
-   * @param {{limit?: number}} [options={}] параметры выборки.
-   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
-   */
-  async getContinueWatching({ limit = 5 } = {}) {
-    return this.api.get("/watch/continue", { query: { limit } });
+  async getContinueWatching(
+    { limit = 5 }: Pick<PaginationQuery, "limit"> = {},
+  ): Promise<ApiResult<UserCollectionResponse>> {
+    return this.api.get<UserCollectionResponse>("/watch/continue", {
+      query: { limit },
+    });
   }
 
-  /**
-   * Возвращает историю просмотра пользователя.
-   * @async
-   * @param {{limit?: number}} [options={}] параметры выборки.
-   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
-   */
-  async getWatchHistory({ limit = 10 } = {}) {
-    return this.api.get("/watch/history", { query: { limit } });
+  async getWatchHistory(
+    { limit = 10 }: Pick<PaginationQuery, "limit"> = {},
+  ): Promise<ApiResult<UserCollectionResponse>> {
+    return this.api.get<UserCollectionResponse>("/watch/history", {
+      query: { limit },
+    });
   }
 
-  /**
-   * Возвращает недавно просмотренные фильмы (с порогом прогресса просмотра на бэкенде).
-   * @async
-   * @param {{limit?: number}} [options={}] параметры выборки.
-   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
-   */
-  async getWatchRecent({ limit = 10 } = {}) {
-    return this.api.get("/watch/recent", { query: { limit } });
+  async getWatchRecent(
+    { limit = 10 }: Pick<PaginationQuery, "limit"> = {},
+  ): Promise<ApiResult<UserCollectionResponse>> {
+    return this.api.get<UserCollectionResponse>("/watch/recent", {
+      query: { limit },
+    });
   }
 
-  /**
-   * Ищет пользователей по email.
-   * @async
-   * @param {string} query поисковая строка.
-   * @param {{limit?: number}} [options={}] параметры выборки.
-   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
-   */
-  async searchUsers(query, { limit = 10 } = {}) {
-    return this.api.get("/search", { query: { query, limit } });
+  async searchUsers(
+    query: string,
+    { limit = 10 }: SearchUsersQuery = {},
+  ): Promise<ApiResult<UserCollectionResponse<UserProfileDto>>> {
+    return this.api.get<UserCollectionResponse<UserProfileDto>>("/search", {
+      query: { query, limit },
+    });
   }
 
-  /**
-   * Отправляет исходящую заявку в друзья.
-   * @async
-   * @param {string|number} toUserId ID пользователя, которому отправляется заявка.
-   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
-   */
-  async sendFriendRequest(toUserId) {
-    return this.api.post(`/friends/${toUserId}`);
+  async sendFriendRequest(
+    toUserId: EntityId,
+  ): Promise<ApiResult<AuthTokenPayload>> {
+    return this.api.post<AuthTokenPayload>(`/friends/${toUserId}`);
   }
 
-  /**
-   * Отвечает на входящую заявку в друзья.
-   * @async
-   * @param {string|number} requestId ID заявки.
-   * @param {"accept"|"decline"|"cancel"|string} action действие над заявкой.
-   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
-   */
-  async respondToFriendRequest(requestId, action) {
-    return this.api.post(`/friends/requests/${requestId}/respond`, { action });
+  async respondToFriendRequest(
+    requestId: EntityId,
+    action: "accept" | "decline" | "cancel" | string,
+  ): Promise<ApiResult<AuthTokenPayload>> {
+    return this.api.post<AuthTokenPayload>(
+      `/friends/requests/${requestId}/respond`,
+      { action },
+    );
   }
 
-  /**
-   * Отменяет исходящую заявку в друзья.
-   * @async
-   * @param {string|number} requestId ID заявки.
-   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
-   */
-  async cancelFriendRequest(requestId) {
-    return this.api.delete(`/friends/requests/${requestId}`);
+  async cancelFriendRequest(
+    requestId: EntityId,
+  ): Promise<ApiResult<AuthTokenPayload>> {
+    return this.api.delete<AuthTokenPayload>(`/friends/requests/${requestId}`);
   }
 
-  /**
-   * Возвращает список заявок в друзья.
-   * @async
-   * @param {{direction?: "incoming"|"outgoing"|string, limit?: number}} [options={}] параметры выборки.
-   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
-   */
-  async getFriendRequests({ direction = "incoming", limit = 50 } = {}) {
-    return this.api.get("/friends/requests", { query: { direction, limit } });
+  async getFriendRequests(
+    { direction = "incoming", limit = 50 }: FriendRequestQuery = {},
+  ): Promise<ApiResult<UserCollectionResponse<FriendRequestDto>>> {
+    return this.api.get<UserCollectionResponse<FriendRequestDto>>(
+      "/friends/requests",
+      { query: { direction, limit } },
+    );
   }
 
-  /**
-   * Возвращает список друзей пользователя.
-   * @async
-   * @param {{limit?: number, offset?: number}} [options={}] параметры пагинации.
-   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
-   */
-  async getFriendsList({ limit = 50, offset = 0 } = {}) {
-    return this.api.get("/friends", { query: { limit, offset } });
+  async getFriendsList(
+    { limit = 50, offset = 0 }: PaginationQuery = {},
+  ): Promise<ApiResult<UserCollectionResponse<UserProfileDto>>> {
+    return this.api.get<UserCollectionResponse<UserProfileDto>>("/friends", {
+      query: { limit, offset },
+    });
   }
 
-  /**
-   * Удаляет пользователя из друзей.
-   * @async
-   * @param {string|number} userId ID друга.
-   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
-   */
-  async deleteFriend(userId) {
-    return this.api.delete(`/friends/${userId}`);
+  async deleteFriend(userId: EntityId): Promise<ApiResult<AuthTokenPayload>> {
+    const normalizedUserId = String(userId ?? "").trim();
+
+    if (!normalizedUserId) {
+      return createApiErrorResult<AuthTokenPayload>({
+        error: "UserService: не передан id друга",
+      });
+    }
+
+    return this.api.delete<AuthTokenPayload>(`/friends/${normalizedUserId}`);
   }
 }
 
-/**
- * Экземпляр сервиса пользователя.
- * @type {UserService}
- */
 export const userService = new UserService(apiService);
 
-function shouldClearSessionAfterRefreshFailure(status) {
+function shouldClearSessionAfterRefreshFailure(status: number): boolean {
   return status >= 400 && status < 500 && status !== 408 && status !== 429;
 }

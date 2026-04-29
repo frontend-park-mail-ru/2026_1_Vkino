@@ -1,9 +1,12 @@
-export function initPasswordToggle(root) {
+export function initPasswordToggle(root: Element | Document | null) {
   if (!root) {
     return () => {};
   }
 
-  const syncButtonState = (button, input) => {
+  const syncButtonState = (
+    button: HTMLButtonElement,
+    input: HTMLInputElement,
+  ) => {
     const isVisible = input.type === "text";
 
     button.classList.toggle("is-active", isVisible);
@@ -14,16 +17,18 @@ export function initPasswordToggle(root) {
     button.setAttribute("aria-pressed", String(isVisible));
   };
 
-  root.querySelectorAll(".eye-btn[data-target]").forEach((button) => {
-    const input = root.querySelector(`#${button.dataset.target}`);
+  root.querySelectorAll<HTMLButtonElement>(".eye-btn[data-target]").forEach((button) => {
+    const input = root.querySelector<HTMLInputElement>(`#${button.dataset.target}`);
 
     if (input) {
       syncButtonState(button, input);
     }
   });
 
-  const handleClick = (event) => {
-    const button = event.target.closest(".eye-btn");
+  const handleClick = (event: Event) => {
+    const button = (event.target as Element | null)?.closest<HTMLButtonElement>(
+      ".eye-btn",
+    );
 
     if (!button || !root.contains(button)) {
       return;
@@ -34,7 +39,7 @@ export function initPasswordToggle(root) {
       return;
     }
 
-    const input = root.querySelector(`#${targetId}`);
+    const input = root.querySelector<HTMLInputElement>(`#${targetId}`);
     if (!input) {
       return;
     }

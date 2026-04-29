@@ -1,50 +1,54 @@
-import { ApiService, apiService } from "./api.ts";
+import { ApiService, apiService, createApiErrorResult } from "./api.ts";
+import type { ApiResult } from "./api.ts";
+import type { EntityId } from "@/types/shared.ts";
+import type { PlaybackDto, ProgressDto } from "@/types/movie.ts";
 
 /**
  * Сервис для playback и прогресса просмотра.
  */
 export class PlayerService {
-  [key: string]: any;
+  private api: ApiService;
 
   constructor(api: ApiService) {
     this.api = api;
   }
 
-  async getEpisodePlayback(episodeId) {
+  async getEpisodePlayback(
+    episodeId: EntityId,
+  ): Promise<ApiResult<PlaybackDto>> {
     const normalizedEpisodeId = String(episodeId ?? "").trim();
 
     if (!normalizedEpisodeId) {
-      return {
-        ok: false,
-        status: 0,
-        resp: null,
+      return createApiErrorResult<PlaybackDto>({
         error: "PlayerService: не передан id эпизода",
-      };
+      });
     }
 
-    return this.api.get(
+    return this.api.get<PlaybackDto>(
       `/episode/${encodeURIComponent(normalizedEpisodeId)}/playback`,
     );
   }
 
-  async getEpisodeProgress(episodeId) {
+  async getEpisodeProgress(
+    episodeId: EntityId,
+  ): Promise<ApiResult<ProgressDto>> {
     const normalizedEpisodeId = String(episodeId ?? "").trim();
 
     if (!normalizedEpisodeId) {
-      return {
-        ok: false,
-        status: 0,
-        resp: null,
+      return createApiErrorResult<ProgressDto>({
         error: "PlayerService: не передан id эпизода",
-      };
+      });
     }
 
-    return this.api.get(
+    return this.api.get<ProgressDto>(
       `/episode/${encodeURIComponent(normalizedEpisodeId)}/progress`,
     );
   }
 
-  async saveEpisodeProgress(episodeId, positionSeconds) {
+  async saveEpisodeProgress(
+    episodeId: EntityId,
+    positionSeconds: number,
+  ): Promise<ApiResult<ProgressDto>> {
     const normalizedEpisodeId = String(episodeId ?? "").trim();
     const normalizedPosition = Math.max(
       0,
@@ -52,20 +56,16 @@ export class PlayerService {
     );
 
     if (!normalizedEpisodeId) {
-      return {
-        ok: false,
-        status: 0,
-        resp: null,
+      return createApiErrorResult<ProgressDto>({
         error: "PlayerService: не передан id эпизода",
-      };
+      });
     }
 
-    const payload = {
-      position_seconds: normalizedPosition,
-    };
-    return this.api.put(
+    return this.api.put<ProgressDto>(
       `/episode/${encodeURIComponent(normalizedEpisodeId)}/progress`,
-      payload,
+      {
+        position_seconds: normalizedPosition,
+      },
     );
   }
 }

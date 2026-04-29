@@ -1,4 +1,12 @@
-export function unwrapPayload(payload) {
+import { isRecord } from "@/types/shared.ts";
+import type { MovieSelectionDto, ActorDto, MovieDto } from "@/types/movie.ts";
+import type { UserProfileDto } from "@/types/user.ts";
+import type {
+  WatchPartyOverviewDto,
+  WatchPartyRoomDto,
+} from "@/types/watchParty.ts";
+
+export function unwrapPayload(payload: unknown): unknown {
   if (payload == null) {
     return null;
   }
@@ -7,7 +15,7 @@ export function unwrapPayload(payload) {
     return payload;
   }
 
-  if (typeof payload !== "object") {
+  if (!isRecord(payload)) {
     return payload;
   }
 
@@ -27,14 +35,14 @@ export function unwrapPayload(payload) {
   return payload;
 }
 
-export function extractSelections(payload) {
+export function extractSelections(payload: unknown): MovieSelectionDto[] {
   const unwrapped = unwrapPayload(payload);
 
   if (Array.isArray(unwrapped)) {
-    return unwrapped;
+    return unwrapped as MovieSelectionDto[];
   }
 
-  if (!unwrapped || typeof unwrapped !== "object") {
+  if (!isRecord(unwrapped)) {
     return [];
   }
 
@@ -47,65 +55,37 @@ export function extractSelections(payload) {
 
   for (const candidate of candidates) {
     if (Array.isArray(candidate)) {
-      return candidate;
+      return candidate as MovieSelectionDto[];
     }
   }
 
   return [];
 }
 
-export function extractActor(payload) {
+export function extractActor(payload: unknown): ActorDto | null {
   const unwrapped = unwrapPayload(payload);
-
-  if (!unwrapped || typeof unwrapped !== "object") {
-    return null;
-  }
-
-  const candidates = [
-    unwrapped.actor,
-    unwrapped.Actor,
-    unwrapped.item,
-    unwrapped.Item,
-    unwrapped,
-  ];
-
-  for (const candidate of candidates) {
-    if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
-      return candidate;
-    }
-  }
-
-  return null;
+  return pickRecordCandidate<ActorDto>(unwrapped, [
+    "actor",
+    "Actor",
+    "item",
+    "Item",
+  ]);
 }
 
-export function extractMovie(payload) {
+export function extractMovie(payload: unknown): MovieDto | null {
   const unwrapped = unwrapPayload(payload);
-
-  if (!unwrapped || typeof unwrapped !== "object") {
-    return null;
-  }
-
-  const candidates = [
-    unwrapped.movie,
-    unwrapped.Movie,
-    unwrapped.item,
-    unwrapped.Item,
-    unwrapped,
-  ];
-
-  for (const candidate of candidates) {
-    if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
-      return candidate;
-    }
-  }
-
-  return null;
+  return pickRecordCandidate<MovieDto>(unwrapped, [
+    "movie",
+    "Movie",
+    "item",
+    "Item",
+  ]);
 }
 
-export function extractProfile(payload) {
+export function extractProfile(payload: unknown): UserProfileDto {
   const unwrapped = unwrapPayload(payload);
 
-  if (!unwrapped || typeof unwrapped !== "object") {
+  if (!isRecord(unwrapped)) {
     return {};
   }
 
@@ -120,18 +100,20 @@ export function extractProfile(payload) {
   ];
 
   for (const candidate of candidates) {
-    if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
-      return candidate;
+    if (isRecord(candidate)) {
+      return candidate as UserProfileDto;
     }
   }
 
   return {};
 }
 
-export function extractWatchPartyOverview(payload) {
+export function extractWatchPartyOverview(
+  payload: unknown,
+): WatchPartyOverviewDto {
   const unwrapped = unwrapPayload(payload);
 
-  if (!unwrapped || typeof unwrapped !== "object" || Array.isArray(unwrapped)) {
+  if (!isRecord(unwrapped)) {
     return {};
   }
 
@@ -146,33 +128,41 @@ export function extractWatchPartyOverview(payload) {
   ];
 
   for (const candidate of candidates) {
-    if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
-      return candidate;
+    if (isRecord(candidate)) {
+      return candidate as WatchPartyOverviewDto;
     }
   }
 
   return {};
 }
 
-export function extractWatchPartyRoom(payload) {
+export function extractWatchPartyRoom(
+  payload: unknown,
+): WatchPartyRoomDto | null {
   const unwrapped = unwrapPayload(payload);
+  return pickRecordCandidate<WatchPartyRoomDto>(unwrapped, [
+    "room",
+    "Room",
+    "createdRoom",
+    "created_room",
+    "item",
+    "Item",
+  ]);
+}
 
-  if (!unwrapped || typeof unwrapped !== "object" || Array.isArray(unwrapped)) {
+function pickRecordCandidate<T extends object>(
+  unwrapped: unknown,
+  keys: string[],
+): T | null {
+  if (!isRecord(unwrapped)) {
     return null;
   }
 
-  const candidates = [
-    unwrapped.room,
-    unwrapped.Room,
-    unwrapped.createdRoom,
-    unwrapped.created_room,
-    unwrapped.item,
-    unwrapped.Item,
-  ];
+  const candidates: unknown[] = [...keys.map((key) => unwrapped[key]), unwrapped];
 
   for (const candidate of candidates) {
-    if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
-      return candidate;
+    if (isRecord(candidate)) {
+      return candidate as T;
     }
   }
 

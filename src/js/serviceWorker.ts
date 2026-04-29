@@ -40,7 +40,9 @@ export function registerServiceWorker() {
   window.addEventListener("load", () => void register(), { once: true });
 }
 
-function setupServiceWorkerUpdates(registration) {
+function setupServiceWorkerUpdates(
+  registration: ServiceWorkerRegistration,
+): void {
   const checkForUpdates = () => {
     void registration.update().catch(() => {});
   };

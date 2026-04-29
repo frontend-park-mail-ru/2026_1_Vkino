@@ -8,7 +8,7 @@ import type { AnyRecord, TemplateFunction } from "@/types/shared.ts";
  * @extends BaseComponent
  * @abstract
  */
-export default class BasePage extends BaseComponent {
+export default class BasePage<TContext extends object = AnyRecord> extends BaseComponent<TContext> {
   title: string | null;
   /**
    * Создает экземпляр базовой страницы.
@@ -20,9 +20,9 @@ export default class BasePage extends BaseComponent {
    * @param {string|null} [title=null] - Заголовок страницы.
    */
   constructor(
-    context: AnyRecord = {},
-    template: TemplateFunction<AnyRecord>,
-    parent: BaseComponent | null = null,
+    context: TContext,
+    template: TemplateFunction<TContext>,
+    parent: BaseComponent<any> | null = null,
     el: Element | null = null,
     title: string | null = null,
   ) {
@@ -73,7 +73,7 @@ export default class BasePage extends BaseComponent {
    * Обновляет страницу с новым контекстом и вызывает функцию onRefresh.
    * @override
    */
-  refresh(newContext: AnyRecord = {}): this {
+  refresh(newContext: TContext): this {
     super.refresh(newContext);
     this.onRefresh();
     return this;

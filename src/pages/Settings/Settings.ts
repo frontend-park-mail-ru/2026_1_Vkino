@@ -8,13 +8,46 @@ import { userService } from "@/js/UserService.ts";
 import { authStore } from "@/store/authStore.ts";
 import { router } from "@/router/index.ts";
 import HeaderComponent from "@/components/Header/Header.ts";
+import type { Cleanup, AuthState } from "@/types/shared.ts";
 import { resolveAvatarUrl } from "@/utils/avatar.ts";
 import { extractProfile } from "@/utils/apiResponse.ts";
 
-export default class SettingsPage extends BasePage {
+interface SettingsUserData {
+  email: string;
+  birthDate: string;
+  avatarUrl: string;
+}
+
+interface SettingsCoinHistoryItem {
+  date: string;
+  action: string;
+  amount: string;
+  isPositive: boolean;
+}
+
+interface SettingsPageContext extends AnyRecord {
+  userData: SettingsUserData;
+  coinHistory: SettingsCoinHistoryItem[];
+  emptyCoinsTitle: string;
+  emptyCoinsDescription: string;
+}
+
+type PasswordFieldId = "oldPassword" | "newPassword" | "confirmPassword";
+
+export default class SettingsPage extends BasePage<SettingsPageContext> {
+  private _detachStyles: Cleanup | null;
+  private _destroyPasswordToggle: Cleanup | null;
+  private _originalValues: Record<string, string | null>;
+  private _editableInputHandlers: Map<HTMLInputElement, () => void>;
+  private _passwordInputHandlers: Map<HTMLInputElement, () => void>;
+  private _buttonHandlers: Map<HTMLElement, (event: Event) => void | Promise<void>>;
+  private _avatarInputHandler: (() => void) | null;
+  private _pendingAvatarFile: File | null;
+  private _authUnsubscribe: Cleanup | null;
+
   constructor(
-    context: AnyRecord = {},
-    parent: BasePage | null = null,
+    context: Partial<SettingsPageContext> = {},
+    parent: BasePage<any> | null = null,
     el: Element | null = null,
   ) {
     if (!el) {
@@ -23,7 +56,7 @@ export default class SettingsPage extends BasePage {
       );
     }
 
-    const mockCoinHistory = [
+    const mockCoinHistory: SettingsCoinHistoryItem[] = [
       // { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
       // { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
       // { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
@@ -99,7 +132,7 @@ export default class SettingsPage extends BasePage {
     return super.init();
   }
 
-  _buildUserDataFromStore(state) {
+  _buildUserDataFromStore(state: AuthState): SettingsUserData {
     const userFromStore = state?.user || {};
 
     return {
@@ -201,7 +234,7 @@ export default class SettingsPage extends BasePage {
     this._avatarInputHandler = onChange;
   }
 
-  _validateAvatarFile(file) {
+  _validateAvatarFile(file: File): string {
     const maxBytes = 5 * 1024 * 1024;
     const allowedTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
 
@@ -229,19 +262,19 @@ export default class SettingsPage extends BasePage {
     avatarPreview.src = resolveAvatarUrl(url);
   }
 
-  _setAvatarError(message) {
+  _setAvatarError(message: string): void {
     const errorEl = this.el.querySelector("#avatar-error");
     if (errorEl) errorEl.textContent = message;
   }
 
-  _setProfileSaveError(message) {
+  _setProfileSaveError(message: string): void {
     const errorEl = this.el.querySelector("#profile-save-error");
     if (errorEl) {
       errorEl.textContent = message || "";
     }
   }
 
-  _setPasswordSuccess(message) {
+  _setPasswordSuccess(message: string): void {
     const successEl = this.el.querySelector("#password-success");
     if (successEl) {
       successEl.textContent = message || "";
@@ -251,11 +284,11 @@ export default class SettingsPage extends BasePage {
   _setupPasswordValidation() {
     const passwordFields = this._getPasswordFields();
 
-    passwordFields.forEach(({ input }) => {
+    passwordFields.forEach(({ id, input }) => {
       if (!input) return;
       const onInputOrBlur = () => {
         this._setPasswordSuccess("");
-        this._validatePasswordField(input.id);
+        this._validatePasswordField(id);
         this._updatePasswordButtonState();
       };
       input.addEventListener("input", onInputOrBlur);
@@ -266,30 +299,37 @@ export default class SettingsPage extends BasePage {
     this._updatePasswordButtonState();
   }
 
-  _getPasswordFields() {
+  _getPasswordFields(): Array<{
+    id: PasswordFieldId;
+    input: HTMLInputElement | null;
+    errorEl: HTMLElement | null;
+  }> {
     return [
       {
         id: "oldPassword",
-        input: this.el.querySelector("#oldPassword"),
-        errorEl: this.el.querySelector("#old-password-error"),
+        input: this.el.querySelector<HTMLInputElement>("#oldPassword"),
+        errorEl: this.el.querySelector<HTMLElement>("#old-password-error"),
       },
       {
         id: "newPassword",
-        input: this.el.querySelector("#newPassword"),
-        errorEl: this.el.querySelector("#new-password-error"),
+        input: this.el.querySelector<HTMLInputElement>("#newPassword"),
+        errorEl: this.el.querySelector<HTMLElement>("#new-password-error"),
       },
       {
         id: "confirmPassword",
-        input: this.el.querySelector("#confirmPassword"),
-        errorEl: this.el.querySelector("#confirm-password-error"),
+        input: this.el.querySelector<HTMLInputElement>("#confirmPassword"),
+        errorEl: this.el.querySelector<HTMLElement>("#confirm-password-error"),
       },
     ];
   }
 
-  _validatePasswordField(fieldId) {
-    const old = this.el.querySelector("#oldPassword")?.value || "";
-    const newP = this.el.querySelector("#newPassword")?.value || "";
-    const conf = this.el.querySelector("#confirmPassword")?.value || "";
+  _validatePasswordField(fieldId: PasswordFieldId): string {
+    const old =
+      this.el.querySelector<HTMLInputElement>("#oldPassword")?.value || "";
+    const newP =
+      this.el.querySelector<HTMLInputElement>("#newPassword")?.value || "";
+    const conf =
+      this.el.querySelector<HTMLInputElement>("#confirmPassword")?.value || "";
 
     const hasAny = !!old || !!newP || !!conf;
 
@@ -366,7 +406,9 @@ export default class SettingsPage extends BasePage {
     const isValidPass = !validatePassword(newP);
     const passwordsMatch = newP === conf;
 
-    const btn = this.el.querySelector('[data-action="change-password"]');
+    const btn = this.el.querySelector<HTMLButtonElement>(
+      '[data-action="change-password"]',
+    );
     if (!btn) return;
 
     const isActive = isComplete && isValidPass && passwordsMatch;
@@ -383,7 +425,7 @@ export default class SettingsPage extends BasePage {
   }
 
   _checkForChanges() {
-    const editableInputs = this.el.querySelectorAll(
+    const editableInputs = this.el.querySelectorAll<HTMLInputElement>(
       ".settings__input_editable",
     );
     let hasChanges = false;
@@ -402,7 +444,9 @@ export default class SettingsPage extends BasePage {
 
     hasChanges = hasChanges || !!this._pendingAvatarFile;
 
-    const saveBtn = this.el.querySelector('[data-action="save-profile"]');
+    const saveBtn = this.el.querySelector<HTMLButtonElement>(
+      '[data-action="save-profile"]',
+    );
     if (!saveBtn) return;
 
     if (hasChanges) {
@@ -417,13 +461,15 @@ export default class SettingsPage extends BasePage {
   }
 
   _setupButtonHandlers() {
-    const saveBtn = this.el.querySelector('[data-action="save-profile"]');
-    const changePwdBtn = this.el.querySelector(
+    const saveBtn = this.el.querySelector<HTMLButtonElement>(
+      '[data-action="save-profile"]',
+    );
+    const changePwdBtn = this.el.querySelector<HTMLButtonElement>(
       '[data-action="change-password"]',
     );
 
     if (saveBtn) {
-      const onSaveClick = async (e) => {
+      const onSaveClick = async (e: Event) => {
         e.preventDefault();
         if (saveBtn.disabled) return;
 
@@ -435,7 +481,7 @@ export default class SettingsPage extends BasePage {
     }
 
     if (changePwdBtn) {
-      const onChangePasswordClick = async (e) => {
+      const onChangePasswordClick = async (e: Event) => {
         e.preventDefault();
         if (!this._validateAllPasswordFields()) {
           this._updatePasswordButtonState();
@@ -449,8 +495,8 @@ export default class SettingsPage extends BasePage {
     }
   }
 
-  _getUpdatedData() {
-    const birthdateInput = this.el.querySelector("#birthDate");
+  _getUpdatedData(): { birthdate: string | null } {
+    const birthdateInput = this.el.querySelector<HTMLInputElement>("#birthDate");
     const birthdate = String(birthdateInput?.value || "").trim();
 
     return {
@@ -486,7 +532,7 @@ export default class SettingsPage extends BasePage {
     this._renderAvatar(normalizedProfile.avatar_url);
 
     this._pendingAvatarFile = null;
-    const avatarInput = this.el.querySelector("#avatarInput");
+    const avatarInput = this.el.querySelector<HTMLInputElement>("#avatarInput");
     if (avatarInput) avatarInput.value = "";
     this._setAvatarError("");
     this._setProfileSaveError("");
@@ -518,9 +564,12 @@ export default class SettingsPage extends BasePage {
   }
 
   async _changePassword() {
-    const old = this.el.querySelector("#oldPassword")?.value;
-    const newP = this.el.querySelector("#newPassword")?.value;
-    const conf = this.el.querySelector("#confirmPassword")?.value;
+    const old =
+      this.el.querySelector<HTMLInputElement>("#oldPassword")?.value || "";
+    const newP =
+      this.el.querySelector<HTMLInputElement>("#newPassword")?.value || "";
+    const conf =
+      this.el.querySelector<HTMLInputElement>("#confirmPassword")?.value || "";
 
     if (newP !== conf) {
       return;
@@ -541,14 +590,18 @@ export default class SettingsPage extends BasePage {
       return;
     }
 
-    const inputs = this.el.querySelectorAll(".settings__input_password_field");
+    const inputs = this.el.querySelectorAll<HTMLInputElement>(
+      ".settings__input_password_field",
+    );
     inputs.forEach((input) => (input.value = ""));
 
     const fields = this._getPasswordFields();
     fields.forEach(({ input, errorEl }) => setError(input, errorEl, ""));
     this._setPasswordSuccess("Пароль успешно обновлен");
 
-    const btn = this.el.querySelector('[data-action="change-password"]');
+    const btn = this.el.querySelector<HTMLButtonElement>(
+      '[data-action="change-password"]',
+    );
     if (btn) {
       btn.classList.remove("btn_accent");
       btn.classList.add("btn_outline");
@@ -581,7 +634,7 @@ export default class SettingsPage extends BasePage {
     this._passwordInputHandlers.clear();
 
     if (this._avatarInputHandler) {
-      const avatarInput = this.el.querySelector("#avatarInput");
+      const avatarInput = this.el.querySelector<HTMLInputElement>("#avatarInput");
       if (avatarInput)
         avatarInput.removeEventListener("change", this._avatarInputHandler);
       this._avatarInputHandler = null;
@@ -592,18 +645,25 @@ export default class SettingsPage extends BasePage {
       this._destroyPasswordToggle = null;
     }
 
-    const saveBtn = this.el.querySelector('[data-action="save-profile"]');
-    const changePwdBtn = this.el.querySelector(
+    const saveBtn = this.el.querySelector<HTMLButtonElement>(
+      '[data-action="save-profile"]',
+    );
+    const changePwdBtn = this.el.querySelector<HTMLButtonElement>(
       '[data-action="change-password"]',
     );
 
-    if (saveBtn)
-      saveBtn.removeEventListener("click", this._buttonHandlers.get(saveBtn));
-    if (changePwdBtn)
-      changePwdBtn.removeEventListener(
-        "click",
-        this._buttonHandlers.get(changePwdBtn),
-      );
+    const saveHandler = saveBtn ? this._buttonHandlers.get(saveBtn) : null;
+    const changeHandler = changePwdBtn
+      ? this._buttonHandlers.get(changePwdBtn)
+      : null;
+
+    if (saveBtn && saveHandler) {
+      saveBtn.removeEventListener("click", saveHandler);
+    }
+
+    if (changePwdBtn && changeHandler) {
+      changePwdBtn.removeEventListener("click", changeHandler);
+    }
   }
 
   beforeDestroy() {

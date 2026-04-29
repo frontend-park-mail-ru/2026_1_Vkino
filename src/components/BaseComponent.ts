@@ -3,19 +3,19 @@ import type { AnyRecord, TemplateFunction } from "@/types/shared.ts";
 /**
  * Базовый класс для создания компонентов приложения.
  */
-export class BaseComponent {
+export class BaseComponent<TContext extends object = AnyRecord> {
   [key: string]: any;
   protected _id: string;
   el: Element;
-  template: TemplateFunction<AnyRecord>;
-  context: AnyRecord;
-  parent: BaseComponent | null;
-  children: Map<string, BaseComponent>;
+  template: TemplateFunction<TContext>;
+  context: TContext;
+  parent: BaseComponent<any> | null;
+  children: Map<string, BaseComponent<any>>;
 
   constructor(
-    context: AnyRecord = {},
-    template: TemplateFunction<AnyRecord>,
-    parent: BaseComponent | null = null,
+    context: TContext,
+    template: TemplateFunction<TContext>,
+    parent: BaseComponent<any> | null = null,
     el: Element | null = null,
   ) {
     if (!template) {
@@ -92,15 +92,15 @@ export class BaseComponent {
 
     // Компонент после destroy намеренно переводится в невалидное состояние.
     this.el = null as unknown as Element;
-    this.context = null as unknown as AnyRecord;
-    this.template = null as unknown as TemplateFunction<AnyRecord>;
+    this.context = null as unknown as TContext;
+    this.template = null as unknown as TemplateFunction<TContext>;
     this.parent = null;
   }
 
   /**
    * Перерисовывает компонент с новым контекстом.
    */
-  refresh(newContext: AnyRecord): this {
+  refresh(newContext: TContext): this {
     this.removeEventListeners();
     this.destroyChildren();
     this.context = {
@@ -130,9 +130,9 @@ export class BaseComponent {
   /**
    * Обновляет все дочерние компоненты с новым контекстом.
    */
-  refreshChildren(newContext: AnyRecord = {}): void {
+  refreshChildren(newContext: TContext): void {
     for (const [, child] of this.children) {
-      child.refresh(newContext);
+      child.refresh(newContext as any);
     }
   }
 
@@ -152,7 +152,7 @@ export class BaseComponent {
    * @throws {Error} Если не указано имя компонента.
    * @throws {Error} Если не передан компонент.
    */
-  addChild<TChild extends BaseComponent>(
+  addChild<TChild extends BaseComponent<any>>(
     name: string,
     component: TChild,
   ): TChild {
@@ -172,7 +172,7 @@ export class BaseComponent {
   /**
    * Получает дочерний компонент по имени.
    */
-  getChild<TChild extends BaseComponent>(name: string): TChild | null {
+  getChild<TChild extends BaseComponent<any>>(name: string): TChild | null {
     return (this.children.get(name) as TChild | undefined) ?? null;
   }
 

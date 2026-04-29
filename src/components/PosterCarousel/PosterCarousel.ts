@@ -6,7 +6,7 @@ import type { AnyRecord } from "@/types/shared.ts";
 export default class PosterCarouselComponent extends BaseComponent {
   constructor(
     context: AnyRecord = {},
-    parent: BaseComponent | null = null,
+    parent: BaseComponent<any> | null = null,
     el: Element | null = null,
   ) {
     if (!parent) {
@@ -38,7 +38,7 @@ export default class PosterCarouselComponent extends BaseComponent {
   }
 
   setupChildren() {
-    this.context.posterItems.forEach((posterItem) => {
+    this.context.posterItems.forEach((posterItem: AnyRecord) => {
       const slot = this.el.querySelector(
         `[data-poster-slot="${posterItem.slotKey}"]`,
       );
@@ -106,7 +106,7 @@ export default class PosterCarouselComponent extends BaseComponent {
     });
   }
 
-  _onDragStart(e) {
+  _onDragStart(e: DragEvent): boolean {
     e.preventDefault();
     return false;
   }
@@ -137,7 +137,7 @@ export default class PosterCarouselComponent extends BaseComponent {
     this._scrollByDirection(1);
   };
 
-  _onSlideClick(e) {
+  _onSlideClick(e: MouseEvent): void {
     if (!this.context.centeredHero) return;
     const slide = e.currentTarget as HTMLElement | null;
     if (!slide) return;
@@ -148,7 +148,7 @@ export default class PosterCarouselComponent extends BaseComponent {
     }
   }
 
-  _onViewportMouseDown = (e) => {
+  _onViewportMouseDown = (e: MouseEvent) => {
     e.preventDefault();
 
     if (this.context.centeredHero) return;
@@ -166,7 +166,7 @@ export default class PosterCarouselComponent extends BaseComponent {
     viewport.classList.add("is-dragging");
   };
 
-  _onDocumentMouseMove(e) {
+  _onDocumentMouseMove(e: MouseEvent): void {
     if (!this._dragState) return;
     if (e.buttons === 0) {
       this._stopDragging();
@@ -216,7 +216,7 @@ export default class PosterCarouselComponent extends BaseComponent {
     this._applyActiveSlideState();
   }
 
-  _scrollByDirection(direction) {
+  _scrollByDirection(direction: number): void {
     const viewport = this.el.querySelector<HTMLElement>('[data-role="viewport"]');
     if (!viewport) return;
 
@@ -239,7 +239,7 @@ export default class PosterCarouselComponent extends BaseComponent {
     });
   }
 
-  _cycleHero(direction) {
+  _cycleHero(direction: number): void {
     if (!this.context.centeredHero || this._isHeroCycling) return;
 
     const track = this.el.querySelector<HTMLElement>(".poster-carousel__track");

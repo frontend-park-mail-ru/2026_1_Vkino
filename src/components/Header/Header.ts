@@ -26,7 +26,7 @@ export default class HeaderComponent extends BaseComponent {
    */
   constructor(
     context: AnyRecord = {},
-    parent: BaseComponent | null = null,
+    parent: BaseComponent<any> | null = null,
     el: Element | null = null,
   ) {
     if (!parent) {
@@ -129,19 +129,19 @@ export default class HeaderComponent extends BaseComponent {
    * @private
    * @param {Event} e событие клика
    */
-  _onBurgerToggleClick = (e) => {
+  _onBurgerToggleClick = (e: Event) => {
     e.preventDefault();
     e.stopPropagation();
     this.toggleBurgerMenu();
   };
 
-  _onProfileToggleClick = (e) => {
+  _onProfileToggleClick = (e: Event) => {
     e.preventDefault();
     e.stopPropagation();
     this.toggleProfileMenu();
   };
 
-  _onSearchToggleClick = (e) => {
+  _onSearchToggleClick = (e: Event) => {
     e.preventDefault();
     e.stopPropagation();
     this.toggleSearch();
@@ -151,11 +151,11 @@ export default class HeaderComponent extends BaseComponent {
     this.closeAllMenus();
   };
 
-  _onScrollToSectionClick = (e) => {
+  _onScrollToSectionClick = (e: Event) => {
     e.preventDefault();
     e.stopPropagation();
 
-    const target = e.currentTarget.dataset.scrollTarget;
+    const target = (e.currentTarget as HTMLElement | null)?.dataset.scrollTarget;
     if (!target) {
       return;
     }
@@ -171,11 +171,11 @@ export default class HeaderComponent extends BaseComponent {
     scrollToMainSection(target);
   };
 
-  _onSearchSubmit = (e) => {
+  _onSearchSubmit = (e: Event) => {
     e.preventDefault();
   };
 
-  _onLogoutClick = async (e) => {
+  _onLogoutClick = async (e: Event) => {
     e.preventDefault();
     e.stopPropagation();
     this.closeAllMenus();
@@ -183,12 +183,12 @@ export default class HeaderComponent extends BaseComponent {
     router.go("/");
   };
 
-  _onDocumentClick(e) {
+  _onDocumentClick(e: Event): void {
     if (!this.context.isAnyMenuOpen) {
       return;
     }
 
-    if (this._isClickInsideMenu(e.target)) {
+    if (this._isClickInsideMenu(e.target as Node | null)) {
       return;
     }
 
@@ -323,8 +323,8 @@ export default class HeaderComponent extends BaseComponent {
     );
   }
 
-  _bindToggleButton(selector, handler) {
-    const node = this.el.querySelector(selector);
+  _bindToggleButton(selector: string, handler: (event: Event) => void): void {
+    const node = this.el.querySelector<HTMLElement>(selector);
     if (!node) {
       return;
     }
@@ -332,8 +332,8 @@ export default class HeaderComponent extends BaseComponent {
     node.addEventListener("click", handler);
   }
 
-  _unbindToggleButton(selector, handler) {
-    const node = this.el.querySelector(selector);
+  _unbindToggleButton(selector: string, handler: (event: Event) => void): void {
+    const node = this.el.querySelector<HTMLElement>(selector);
     if (!node) {
       return;
     }
@@ -341,22 +341,22 @@ export default class HeaderComponent extends BaseComponent {
     node.removeEventListener("click", handler);
   }
 
-  _bindNodeList(selector, handler) {
-    const nodes = this.el.querySelectorAll(selector);
+  _bindNodeList(selector: string, handler: (event: Event) => void): void {
+    const nodes = this.el.querySelectorAll<HTMLElement>(selector);
     nodes.forEach((node) => {
       node.addEventListener("click", handler);
     });
   }
 
-  _unbindNodeList(selector, handler) {
-    const nodes = this.el.querySelectorAll(selector);
+  _unbindNodeList(selector: string, handler: (event: Event) => void): void {
+    const nodes = this.el.querySelectorAll<HTMLElement>(selector);
     nodes.forEach((node) => {
       node.removeEventListener("click", handler);
     });
   }
 
-  _bindSubmitForm(selector, handler) {
-    const node = this.el.querySelector(selector);
+  _bindSubmitForm(selector: string, handler: (event: Event) => void): void {
+    const node = this.el.querySelector<HTMLFormElement>(selector);
     if (!node) {
       return;
     }
@@ -364,8 +364,8 @@ export default class HeaderComponent extends BaseComponent {
     node.addEventListener("submit", handler);
   }
 
-  _unbindSubmitForm(selector, handler) {
-    const node = this.el.querySelector(selector);
+  _unbindSubmitForm(selector: string, handler: (event: Event) => void): void {
+    const node = this.el.querySelector<HTMLFormElement>(selector);
     if (!node) {
       return;
     }

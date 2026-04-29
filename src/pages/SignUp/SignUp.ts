@@ -6,6 +6,7 @@ import { initAuthValidation, setError } from "@/js/password/validation.ts";
 import { initRegisterBottleEffect } from "@/js/register.ts";
 import { router } from "@/router/index.ts";
 import { authStore } from "@/store/authStore.ts";
+import type { SignUpCredentials } from "@/types/user.ts";
 
 /**
  * @typedef {Object} AuthUserData
@@ -107,10 +108,10 @@ export default class SignUpPage extends BasePage {
    * @param {AuthUserData} authUserData Данные пользователя из формы.
    * @returns {Promise<void>}
    */
-  async handleSubmit(authUserData) {
+  async handleSubmit(authUserData: SignUpCredentials) {
     const result = await authStore.signUp(authUserData);
 
-    const MapError = {
+    const MapError: Record<string, string> = {
       "user already exists": "такой пользователь уже существует",
       "invalid credentials": "Некорректные данные для учётной записи",
       "internal server error": "Ошибка сервера",
@@ -121,8 +122,9 @@ export default class SignUpPage extends BasePage {
       const emailError = this.el.querySelector<HTMLElement>("#email-error");
       const password = this.el.querySelector<HTMLInputElement>("#password");
       const passwordError = this.el.querySelector<HTMLElement>("#password-error");
+      const errorKey = typeof result.resp?.Error === "string" ? result.resp.Error : "";
       const message =
-        MapError[result.resp?.Error] ||
+        MapError[errorKey] ||
         result.resp?.message ||
         result.error ||
         "Не удалось зарегистрироваться";

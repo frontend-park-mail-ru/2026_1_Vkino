@@ -1,7 +1,16 @@
 import { createStore } from "./createStore.ts";
 import { userService } from "@/js/UserService.ts";
+import { createApiErrorResult } from "@/js/api.ts";
+import type { ApiResult } from "@/js/api.ts";
 import { extractProfile } from "@/utils/apiResponse.ts";
 import type { AnyRecord, AuthState, AuthUser } from "@/types/shared.ts";
+import type {
+  AuthCredentials,
+  AuthTokenPayload,
+  SignUpCredentials,
+  UserProfileDto,
+} from "@/types/user.ts";
+import type { StoreListener } from "./createStore.ts";
 
 const initialState: AuthState = {
   status: "idle",
@@ -34,7 +43,7 @@ class AuthStore {
    * @param {Function} listener - Колбэк, вызываемый при каждом изменении стейта.
    * @returns {Function} Функция для отписки.
    */
-  subscribe(listener) {
+  subscribe(listener: StoreListener<AuthState>) {
     return this.store.subscribe(listener);
   }
 
@@ -42,7 +51,7 @@ class AuthStore {
    * Метод для частичного обновления состояния.
    * @param {Partial<AuthState>} patch - Объект с обновляемыми полями.
    */
-  _setState(patch) {
+  _setState(patch: Partial<AuthState>) {
     this.store.setState(patch);
   }
   /**
@@ -75,7 +84,7 @@ class AuthStore {
    * или обновить истекшую сессию.
    * @returns {Promise<void>}
    */
-  async init() {
+  async init(): Promise<void> {
     this._setState({
       status: "loading",
       error: null,
@@ -139,7 +148,9 @@ class AuthStore {
    * @param {Object} credentials - Данные для входа (email, password).
    * @returns {Promise<Object>} Результат выполнения запроса (signInResult).
    */
-  async signIn(credentials) {
+  async signIn(
+    credentials: AuthCredentials,
+  ): Promise<ApiResult<AuthTokenPayload>> {
     this._setState({
       status: "loading",
       error: null,
@@ -160,13 +171,14 @@ class AuthStore {
     }
 
     this._setGuest("Вход выполнен, но не удалось получить данные пользователя");
-    return {
-      ok: false,
+    return createApiErrorResult<AuthTokenPayload>({
       status: meResult.status,
+      error: "Не удалось получить данные пользователя",
       resp: {
         Error: "Не удалось получить данные пользователя",
       },
-    };
+      source: meResult.meta.source,
+    });
   }
 
   /**
@@ -174,7 +186,9 @@ class AuthStore {
    * @param {Object} data - Данные формы регистрации.
    * @returns {Promise<Object>} Результат выполнения запроса (signUpResult).
    */
-  async signUp(data) {
+  async signUp(
+    data: SignUpCredentials,
+  ): Promise<ApiResult<AuthTokenPayload>> {
     this._setState({
       status: "loading",
       error: null,
@@ -199,13 +213,14 @@ class AuthStore {
     this._setGuest(
       "Регистрация выполнена, но не удалось получить данные пользователя",
     );
-    return {
-      ok: false,
+    return createApiErrorResult<AuthTokenPayload>({
       status: meResult.status,
+      error: "Не удалось получить данные пользователя",
       resp: {
         Error: "Не удалось получить данные пользователя",
       },
-    };
+      source: meResult.meta.source,
+    });
   }
 
   /**
@@ -213,7 +228,7 @@ class AuthStore {
    * Очищает токены через сервис и переводит состояние в режим гостя.
    * @returns {Promise<void>}
    */
-  async logout() {
+  async logout(): Promise<void> {
     await userService.logout();
     this._setGuest();
   }
@@ -222,7 +237,7 @@ class AuthStore {
    * Обновляет данные текущего пользователя в store без сброса сессии.
    * @param {Object} profile
    */
-  updateUserProfile(profile) {
+  updateUserProfile(profile: AuthUser | UserProfileDto | AnyRecord): void {
     const state = this.getState();
     if (state.status !== "authenticated" || !state.user) {
       return;
@@ -244,7 +259,7 @@ class AuthStore {
 function normalizeAuthUser(
   user: AnyRecord = {},
   { roleFallback = "user" }: { roleFallback?: string } = {},
-) {
+): AuthUser {
   if (!user || typeof user !== "object") {
     return {
       role: roleFallback,
@@ -265,6 +280,6 @@ function normalizeAuthUser(
  */
 export const authStore = new AuthStore();
 
-function isTransientAuthFailure(status) {
+function isTransientAuthFailure(status: number): boolean {
   return status === 0 || status >= 500;
 }

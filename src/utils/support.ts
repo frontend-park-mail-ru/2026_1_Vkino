@@ -117,7 +117,7 @@ export function extractSupportStatistics(
       "Data",
     ]) ||
     (unwrapped && typeof unwrapped === "object" && !Array.isArray(unwrapped)
-      ? unwrapped
+      ? (unwrapped as AnyRecord)
       : {});
 
   const fallback = buildStatisticsFromTickets(fallbackTickets);
@@ -527,11 +527,13 @@ export function shouldSyncSupportRealtimePayload(
   }
 
   const unwrapped = unwrapPayload(payload);
+  const realtimePayload =
+    unwrapped && typeof unwrapped === "object" ? (unwrapped as AnyRecord) : {};
   const action = pickString(
-    unwrapped?.action,
-    unwrapped?.type,
-    unwrapped?.event,
-    unwrapped?.kind,
+    realtimePayload.action,
+    realtimePayload.type,
+    realtimePayload.event,
+    realtimePayload.kind,
   ).toLowerCase();
 
   if (REALTIME_IGNORED_ACTIONS.has(action)) {
@@ -549,16 +551,18 @@ export function shouldSyncSupportRealtimePayload(
 
 export function extractSupportRealtimeTicketId(payload: unknown) {
   const unwrapped = unwrapPayload(payload);
+  const realtimePayload =
+    unwrapped && typeof unwrapped === "object" ? (unwrapped as AnyRecord) : {};
 
   return pickString(
-    unwrapped?.ticket_id,
-    unwrapped?.ticketId,
-    unwrapped?.id,
-    unwrapped?.ticket?.id,
-    unwrapped?.message?.ticket_id,
-    unwrapped?.message?.ticketId,
-    unwrapped?.data?.ticket_id,
-    unwrapped?.data?.ticketId,
+    realtimePayload.ticket_id,
+    realtimePayload.ticketId,
+    realtimePayload.id,
+    (realtimePayload.ticket as AnyRecord | undefined)?.id,
+    (realtimePayload.message as AnyRecord | undefined)?.ticket_id,
+    (realtimePayload.message as AnyRecord | undefined)?.ticketId,
+    (realtimePayload.data as AnyRecord | undefined)?.ticket_id,
+    (realtimePayload.data as AnyRecord | undefined)?.ticketId,
   );
 }
 
@@ -787,9 +791,11 @@ function pickArrayCandidate(
     return null;
   }
 
+  const record = source as AnyRecord;
+
   for (const key of keys) {
-    if (Array.isArray(source[key])) {
-      return source[key];
+    if (Array.isArray(record[key])) {
+      return record[key];
     }
   }
 
@@ -804,8 +810,10 @@ function pickObjectCandidate(
     return null;
   }
 
+  const record = source as AnyRecord;
+
   for (const key of keys) {
-    const candidate = source[key];
+    const candidate = record[key];
 
     if (
       candidate &&

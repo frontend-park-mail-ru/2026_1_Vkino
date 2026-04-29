@@ -5,10 +5,12 @@ export type LooseRecord = Record<string, unknown>;
 // Legacy UI state and backend normalizers in this project are intentionally open-ended.
 // `AnyRecord` is limited to those dynamic boundaries to keep the migration tractable.
 export type AnyRecord = Record<string, any>;
+export type UnknownRecord = Record<string, unknown>;
+export type Nullable<T> = T | null;
 
 export type Cleanup = () => void;
 
-export type TemplateFunction<TContext extends AnyRecord = AnyRecord> = (
+export type TemplateFunction<TContext extends object = AnyRecord> = (
   context: TContext,
 ) => string;
 

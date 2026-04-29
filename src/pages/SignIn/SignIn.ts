@@ -5,6 +5,7 @@ import { initPasswordToggle } from "@/js/password/eye-btn.ts";
 import { initAuthValidation, setError } from "@/js/password/validation.ts";
 import { router } from "@/router/index.ts";
 import { authStore } from "@/store/authStore.ts";
+import type { AuthCredentials } from "@/types/user.ts";
 import { SupportWidgetController } from "@/utils/supportWidget.ts";
 
 /**
@@ -97,7 +98,7 @@ export default class SignInPage extends BasePage {
    * @param {Object} authUserData - Данные пользователя из формы.
    * @returns {Promise<void>}
    */
-  async handleSubmit(authUserData) {
+  async handleSubmit(authUserData: AuthCredentials) {
     const result = await authStore.signIn(authUserData);
 
     if (!result.ok) {

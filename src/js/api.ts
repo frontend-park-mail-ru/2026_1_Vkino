@@ -6,7 +6,10 @@ export type HttpMethod = "DELETE" | "GET" | "HEAD" | "PATCH" | "POST" | "PUT";
 
 export type JsonRecord = Record<string, unknown>;
 
-export type RequestData = JsonRecord | FormData | null;
+// Request bodies in this codebase are plain serializable objects or FormData.
+// Using `object` here keeps existing DTO interfaces assignable without adding
+// artificial index signatures to every payload type.
+export type RequestData = object | FormData | null;
 
 export type RequestHeaders = Record<string, string>;
 
@@ -48,7 +51,7 @@ export interface ResponseMeta {
   servedFromCache: boolean;
 }
 
-export interface ApiResponse<T = ParsedResponseBody> {
+export interface ApiResult<T = ParsedResponseBody> {
   ok: boolean;
   status: number;
   resp: T | null;
@@ -56,6 +59,8 @@ export interface ApiResponse<T = ParsedResponseBody> {
   aborted: boolean;
   meta: ResponseMeta;
 }
+
+export type ApiResponse<T = ParsedResponseBody> = ApiResult<T>;
 
 export class ApiService {
   private baseUrl: string;
@@ -154,7 +159,7 @@ export class ApiService {
       headers = {},
       signal = null,
     }: RequestOptions = {},
-  ): Promise<ApiResponse<T>> {
+  ): Promise<ApiResult<T>> {
     const normalizedMethod = String(method || "GET").toUpperCase() as HttpMethod;
     const bodyAllowed = normalizedMethod !== "GET" && normalizedMethod !== "HEAD";
 
@@ -174,7 +179,7 @@ export class ApiService {
       headers = {},
       signal = null,
     }: Omit<RequestOptions, "query"> = {},
-  ): Promise<ApiResponse<T>> {
+  ): Promise<ApiResult<T>> {
     const accessToken = this.getAccessToken();
 
     const fetchHeaders: RequestHeaders = {
@@ -412,3 +417,26 @@ const baseUrl: string =
  * Экземпляр ApiService, сконфигурированный на основе .env
  */
 export const apiService = new ApiService(baseUrl);
+
+export function createApiErrorResult<T = ParsedResponseBody>({
+  status = 0,
+  error = "",
+  resp = null,
+  aborted = false,
+  source = "local-validation",
+}: {
+  status?: number;
+  error?: string;
+  resp?: T | null;
+  aborted?: boolean;
+  source?: string;
+} = {}): ApiResult<T> {
+  return {
+    ok: false,
+    status,
+    resp,
+    error,
+    aborted,
+    meta: createResponseMeta(source),
+  };
+}

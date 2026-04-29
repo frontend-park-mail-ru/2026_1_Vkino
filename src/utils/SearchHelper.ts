@@ -1,7 +1,10 @@
-export function createDebouncedSearch(handler, delay = 300) {
+export function createDebouncedSearch<TArgs extends unknown[]>(
+  handler: (...args: TArgs) => void,
+  delay = 300,
+) {
   let timeoutId: number | null = null;
 
-  return (...args) => {
+  return (...args: TArgs) => {
     if (timeoutId) {
       window.clearTimeout(timeoutId);
     }

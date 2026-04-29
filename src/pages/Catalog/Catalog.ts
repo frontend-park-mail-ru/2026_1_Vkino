@@ -6,12 +6,20 @@ import HeaderComponent from "@/components/Header/Header.ts";
 import MoviePosterComponent from "@/components/MoviePoster/MoviePoster.ts";
 import PaginationComponent from "@/components/Pagination/Pagination.ts";
 import { movieService } from "@/js/MovieService.ts";
+import type { MovieSelectionDto } from "@/types/movie.ts";
 import { getCacheFallbackNotice } from "@/utils/apiMeta.ts";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.ts";
 
 const DEFAULT_PAGE_SIZE = 12;
 
-const CATALOG_CONFIGS = {
+interface CatalogConfig {
+  title: string;
+  requestSelectionTitles: string[];
+  selectionTitles: string[];
+  contentTypes: string[];
+}
+
+const CATALOG_CONFIGS: Record<string, CatalogConfig> = {
   selection: {
     title: "Каталог",
     requestSelectionTitles: [],
@@ -183,7 +191,7 @@ export default class CatalogPage extends BasePage {
       return;
     }
 
-    this.context.posterItems.forEach((posterItem) => {
+    this.context.posterItems.forEach((posterItem: AnyRecord) => {
       const slot = this.el.querySelector(
         `[data-catalog-poster="${posterItem.slotKey}"]`,
       );
@@ -278,7 +286,7 @@ function buildCatalogContext(context: AnyRecord = {}) {
   };
 }
 
-function resolveCatalogConfig(catalogKey = ""): AnyRecord {
+function resolveCatalogConfig(catalogKey = ""): CatalogConfig {
   const normalizedKey = normalizeString(catalogKey).toLowerCase();
 
   return CATALOG_CONFIGS[normalizedKey] || CATALOG_CONFIGS.movies;
@@ -305,7 +313,7 @@ function normalizeRequestedSelectionTitles(titles: unknown[] = []): string[] {
 }
 
 function buildCatalogPool(
-  selections: AnyRecord[] = [],
+  selections: MovieSelectionDto[] | null = [],
   options: AnyRecord = {},
 ): AnyRecord[] {
   const catalogKey = normalizeString(options.catalogKey).toLowerCase();
@@ -354,7 +362,9 @@ function buildCatalogPool(
   return allMovies;
 }
 
-function normalizeSelections(selections: AnyRecord[] = []): AnyRecord[] {
+function normalizeSelections(
+  selections: MovieSelectionDto[] | null = [],
+): AnyRecord[] {
   if (!Array.isArray(selections)) {
     return [];
   }

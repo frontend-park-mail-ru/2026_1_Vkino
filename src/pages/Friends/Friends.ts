@@ -5,14 +5,49 @@ import HeaderComponent from "@/components/Header/Header.ts";
 import { userService } from "@/js/UserService.ts";
 import { router } from "@/router/index.ts";
 import { authStore } from "@/store/authStore.ts";
+import type { Cleanup } from "@/types/shared.ts";
+import type { FriendRequestDto, UserProfileDto } from "@/types/user.ts";
 import { getDisplayNameFromEmail, formatDate } from "@/utils/user.ts";
 import { resolveAvatarUrl, resolveMediaUrl } from "@/utils/media.ts";
 import { createDebouncedSearch } from "@/utils/SearchHelper.ts";
 
-export default class FriendsPage extends BasePage {
+interface FriendRequestViewModel extends FriendRequestDto {
+  sinceLabel: string;
+}
+
+interface FriendViewModel extends UserProfileDto {
+  displayName: string;
+  avatarUrl: string;
+  initials: string;
+  sinceLabel: string;
+}
+
+interface SearchResultViewModel extends UserProfileDto {
+  displayName: string;
+  avatarUrl: string;
+  initials: string;
+  isFriend: boolean;
+  hasPendingRequest: boolean;
+}
+
+interface FriendsPageContext extends AnyRecord {
+  isLoading: boolean;
+  errorMessage: string;
+  searchResults: SearchResultViewModel[];
+  incomingRequests: FriendRequestViewModel[];
+  outgoingRequests: FriendRequestViewModel[];
+  friends: FriendViewModel[];
+  searchQuery: string;
+}
+
+export default class FriendsPage extends BasePage<FriendsPageContext> {
+  private _searchRequestToken: number;
+  private _debouncedSearch: (query: string) => void;
+  private _toastTimeoutId: number;
+
   constructor(
-    context: AnyRecord = {},
-    parent: BasePage | null = null,
+    context: Partial<FriendsPageContext> = {},
+    parent: BasePage<any> | null = null,
     el: Element | null = null,
   ) {
     if (!el) {
@@ -52,7 +87,9 @@ export default class FriendsPage extends BasePage {
     return this;
   }
 
-  async loadContext(options: AnyRecord = {}) {
+  async loadContext(
+    options: { searchQuery?: string } = {},
+  ): Promise<void> {
     const { searchQuery } = options;
     const [incoming, outgoing, friends] = await Promise.all([
       userService.getFriendRequests({ direction: "incoming", limit: 50 }),
@@ -66,7 +103,7 @@ export default class FriendsPage extends BasePage {
       ? normalizeRequests(outgoing.resp?.requests || [])
       : [];
     const nextSearchQuery = String(searchQuery || "").trim();
-    let nextSearchResults: AnyRecord[] = [];
+    let nextSearchResults: SearchResultViewModel[] = [];
 
     if (nextSearchQuery) {
       const result = await userService.searchUsers(nextSearchQuery, { limit: 10 });
@@ -124,7 +161,7 @@ export default class FriendsPage extends BasePage {
     this._debouncedSearch(query);
   };
 
-  _performSearch = async (query: unknown) => {
+  _performSearch = async (query: string): Promise<void> => {
     const normalizedQuery = String(query || "").trim();
     const requestToken = ++this._searchRequestToken;
 
@@ -295,14 +332,16 @@ function waitForTransitionEnd(element: HTMLElement): Promise<void> {
   });
 }
 
-function normalizeRequests(items: AnyRecord[] = []): AnyRecord[] {
+function normalizeRequests(
+  items: FriendRequestDto[] = [],
+): FriendRequestViewModel[] {
   return items.map((request) => ({
     ...request,
     sinceLabel: formatDate(request.created_at),
   }));
 }
 
-function normalizeFriends(items: AnyRecord[] = []): AnyRecord[] {
+function normalizeFriends(items: UserProfileDto[] = []): FriendViewModel[] {
   return items.map((friend) => {
     const displayName = getDisplayNameFromEmail(friend.email) || "Пользователь";
     const avatarUrl = resolveAvatarUrl(friend, { resolveMediaUrl });
@@ -321,27 +360,30 @@ function normalizeFriends(items: AnyRecord[] = []): AnyRecord[] {
  * @param {{ friends?: object[]; outgoingRequests?: object[] }} rel
  */
 function enrichSearchResults(
-  users: AnyRecord[] = [],
-  rel: AnyRecord = {},
-): AnyRecord[] {
+  users: UserProfileDto[] = [],
+  rel: {
+    friends?: UserProfileDto[];
+    outgoingRequests?: FriendRequestDto[];
+  } = {},
+): SearchResultViewModel[] {
   const friendIds = new Set(
-    (rel.friends || []).map((f) => String(f.id)),
+    (rel.friends || []).map((friend) => String(friend.id)),
   );
   const pendingTo = new Set(
-    (rel.outgoingRequests || []).map((r) =>
-      String(r.user_id ?? r.to_user_id ?? ""),
+    (rel.outgoingRequests || []).map((request) =>
+      String(request.user_id ?? request.to_user_id ?? ""),
     ),
   );
-  return users.map((u) => {
-    const displayName = getDisplayNameFromEmail(u.email) || "Пользователь";
-    const avatarUrl = resolveAvatarUrl(u, { resolveMediaUrl });
+  return users.map((user) => {
+    const displayName = getDisplayNameFromEmail(user.email) || "Пользователь";
+    const avatarUrl = resolveAvatarUrl(user, { resolveMediaUrl });
     return {
-      ...u,
+      ...user,
       displayName,
       avatarUrl,
       initials: displayName.charAt(0).toUpperCase(),
-      isFriend: friendIds.has(String(u.id)),
-      hasPendingRequest: pendingTo.has(String(u.id)),
+      isFriend: friendIds.has(String(user.id)),
+      hasPendingRequest: pendingTo.has(String(user.id)),
     };
   });
 }

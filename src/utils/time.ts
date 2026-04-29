@@ -1,7 +1,9 @@
+import type { AnyRecord } from "@/types/shared.ts";
+
 /**
  * Returns the first finite number from an array (skips null/undefined/NaN/Infinity).
  */
-export function getFirstFiniteNumber(values) {
+export function getFirstFiniteNumber(values: readonly unknown[]): number | null {
   for (const value of values) {
     const numericValue = Number(value);
     if (Number.isFinite(numericValue)) {
@@ -14,7 +16,9 @@ export function getFirstFiniteNumber(values) {
 /**
  * Normalizes time fields into { duration, position, unit } with seconds output.
  */
-export function normalizeTimeFields(item) {
+export function normalizeTimeFields(
+  item: AnyRecord = {},
+): { duration: number | null; position: number | null; unit: "s" } {
   const durationRaw = getFirstFiniteNumber([
     item.duration_seconds,
     item.duration,

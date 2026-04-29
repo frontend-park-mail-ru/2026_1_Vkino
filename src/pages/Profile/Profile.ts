@@ -7,11 +7,72 @@ import PosterCarouselComponent from "@/components/PosterCarousel/PosterCarousel.
 import { userService } from "@/js/UserService.ts";
 import { router } from "@/router/index.ts";
 import { authStore } from "@/store/authStore.ts";
+import type { Cleanup, AuthUser } from "@/types/shared.ts";
+import type { MovieDto } from "@/types/movie.ts";
+import type { UserProfileDto } from "@/types/user.ts";
 import { resolveAvatarUrl as resolveDefaultAvatarUrl } from "@/utils/avatar.ts";
 import { MEDIA_BUCKETS, resolveAvatarUrl, resolveMediaUrl } from "@/utils/media.ts";
 import { normalizeTimeFields } from "@/utils/time.ts";
 import { formatBirthdate, getDisplayNameFromEmail } from "@/utils/user.ts";
 import { extractProfile } from "@/utils/apiResponse.ts";
+
+interface ProfileIdentity {
+  displayName: string;
+  email: string;
+  birthdateLabel: string;
+  avatarUrl: string;
+}
+
+interface ProfileCarouselMovie extends AnyRecord {
+  id: string;
+  title: string;
+  posterUrl: string;
+  href: string;
+  meta?: string;
+  actionText?: string;
+  variant?: string;
+  size?: string;
+  progress?: {
+    percent: number;
+    displayPercent: number;
+    position: number;
+    duration: number;
+  };
+}
+
+interface ProfileFriendPreview {
+  id: string;
+  displayName: string;
+  avatarUrl: string;
+  initials: string;
+  href: string;
+}
+
+interface ProfileCarouselConfig extends AnyRecord {
+  slotKey: string;
+  title: string;
+  titleHref?: string;
+  movies: ProfileCarouselMovie[];
+  posterVariant: string;
+  posterSize: string;
+  showArrows: boolean;
+  showProgress?: boolean;
+  actionText?: string;
+}
+
+interface ProfilePageContext extends AnyRecord, ProfileIdentity {
+  isLoading: boolean;
+  errorMessage: string;
+  continueWatching: ProfileCarouselMovie[];
+  watchHistory: ProfileCarouselMovie[];
+  favorites: ProfileCarouselMovie[];
+  friendsPreview: ProfileFriendPreview[];
+  hasMoreFriends: boolean;
+  remainingCount: number;
+  isFavoritesEmpty: boolean;
+  isFriendsEmpty: boolean;
+  shouldGroupEmptyStates: boolean;
+}
 
 /**
  * Страница профиля текущего пользователя.
@@ -20,7 +81,9 @@ import { extractProfile } from "@/utils/apiResponse.ts";
  * @class
  * @extends BasePage
  */
-export default class ProfilePage extends BasePage {
+export default class ProfilePage extends BasePage<ProfilePageContext> {
+  private _authUnsubscribe: Cleanup | null;
+
   /**
    * Создает экземпляр страницы профиля.
    *
@@ -29,8 +92,8 @@ export default class ProfilePage extends BasePage {
    * @param {Element|null} [el=null] корневой DOM-элемент страницы
    */
   constructor(
-    context: AnyRecord = {},
-    parent: BasePage | null = null,
+    context: Partial<ProfilePageContext> = {},
+    parent: BasePage<any> | null = null,
     el: Element | null = null,
   ) {
     if (!el) {
@@ -289,7 +352,9 @@ export default class ProfilePage extends BasePage {
  * @param {Object} [profile={}] данные профиля пользователя
  * @returns {{displayName: string, email: string, birthdateLabel: string, avatarUrl: string}}
  */
-function buildProfileIdentity(profile: AnyRecord = {}) {
+function buildProfileIdentity(
+  profile: AuthUser | UserProfileDto | AnyRecord = {},
+): ProfileIdentity {
   const email = String(profile.email || "").trim();
   const displayName = getDisplayNameFromEmail(email) || "Пользователь";
 
@@ -301,8 +366,10 @@ function buildProfileIdentity(profile: AnyRecord = {}) {
   };
 }
 
-function buildProfileCarousels(context: AnyRecord = {}): AnyRecord[] {
-  const carousels: AnyRecord[] = [
+function buildProfileCarousels(
+  context: ProfilePageContext,
+): ProfileCarouselConfig[] {
+  const carousels: ProfileCarouselConfig[] = [
     {
       slotKey: "continue",
       title: "",
@@ -340,8 +407,8 @@ function buildProfileCarousels(context: AnyRecord = {}): AnyRecord[] {
 
 function normalizeWatchProgress(
   items: AnyRecord[] = [],
-  options: AnyRecord = {},
-): AnyRecord[] {
+  options: { actionText?: string } = {},
+): ProfileCarouselMovie[] {
   const actionText =
     options.actionText != null && options.actionText !== ""
       ? options.actionText
@@ -404,11 +471,13 @@ function normalizeWatchProgress(
   });
 }
 
-function normalizeId(value: unknown) {
+function normalizeId(value: unknown): string {
   return String(value ?? "").trim();
 }
 
-function normalizeFriendsPreview(friends: AnyRecord[] = []): AnyRecord[] {
+function normalizeFriendsPreview(
+  friends: UserProfileDto[] = [],
+): ProfileFriendPreview[] {
   return friends.map((friend) => {
     const displayName = getDisplayNameFromEmail(friend.email) || "Пользователь";
     return {
@@ -427,10 +496,10 @@ function normalizeFriendsPreview(friends: AnyRecord[] = []): AnyRecord[] {
  * @param {string[]|string} genres жанры фильма
  * @returns {string[]} нормализованный список жанров
  */
-function normalizeMovieCards(cards: AnyRecord[] = []): AnyRecord[] {
+function normalizeMovieCards(cards: MovieDto[] = []): ProfileCarouselMovie[] {
   return cards.map((card) => ({
     id: String(card.id),
-    title: card.title,
+    title: String(card.title || card.name || "").trim(),
     posterUrl: resolveMediaUrl(card.img_url || card.poster_url, MEDIA_BUCKETS.cards),
     href: `/movie/${card.id}`,
     variant: "compact",

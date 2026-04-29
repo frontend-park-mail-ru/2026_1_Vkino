@@ -1,68 +1,43 @@
-import { ApiService, apiService } from "./api.ts";
-import type { AnyRecord } from "@/types/shared.ts";
+import { ApiService, apiService, createApiErrorResult } from "./api.ts";
+import type { ApiResult } from "./api.ts";
+import type { AnyRecord, EntityId } from "@/types/shared.ts";
+import type { ActorDto, MovieDto, MovieSelectionDto } from "@/types/movie.ts";
 
 /**
  * Сервис для работы с фильмами и подборками.
- * Предоставляет методы для получения информации о фильмах и подборках.
  */
 export class MovieService {
-  [key: string]: any;
-  /**
-   * Конструирует экземпляр MovieService.
-   * @constructor
-   * @param {ApiService} apiService экземпляр ApiService
-   */
-  constructor(apiService: ApiService) {
-    this.api = apiService.withNamespace("movie");
-    this.rootApi = apiService;
+  private api: ApiService;
+  private rootApi: ApiService;
+
+  constructor(apiServiceInstance: ApiService) {
+    this.api = apiServiceInstance.withNamespace("movie");
+    this.rootApi = apiServiceInstance;
   }
 
-  /**
-   * Получает список всех доступных подборок фильмов.
-   * @async
-   * @returns {Promise<Object>} результат запроса с массивом подборок
-   * @returns {boolean} return.ok успешен ли запрос
-   * @returns {number} return.status HTTP статус ответа
-   * @returns {Object[]|null} return.resp массив подборок
-   * @returns {string} return.error сообщение об ошибке
-   */
-  async getAllSelections() {
-    return this.api.get(`/selection/all`);
+  async getAllSelections(): Promise<ApiResult<MovieSelectionDto[]>> {
+    return this.api.get<MovieSelectionDto[]>(`/selection/all`);
   }
 
-  /**
-   * Получает конкретную подборку фильмов по её названию.
-   * @async
-   * @param {string} title название подборки
-   * @returns {Promise<Object>} результат запроса с данными подборки
-   * @returns {boolean} return.ok успешен ли запрос
-   * @returns {number} return.status HTTP статус ответа
-   * @returns {Object|null} return.resp данные подборки с массивом фильмов
-   * @returns {string} return.error сообщение об ошибке (если есть)
-   */
-  async getSelectionByTitle(title) {
+  async getSelectionByTitle(
+    title: string,
+  ): Promise<ApiResult<MovieSelectionDto>> {
     const normalizedTitle = String(title ?? "").trim();
 
     if (!normalizedTitle) {
-      return {
-        ok: false,
-        status: 0,
-        resp: null,
+      return createApiErrorResult<MovieSelectionDto>({
         error: "MovieService: не передано название подборки",
-      };
+      });
     }
 
-    return this.api.get(`/selection/${encodeURIComponent(normalizedTitle)}`);
+    return this.api.get<MovieSelectionDto>(
+      `/selection/${encodeURIComponent(normalizedTitle)}`,
+    );
   }
 
-  /**
-   * Получает набор подборок по их названиям.
-   * Если список названий пустой, возвращает все подборки.
-   * @async
-   * @param {string[]} [titles=[]] названия подборок
-   * @returns {Promise<Object>} результат запроса с массивом подборок
-   */
-  async getSelectionsByTitles(titles: unknown[] = []) {
+  async getSelectionsByTitles(
+    titles: unknown[] = [],
+  ): Promise<ApiResult<MovieSelectionDto[]>> {
     const normalizedTitles = normalizeSelectionTitles(titles);
 
     if (!normalizedTitles.length) {
@@ -82,70 +57,48 @@ export class MovieService {
         status: 200,
         resp: selections,
         error: "",
+        aborted: false,
+        meta: {
+          source: "aggregated",
+          servedFromCache: results.some((result) => result.meta.servedFromCache),
+        },
       };
     }
 
     const firstFailedResult = results.find((result) => !result.ok);
 
-    return {
-      ok: false,
+    return createApiErrorResult<MovieSelectionDto[]>({
       status: firstFailedResult?.status || 0,
-      resp: null,
       error: firstFailedResult?.error || "Не удалось загрузить подборки",
-    };
+      source: firstFailedResult?.meta.source || "aggregation-error",
+    });
   }
 
-  /**
-   * Получает детальную информацию о фильме по id.
-   * @async
-   * @param {string|number} id id фильма
-   * @returns {Promise<Object>} результат запроса с данными фильма
-   * @returns {boolean} return.ok успешен ли запрос
-   * @returns {number} return.status HTTP статус ответа
-   * @returns {Object|null} return.resp данные фильма
-   * @returns {string} return.error сообщение об ошибке (если есть)
-   */
-  async getMovieById(id) {
+  async getMovieById(id: EntityId): Promise<ApiResult<MovieDto>> {
     const normalizedId = String(id ?? "").trim();
 
     if (!normalizedId) {
-      return {
-        ok: false,
-        status: 0,
-        resp: null,
+      return createApiErrorResult<MovieDto>({
         error: "MovieService: не передан id фильма",
-      };
+      });
     }
 
-    return this.api.get(`/${encodeURIComponent(normalizedId)}`);
+    return this.api.get<MovieDto>(`/${encodeURIComponent(normalizedId)}`);
   }
 
-  /**
-   * Получает актера по идентификатору.
-   * @async
-   * @param {number|string} actorId идентификатор актера
-   * @returns {Promise<Object>} результат запроса с данными актера
-   */
-  async getActorById(actorId) {
+  async getActorById(actorId: EntityId): Promise<ApiResult<ActorDto>> {
     const normalizedActorId = String(actorId ?? "").trim();
 
     if (!normalizedActorId) {
-      return {
-        ok: false,
-        status: 0,
-        resp: null,
+      return createApiErrorResult<ActorDto>({
         error: "MovieService: не передан id актера",
-      };
+      });
     }
 
-    return this.api.get(`/actor/${encodeURIComponent(normalizedActorId)}`);
+    return this.api.get<ActorDto>(`/actor/${encodeURIComponent(normalizedActorId)}`);
   }
 }
 
-/**
- * Экземпляр сервиса для работы с фильмами
- * @type {MovieService}
- */
 export const movieService = new MovieService(apiService);
 
 function normalizeSelectionTitles(titles: unknown[] = []): string[] {
@@ -163,11 +116,11 @@ function normalizeSelectionTitles(titles: unknown[] = []): string[] {
 function normalizeSelectionResponse(
   resp: unknown,
   requestedTitle = "",
-): AnyRecord[] {
+): MovieSelectionDto[] {
   if (Array.isArray(resp)) {
     return resp
       .map((selection) => normalizeSelection(selection, requestedTitle))
-      .filter((selection): selection is AnyRecord => Boolean(selection));
+      .filter((selection): selection is MovieSelectionDto => Boolean(selection));
   }
 
   const normalizedSelection = normalizeSelection(resp, requestedTitle);
@@ -178,7 +131,7 @@ function normalizeSelectionResponse(
 function normalizeSelection(
   selection: unknown,
   requestedTitle = "",
-): AnyRecord | null {
+): MovieSelectionDto | null {
   if (!selection || typeof selection !== "object") {
     return null;
   }

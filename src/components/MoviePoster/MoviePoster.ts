@@ -10,7 +10,7 @@ const DEFAULT_ACTION_TEXT = "Смотреть";
 export default class MoviePosterComponent extends BaseComponent {
   constructor(
     context: AnyRecord = {},
-    parent: BaseComponent | null = null,
+    parent: BaseComponent<any> | null = null,
     el: Element | null = null,
   ) {
     if (!parent) {
