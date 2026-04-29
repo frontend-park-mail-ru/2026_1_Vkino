@@ -58,11 +58,12 @@ export class PlayerService {
       };
     }
 
+    const payload = {
+      position_seconds: normalizedPosition,
+    };
     return this.api.put(
       `/episode/${encodeURIComponent(normalizedEpisodeId)}/progress`,
-      {
-        position_seconds: normalizedPosition,
-      },
+      payload,
     );
   }
 }

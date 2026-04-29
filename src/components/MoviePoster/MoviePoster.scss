@@ -245,6 +245,15 @@
   color: rgba(243, 229, 212, 0.76);
 }
 
+.movie-poster-card--landscape .movie-poster-card__media {
+  border-radius: 20px;
+}
+
+.movie-poster-card--landscape .movie-poster-card__image {
+  object-fit: cover;
+  object-position: center;
+}
+
 .movie-poster-card--compact .movie-poster-card__shade {
   background:
     linear-gradient(180deg, rgba(6, 3, 1, 0.06) 18%, rgba(6, 3, 1, 0.32) 70%),

@@ -1,4 +1,5 @@
 @use "./main";
+@use "components/empty-state";
 
 .page_catalog {
   min-height: 100vh;
@@ -125,6 +126,24 @@
 
 .catalog-page__pagination {
   padding-top: 0.5rem;
+}
+
+.catalog-page__favorites-empty {
+  align-self: center;
+  max-width: 320px;
+  width: 100%;
+}
+
+.catalog-page .empty-state-icon__svg {
+  width: 48px;
+  height: 48px;
+  color: var(--accent);
+  opacity: 0.85;
+  display: block;
+}
+
+.catalog-page .empty-state-card .btn {
+  margin-top: 4px;
 }
 
 @keyframes catalog-skeleton {

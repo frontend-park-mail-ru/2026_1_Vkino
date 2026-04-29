@@ -1,6 +1,6 @@
 import { createStore } from "./createStore.js";
-import { userService } from "../js/UserService.js";
-import { extractProfile } from "../utils/apiResponse.js";
+import { userService } from "@/js/UserService.js";
+import { extractProfile } from "@/utils/apiResponse.js";
 
 const initialState = {
   status: "idle",

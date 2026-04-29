@@ -1,15 +1,15 @@
 import BasePage from "../BasePage.js";
 import "./Settings.precompiled.js";
-import "../../css/settings.scss";
+import "@/css/settings.scss";
 
-import { initPasswordToggle } from "../../js/password/eye-btn.js";
-import { setError, validatePassword } from "../../js/password/validation.js";
-import { userService } from "../../js/UserService.js";
-import { authStore } from "../../store/authStore.js";
-import { router } from "../../router/index.js";
-import HeaderComponent from "../../components/Header/Header.js";
-import { resolveAvatarUrl } from "../../utils/avatar.js";
-import { extractProfile } from "../../utils/apiResponse.js";
+import { initPasswordToggle } from "@/js/password/eye-btn.js";
+import { setError, validatePassword } from "@/js/password/validation.js";
+import { userService } from "@/js/UserService.js";
+import { authStore } from "@/store/authStore.js";
+import { router } from "@/router/index.js";
+import HeaderComponent from "@/components/Header/Header.js";
+import { resolveAvatarUrl } from "@/utils/avatar.js";
+import { extractProfile } from "@/utils/apiResponse.js";
 
 export default class SettingsPage extends BasePage {
   constructor(context = {}, parent = null, el = null) {

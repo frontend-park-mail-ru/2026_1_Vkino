@@ -229,8 +229,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.54)), #0f0a08;
+  background: rgba(0, 0, 0, 0.4);
   transition:
     opacity 0.2s ease,
     visibility 0.2s ease;
@@ -252,30 +251,28 @@
 }
 
 .movie-player__center-play {
-  position: relative;
+  position: absolute;
+  top: 50%;
+  left: 50%;
   z-index: 1;
-  width: 88px;
-  height: 88px;
+  width: 64px;
+  height: 64px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  color: #fff8ef;
-  font-size: 2rem;
-  background: radial-gradient(
-    circle at top,
-    rgba(255, 196, 149, 0.44),
-    rgba(214, 107, 43, 0.88)
-  );
-  box-shadow:
-    0 18px 44px rgba(0, 0, 0, 0.42),
-    0 0 0 12px rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 1.8rem;
+  line-height: 1;
+  background: rgba(255, 87, 31, 0.9);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  transform: translate(-50%, -50%);
+  transition: transform var(--duration-fast) var(--ease-default);
+  padding-left: 4px;
 }
 
 .movie-player__center-play:hover {
-  box-shadow:
-    0 18px 44px rgba(0, 0, 0, 0.42),
-    0 0 0 15px rgba(255, 255, 255, 0.08);
+  transform: translate(-50%, -50%) scale(1.08);
 }
 
 .movie-player__state {
@@ -448,6 +445,10 @@
   width: 22px;
   height: 22px;
   display: block;
+}
+
+.movie-player__icon--play {
+  transform: translateX(1px);
 }
 
 .movie-player__icon-control img {

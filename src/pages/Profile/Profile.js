@@ -1,20 +1,17 @@
 import BasePage from "../BasePage.js";
 import "./Profile.precompiled.js";
-import "../../css/profile.scss";
+import "@/css/profile.scss";
 
-import HeaderComponent from "../../components/Header/Header.js";
-import PosterCarouselComponent from "../../components/PosterCarousel/PosterCarousel.js";
-import { movieService } from "../../js/MovieService.js";
-import { userService } from "../../js/UserService.js";
-import { router } from "../../router/index.js";
-import { authStore } from "../../store/authStore.js";
-import { resolveAvatarUrl } from "../../utils/avatar.js";
-import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
-import { formatBirthdate, getDisplayNameFromEmail } from "../../utils/user.js";
-import {
-  extractProfile,
-  extractSelections,
-} from "../../utils/apiResponse.js";
+import HeaderComponent from "@/components/Header/Header.js";
+import PosterCarouselComponent from "@/components/PosterCarousel/PosterCarousel.js";
+import { userService } from "@/js/UserService.js";
+import { router } from "@/router/index.js";
+import { authStore } from "@/store/authStore.js";
+import { resolveAvatarUrl as resolveDefaultAvatarUrl } from "@/utils/avatar.js";
+import { MEDIA_BUCKETS, resolveAvatarUrl, resolveMediaUrl } from "@/utils/media.js";
+import { normalizeTimeFields } from "@/utils/time.js";
+import { formatBirthdate, getDisplayNameFromEmail } from "@/utils/user.js";
+import { extractProfile } from "@/utils/apiResponse.js";
 
 /**
  * Страница профиля текущего пользователя.
@@ -45,10 +42,16 @@ export default class ProfilePage extends BasePage {
         displayName: "",
         email: "",
         birthdateLabel: "",
-        avatarUrl: resolveAvatarUrl(""),
-        featuredMovies: [],
-        recentMovies: [],
-        favoriteMovies: [],
+        avatarUrl: resolveDefaultAvatarUrl(""),
+        continueWatching: [],
+        watchHistory: [],
+        favorites: [],
+        friendsPreview: [],
+        hasMoreFriends: false,
+        remainingCount: 0,
+        isFavoritesEmpty: true,
+        isFriendsEmpty: true,
+        shouldGroupEmptyStates: false,
         ...context,
       },
       Handlebars.templates["Profile.hbs"],
@@ -118,9 +121,13 @@ export default class ProfilePage extends BasePage {
    */
   async loadContext() {
     const fallbackProfile = authStore.getState().user || {};
-    const [profileResult, selectionsResult] = await Promise.all([
+    const [profileResult, continueResult, historyResult, favoritesResult, friendsResult] =
+      await Promise.all([
       userService.me(),
-      movieService.getAllSelections(),
+      userService.getContinueWatching({ limit: 5 }),
+      userService.getWatchRecent({ limit: 10 }),
+      userService.getFavorites({ limit: 10 }),
+      userService.getFriendsList({ limit: 12, offset: 0 }),
     ]);
 
     if (profileResult.status === 401) {
@@ -137,16 +144,47 @@ export default class ProfilePage extends BasePage {
       authStore.updateUserProfile(profile);
     }
 
-    const selections = selectionsResult.ok
-      ? extractSelections(selectionsResult.resp)
+    const continueWatching = continueResult.ok
+      ? normalizeWatchProgress(continueResult.resp?.items || [], {
+          actionText: "Продолжить просмотр",
+        })
       : [];
-
-    const movieCollections = buildMovieCollections(selections);
+    const watchHistory = historyResult.ok
+      ? normalizeWatchProgress(historyResult.resp?.items || [], {
+          actionText: "Смотреть",
+        })
+      : [];
+    const favorites = favoritesResult.ok
+      ? normalizeMovieCards(favoritesResult.resp?.movies || [])
+      : [];
+    const friendsPreview = friendsResult.ok
+      ? normalizeFriendsPreview(friendsResult.resp?.friends || [])
+      : [];
+    const isFavoritesEmpty = favorites.length === 0;
+    const isFriendsEmpty = friendsPreview.length === 0;
 
     this.refresh({
       ...this.context,
       ...buildProfileIdentity(profile),
-      ...movieCollections,
+      continueWatching,
+      watchHistory,
+      favorites,
+      friendsPreview,
+      hasMoreFriends: Boolean(
+        friendsResult.ok &&
+          Number(friendsResult.resp?.total_count || 0) >
+            (friendsResult.resp?.friends?.length || 0),
+      ),
+      remainingCount: friendsResult.ok
+        ? Math.max(
+            0,
+            Number(friendsResult.resp?.total_count || 0) -
+              (friendsResult.resp?.friends?.length || 0),
+          )
+        : 0,
+      isFavoritesEmpty,
+      isFriendsEmpty,
+      shouldGroupEmptyStates: isFavoritesEmpty && isFriendsEmpty,
       isLoading: false,
       errorMessage: profileResult.ok
         ? ""
@@ -225,10 +263,13 @@ export default class ProfilePage extends BasePage {
           {
             slug: `profile-${carousel.slotKey}`,
             title: carousel.title,
+            titleHref: carousel.titleHref || "",
             movies: carousel.movies,
             posterVariant: carousel.posterVariant,
             posterSize: carousel.posterSize,
             showArrows: carousel.showArrows,
+            actionText: carousel.actionText || "",
+            showProgress: carousel.showProgress || false,
           },
           this,
           slot,
@@ -252,53 +293,36 @@ function buildProfileIdentity(profile = {}) {
     displayName,
     email,
     birthdateLabel: formatBirthdate(profile.birthdate),
-    avatarUrl: resolveAvatarUrl(profile.avatar_url),
-  };
-}
-
-/**
- * Формирует набор секций страницы профиля из общего пула фильмов.
- *
- * @param {Object[]} [selections=[]] подборки фильмов с бэка
- * @returns {{featuredMovies: Object[], recentMovies: Object[], favoriteMovies: Object[]}}
- */
-function buildMovieCollections(selections = []) {
-  const normalizedMovies = normalizeSelections(selections);
-  const moviePool = fillMoviePool(normalizedMovies, 16);
-
-  return {
-    featuredMovies: moviePool.slice(0, 4).map((movie) => ({
-      ...movie,
-      variant: "hero",
-      size: "hero",
-    })),
-    recentMovies: moviePool.slice(2, 10),
-    favoriteMovies: moviePool.slice(10, 16),
+    avatarUrl: resolveDefaultAvatarUrl(profile.avatar_url),
   };
 }
 
 function buildProfileCarousels(context = {}) {
   const carousels = [
     {
-      slotKey: "featured",
-      title: "Продолжить просмотр",
-      movies: context.featuredMovies,
-      posterVariant: "hero",
-      posterSize: "hero",
+      slotKey: "continue",
+      title: "",
+      movies: context.continueWatching,
+      posterVariant: "landscape",
+      posterSize: "large",
       showArrows: true,
+      showProgress: true,
+      actionText: "Продолжить просмотр",
     },
     {
-      slotKey: "recent",
-      title: "Недавно просмотренное",
-      movies: context.recentMovies,
+      slotKey: "history",
+      title: "",
+      titleHref: "/profile/history",
+      movies: context.watchHistory,
       posterVariant: "default",
       posterSize: "medium",
       showArrows: false,
     },
     {
       slotKey: "favorites",
-      title: "Избранное",
-      movies: context.favoriteMovies,
+      title: "",
+      titleHref: "/favorites",
+      movies: context.favorites,
       posterVariant: "compact",
       posterSize: "medium",
       showArrows: false,
@@ -310,65 +334,84 @@ function buildProfileCarousels(context = {}) {
   );
 }
 
-/**
- * Разворачивает список подборок в единый нормализованный список фильмов.
- *
- * @param {Object[]} [selections=[]] подборки фильмов
- * @returns {Object[]} нормализованный список фильмов
- */
-function normalizeSelections(selections = []) {
-  if (!Array.isArray(selections)) {
-    return [];
-  }
+function normalizeWatchProgress(items = [], options = {}) {
+  const actionText =
+    options.actionText != null && options.actionText !== ""
+      ? options.actionText
+      : "Продолжить просмотр";
 
-  return selections
-    .flatMap((selection) => selection?.movies || [])
-    .map((movie, index) => normalizeMovie(movie, index))
-    .filter(Boolean);
+  return items.map((item) => {
+    const { duration: durationRaw, position: positionRaw } = normalizeTimeFields(item);
+    const duration = Number.isFinite(durationRaw) ? durationRaw : 0;
+    const position = Number.isFinite(positionRaw) ? positionRaw : 0;
+
+    const rawApiProgressPercent = Number(
+      item.progress_percent ?? item.progressPercent ?? item.progress?.percent,
+    );
+    const apiProgressPercent = Number.isFinite(rawApiProgressPercent)
+      ? (rawApiProgressPercent > 0 && rawApiProgressPercent <= 1
+          ? rawApiProgressPercent * 100
+          : rawApiProgressPercent)
+      : Number.NaN;
+    const computedProgressPercent =
+      duration > 0 ? Math.round((position / duration) * 100) : 0;
+    const progressPercent = Number.isFinite(apiProgressPercent)
+      ? Math.round(apiProgressPercent)
+      : computedProgressPercent;
+    const normalizedProgressPercent = Math.max(
+      0,
+      Math.min(progressPercent, 100),
+    );
+    const visibleProgressPercent =
+      normalizedProgressPercent > 0 && normalizedProgressPercent < 2
+        ? 2
+        : normalizedProgressPercent;
+    const contentType = String(item.content_type || "").toLowerCase();
+    const isSeries = contentType === "series" || contentType === "serial";
+    const movieId = item.movie_id;
+    const episodeId = normalizeId(item.episode_id);
+    const seasonNumber = item.season_number;
+    const episodeNumber = item.episode_number;
+    const movieTitle = item.movie_title || "";
+    const posterUrl = item.poster_url;
+    const startPart = position > 0 ? `&start=${position}` : "";
+    const episodePart = episodeId ? `&episode=${episodeId}` : "";
+    const normalizedMovieId = normalizeId(movieId);
+
+    return {
+      id: normalizedMovieId,
+      title: movieTitle,
+      posterUrl: resolveMediaUrl(posterUrl, MEDIA_BUCKETS.cards),
+      href: `/movie/${normalizedMovieId}?watch=1${episodePart}${startPart}`,
+      meta: isSeries
+        ? `Сезон ${seasonNumber}, Серия ${episodeNumber} • ${normalizedProgressPercent}%`
+        : `${normalizedProgressPercent}%`,
+      actionText,
+      progress: {
+        percent: normalizedProgressPercent,
+        displayPercent: visibleProgressPercent,
+        position,
+        duration,
+      },
+    };
+  });
 }
 
-/**
- * Нормализует объект фильма под формат карточек профиля.
- *
- * @param {Object} [movie={}] исходный объект фильма
- * @param {number} [index=0] индекс фильма в списке
- * @returns {Object|null} нормализованный объект фильма или `null`
- */
-function normalizeMovie(movie = {}, index = 0) {
-  const movieId = String(movie.id ?? `profile-movie-${index}`).trim();
+function normalizeId(value) {
+  return String(value ?? "").trim();
+}
 
-  if (!movieId) {
-    return null;
-  }
-
-  const fallbackMovie = FALLBACK_MOVIES[index % FALLBACK_MOVIES.length];
-  const title = movie.title || movie.name || fallbackMovie.title;
-  const posterUrl =
-    movie.img_url ||
-    movie.posterUrl ||
-    movie.poster_url ||
-    movie.backdropUrl ||
-    movie.backdrop_url ||
-    fallbackMovie.posterUrl;
-  const backdropUrl =
-    movie.poster_url ||
-    movie.backdropUrl ||
-    movie.backdrop_url ||
-    movie.posterUrl ||
-    movie.img_url ||
-    fallbackMovie.backdropUrl;
-  const genres = normalizeGenres(
-    movie.genres || movie.genre || fallbackMovie.genres,
-  );
-
-  return {
-    id: movieId,
-    title,
-    posterUrl: resolveMediaUrl(posterUrl, MEDIA_BUCKETS.cards),
-    backdropUrl: resolveMediaUrl(backdropUrl, MEDIA_BUCKETS.posters),
-    href: `/movie/${encodeURIComponent(movieId)}`,
-    meta: genres.join(" • ") || fallbackMovie.meta,
-  };
+function normalizeFriendsPreview(friends = []) {
+  return friends.map((friend) => {
+    const displayName = getDisplayNameFromEmail(friend.email) || "Пользователь";
+    return {
+      id: String(friend.id),
+      displayName,
+      avatarUrl: resolveAvatarUrl(friend, { resolveMediaUrl }),
+      initials: displayName.charAt(0).toUpperCase(),
+      href: `/profile/${friend.id}`,
+    };
+  });
 }
 
 /**
@@ -377,114 +420,13 @@ function normalizeMovie(movie = {}, index = 0) {
  * @param {string[]|string} genres жанры фильма
  * @returns {string[]} нормализованный список жанров
  */
-function normalizeGenres(genres) {
-  if (Array.isArray(genres)) {
-    return genres.filter(Boolean).map((genre) => String(genre).trim());
-  }
-
-  if (typeof genres === "string" && genres.trim()) {
-    return genres
-      .split(",")
-      .map((genre) => genre.trim())
-      .filter(Boolean);
-  }
-
-  return [];
+function normalizeMovieCards(cards = []) {
+  return cards.map((card) => ({
+    id: String(card.id),
+    title: card.title,
+    posterUrl: resolveMediaUrl(card.img_url || card.poster_url, MEDIA_BUCKETS.cards),
+    href: `/movie/${card.id}`,
+    variant: "compact",
+    size: "medium",
+  }));
 }
-
-/**
- * Дополняет пул фильмов фолбэками до нужной длины.
- *
- * @param {Object[]} [movies=[]] исходный список фильмов
- * @param {number} [targetLength=0] желаемое количество карточек
- * @returns {Object[]} итоговый пул фильмов
- */
-function fillMoviePool(movies = [], targetLength = 0) {
-  const pool = movies.slice(0, targetLength);
-
-  if (pool.length >= targetLength) {
-    return pool;
-  }
-
-  let fallbackIndex = 0;
-
-  while (pool.length < targetLength) {
-    const fallbackMovie =
-      FALLBACK_MOVIES[fallbackIndex % FALLBACK_MOVIES.length];
-
-    pool.push({
-      ...fallbackMovie,
-      id: `${fallbackMovie.id}-${pool.length}`,
-      href: `/movie/${encodeURIComponent(fallbackMovie.id)}`,
-    });
-
-    fallbackIndex += 1;
-  }
-
-  return pool;
-}
-
-/**
- * Фолбэк-набор фильмов для витринных секций профиля.
- * Используется, если бэкенд не вернул достаточно карточек.
- *
- * @type {Array<{id: string, title: string, posterUrl: string, backdropUrl: string, meta: string}>}
- */
-const FALLBACK_MOVIES = [
-  {
-    id: "dune-fallback",
-    title: "Дюна",
-    posterUrl: "/img/cards/interstellar.webp",
-    backdropUrl: "/img/cards/interstellar.webp",
-    meta: "Фантастика • Эпос",
-  },
-  {
-    id: "interstellar-fallback",
-    title: "Интерстеллар",
-    posterUrl: "/img/cards/gladiator.webp",
-    backdropUrl: "/img/cards/gladiator.webp",
-    meta: "Фантастика • Драма",
-  },
-  {
-    id: "noir-fallback",
-    title: "Неоновый город",
-    posterUrl: "/img/cards/inception.webp",
-    backdropUrl: "/img/cards/inception.webp",
-    meta: "Триллер • Неонуар",
-  },
-  {
-    id: "romance-fallback",
-    title: "Полночь у моря",
-    posterUrl: "/img/cards/luca.webp",
-    backdropUrl: "/img/cards/luca.webp",
-    meta: "Мелодрама • Приключение",
-  },
-  {
-    id: "pulse-fallback",
-    title: "Импульс",
-    posterUrl: "/img/cards/matrix.webp",
-    backdropUrl: "/img/cards/matrix.webp",
-    meta: "Боевик • Драма",
-  },
-  {
-    id: "sonic-fallback",
-    title: "Соник 3",
-    posterUrl: "/img/cards/up.webp",
-    backdropUrl: "/img/cards/up.webp",
-    meta: "Экшен • Семейный",
-  },
-  {
-    id: "legacy-fallback",
-    title: "Последний рейс",
-    posterUrl: "/img/cards/whiplash.webp",
-    backdropUrl: "/img/cards/whiplash.webp",
-    meta: "Триллер • Детектив",
-  },
-  {
-    id: "ember-fallback",
-    title: "Пепел и свет",
-    posterUrl: "/img/cards/coco.webp",
-    backdropUrl: "/img/cards/coco.webp",
-    meta: "Драма • Приключение",
-  },
-];

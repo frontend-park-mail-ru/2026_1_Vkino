@@ -1,20 +1,20 @@
 import BasePage from "../BasePage.js";
 import "./SupportTickets.precompiled.js";
-import "../../css/support-tickets.scss";
-import "../../css/admin-tickets.scss";
+import "@/css/support-tickets.scss";
+import "@/css/admin-tickets.scss";
 
-import HeaderComponent from "../../components/Header/Header.js";
-import SupportTicketsConversationComponent from "../../components/SupportTicketsConversation/SupportTicketsConversation.js";
-import SupportTicketsHeroComponent from "../../components/SupportTicketsHero/SupportTicketsHero.js";
-import SupportTicketsSidebarComponent from "../../components/SupportTicketsSidebar/SupportTicketsSidebar.js";
-import { useSupportTickets } from "../../hooks/useSupportTickets.js";
-import { supportRealtimeService } from "../../js/SupportRealtimeService.js";
-import { router } from "../../router/index.js";
-import { authStore } from "../../store/authStore.js";
+import HeaderComponent from "@/components/Header/Header.js";
+import SupportTicketsConversationComponent from "@/components/SupportTicketsConversation/SupportTicketsConversation.js";
+import SupportTicketsHeroComponent from "@/components/SupportTicketsHero/SupportTicketsHero.js";
+import SupportTicketsSidebarComponent from "@/components/SupportTicketsSidebar/SupportTicketsSidebar.js";
+import { useSupportTickets } from "@/hooks/useSupportTickets.js";
+import { supportRealtimeService } from "@/js/SupportRealtimeService.js";
+import { router } from "@/router/index.js";
+import { authStore } from "@/store/authStore.js";
 import {
   shouldSyncSupportRealtimePayload,
   validateSupportFile,
-} from "../../utils/support.js";
+} from "@/utils/support.js";
 import {
   buildSupportConversationContext,
   buildSupportHeroContext,
@@ -28,7 +28,7 @@ import {
   resolveSupportCurrentUser,
   resolveSupportRatingErrorMessage,
   SUPPORT_REQUESTS_BLOCKED_MESSAGE,
-} from "../../utils/supportTicketsView.js";
+} from "@/utils/supportTicketsView.js";
 
 export default class SupportTicketsPage extends BasePage {
   constructor(context = {}, parent = null, el = null) {

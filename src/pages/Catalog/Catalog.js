@@ -1,4 +1,4 @@
-import BasePage from "@/pages/BasePage.js";
+import BasePage from "@/pages/BasePage";
 import "@/pages/Catalog/Catalog.precompiled.js";
 import "@/css/catalog.scss";
 
@@ -6,7 +6,6 @@ import HeaderComponent from "@/components/Header/Header.js";
 import MoviePosterComponent from "@/components/MoviePoster/MoviePoster.js";
 import PaginationComponent from "@/components/Pagination/Pagination.js";
 import { movieService } from "@/js/MovieService.js";
-import { getCacheFallbackNotice } from "@/utils/apiMeta.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
 
 const DEFAULT_PAGE_SIZE = 12;
@@ -14,6 +13,18 @@ const DEFAULT_PAGE_SIZE = 12;
 const CATALOG_CONFIGS = {
   selection: {
     title: "Каталог",
+    requestSelectionTitles: [],
+    selectionTitles: [],
+    contentTypes: [],
+  },
+  favorites: {
+    title: "Избранное",
+    requestSelectionTitles: [],
+    selectionTitles: [],
+    contentTypes: [],
+  },
+  history: {
+    title: "Недавно просмотренные",
     requestSelectionTitles: [],
     selectionTitles: [],
     contentTypes: [],
@@ -76,6 +87,7 @@ export default class CatalogPage extends BasePage {
 
   init() {
     super.init();
+    applyCatalogDocumentTitle(this.context.catalogKey, this.context.title);
 
     if (!this._hasProvidedItems && this.context.isLoading) {
       this.loadContext();
@@ -85,10 +97,9 @@ export default class CatalogPage extends BasePage {
   }
 
   async loadContext() {
-    const selectionsResult = await movieService.getSelectionsByTitles(
+    const { ok, status, resp, error } = await movieService.getSelectionsByTitles(
       resolveRequestedSelectionTitles(this.context),
     );
-    const { ok, status, resp, error } = selectionsResult;
 
     if (!ok) {
       this.refresh(
@@ -102,6 +113,7 @@ export default class CatalogPage extends BasePage {
           totalPages: 1,
         }),
       );
+      applyCatalogDocumentTitle(this.context.catalogKey, this.context.title);
       return;
     }
 
@@ -127,6 +139,7 @@ export default class CatalogPage extends BasePage {
         totalPages: paginationState.totalPages,
       }),
     );
+    applyCatalogDocumentTitle(this.context.catalogKey, this.context.title);
   }
 
   setupChildren() {
@@ -232,6 +245,14 @@ function buildCatalogContext(context = {}) {
   const pageSize = normalizePositiveInteger(context.pageSize, DEFAULT_PAGE_SIZE);
   const basePath = normalizeString(context.basePath) || window.location.pathname;
   const items = normalizeCatalogItems(context.items);
+  const catalogKeyNorm = normalizeString(context.catalogKey).toLowerCase();
+  const isLoading = Boolean(context.isLoading);
+  const hasError = Boolean(context.hasError);
+  const showFavoritesEmpty =
+    !isLoading &&
+    !hasError &&
+    catalogKeyNorm === "favorites" &&
+    items.length === 0;
 
   return {
     ...context,
@@ -247,6 +268,7 @@ function buildCatalogContext(context = {}) {
     })),
     pagination: buildPaginationContext(currentPage, totalPages, basePath),
     skeletonItems: buildSkeletonItems(pageSize),
+    showFavoritesEmpty,
   };
 }
 
@@ -593,6 +615,15 @@ function matchesSelectionTitle(title = "", titleVariants = []) {
   const normalizedTitle = normalizeString(title).toLowerCase();
 
   return titleVariants.some((variant) => normalizedTitle.includes(variant));
+}
+
+function applyCatalogDocumentTitle(catalogKey, titleFallback = "") {
+  const key = normalizeString(catalogKey).toLowerCase();
+  const fromConfig = CATALOG_CONFIGS[key]?.title;
+  const title = normalizeString(titleFallback) || fromConfig || "";
+  if (title) {
+    document.title = `${title} — VKino`;
+  }
 }
 
 function findSelectionByTitle(selections = [], title = "") {

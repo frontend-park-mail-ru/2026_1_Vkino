@@ -1,4 +1,4 @@
-import { BaseComponent } from "../BaseComponent.js";
+import { BaseComponent } from "@/components/BaseComponent.js";
 import "./SupportTicketsConversation.precompiled.js";
 
 export default class SupportTicketsConversationComponent extends BaseComponent {

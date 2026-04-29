@@ -1,11 +1,11 @@
 import BasePage from "../BasePage.js";
 import "./SignUp.precompiled.js";
-
-import { initPasswordToggle } from "../../js/password/eye-btn.js";
-import { initAuthValidation, setError } from "../../js/password/validation.js";
-import { initRegisterBottleEffect } from "../../js/register.js";
-import { router } from "../../router/index.js";
-import { authStore } from "../../store/authStore.js";
+import "@/css/register.scss";
+import { initPasswordToggle } from "@/js/password/eye-btn.js";
+import { initAuthValidation, setError } from "@/js/password/validation.js";
+import { initRegisterBottleEffect } from "@/js/register.js";
+import { router } from "@/router/index.js";
+import { authStore } from "@/store/authStore.js";
 
 /**
  * @typedef {Object} AuthUserData

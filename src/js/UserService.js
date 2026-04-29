@@ -146,6 +146,128 @@ export class UserService {
   async changePassword(payload) {
     return this.api.post("/change-password", payload);
   }
+
+  /**
+   * Переключает фильм в любимый / нелюбимый
+   * @async
+   * @param {string|number} movieId ID фильма.
+   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
+   */
+  async toggleFavorite(movieId) {
+    return this.api.put(`/favorites/${movieId}`);
+  }
+
+  /**
+   * Возвращает список избранных фильмов пользователя.
+   * @async
+   * @param {{limit?: number, offset?: number}} [options={}] параметры пагинации.
+   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
+   */
+  async getFavorites({ limit = 10, offset = 0 } = {}) {
+    return this.api.get("/favorites", { query: { limit, offset } });
+  }
+
+  /**
+   * Возвращает подборку "Продолжить просмотр".
+   * @async
+   * @param {{limit?: number}} [options={}] параметры выборки.
+   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
+   */
+  async getContinueWatching({ limit = 5 } = {}) {
+    return this.api.get("/watch/continue", { query: { limit } });
+  }
+
+  /**
+   * Возвращает историю просмотра пользователя.
+   * @async
+   * @param {{limit?: number}} [options={}] параметры выборки.
+   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
+   */
+  async getWatchHistory({ limit = 10 } = {}) {
+    return this.api.get("/watch/history", { query: { limit } });
+  }
+
+  /**
+   * Возвращает недавно просмотренные фильмы (с порогом прогресса просмотра на бэкенде).
+   * @async
+   * @param {{limit?: number}} [options={}] параметры выборки.
+   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
+   */
+  async getWatchRecent({ limit = 10 } = {}) {
+    return this.api.get("/watch/recent", { query: { limit } });
+  }
+
+  /**
+   * Ищет пользователей по email.
+   * @async
+   * @param {string} query поисковая строка.
+   * @param {{limit?: number}} [options={}] параметры выборки.
+   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
+   */
+  async searchUsers(query, { limit = 10 } = {}) {
+    return this.api.get("/search", { query: { query, limit } });
+  }
+
+  /**
+   * Отправляет исходящую заявку в друзья.
+   * @async
+   * @param {string|number} toUserId ID пользователя, которому отправляется заявка.
+   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
+   */
+  async sendFriendRequest(toUserId) {
+    return this.api.post(`/friends/${toUserId}`);
+  }
+
+  /**
+   * Отвечает на входящую заявку в друзья.
+   * @async
+   * @param {string|number} requestId ID заявки.
+   * @param {"accept"|"decline"|"cancel"|string} action действие над заявкой.
+   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
+   */
+  async respondToFriendRequest(requestId, action) {
+    return this.api.post(`/friends/requests/${requestId}/respond`, { action });
+  }
+
+  /**
+   * Отменяет исходящую заявку в друзья.
+   * @async
+   * @param {string|number} requestId ID заявки.
+   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
+   */
+  async cancelFriendRequest(requestId) {
+    return this.api.delete(`/friends/requests/${requestId}`);
+  }
+
+  /**
+   * Возвращает список заявок в друзья.
+   * @async
+   * @param {{direction?: "incoming"|"outgoing"|string, limit?: number}} [options={}] параметры выборки.
+   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
+   */
+  async getFriendRequests({ direction = "incoming", limit = 50 } = {}) {
+    return this.api.get("/friends/requests", { query: { direction, limit } });
+  }
+
+  /**
+   * Возвращает список друзей пользователя.
+   * @async
+   * @param {{limit?: number, offset?: number}} [options={}] параметры пагинации.
+   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
+   */
+  async getFriendsList({ limit = 50, offset = 0 } = {}) {
+    return this.api.get("/friends", { query: { limit, offset } });
+  }
+
+  /**
+   * Удаляет пользователя из друзей.
+   * @async
+   * @param {string|number} userId ID друга.
+   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
+   */
+  async deleteFriend(userId) {
+    return this.api.delete(`/friends/${userId}`);
+  }
 }
 
 /**

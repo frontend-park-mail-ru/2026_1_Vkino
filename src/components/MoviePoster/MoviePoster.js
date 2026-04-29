@@ -1,6 +1,6 @@
-import { BaseComponent } from "../BaseComponent.js";
+import { BaseComponent } from "@/components/BaseComponent.js";
 import "./MoviePoster.precompiled.js";
-import { MEDIA_BUCKETS, resolveMediaUrl } from "../../utils/media.js";
+import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
 
 const DEFAULT_VARIANT = "default";
 const DEFAULT_SIZE = "medium";
@@ -97,6 +97,15 @@ function getVariantConfig(variant) {
       showOverlay: false,
       showDescription: false,
       showButton: false,
+    };
+  }
+
+  if (variant === "landscape") {
+    return {
+      showAlwaysContent: false,
+      showOverlay: true,
+      showDescription: true,
+      showButton: true,
     };
   }
 

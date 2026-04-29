@@ -35,6 +35,11 @@
             data-index="{{this.slideIndex}}"
           >
             <div data-poster-slot="{{this.slotKey}}" class="poster-carousel__slot"></div>
+            {{#if this.showProgress}}
+              <div class="poster-progress">
+                <div class="poster-progress__bar{{#if this.progress.percent}} poster-progress__bar--has-progress{{/if}}" style="width: {{this.progress.displayPercent}}%"></div>
+              </div>
+            {{/if}}
           </div>
         {{/each}}
       </div>

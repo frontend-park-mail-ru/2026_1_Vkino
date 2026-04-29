@@ -65,7 +65,6 @@ export class Router {
    * Инициализирует роутер
    */
   init() {
-    console.log("Router initialized");
     this._syncRoute();
   }
 
@@ -104,7 +103,6 @@ export class Router {
     }
 
     const href = link.getAttribute("href");
-    console.log("Router href =", href);
     if (!href) {
       return;
     }
@@ -119,9 +117,7 @@ export class Router {
    */
   _syncRoute() {
     const path = this._formatPath(window.location.pathname);
-    console.log("route path =", path);
     const pageBuilder = this._matchRoute(path) || this.routeTable.get("/404");
-    console.log("pageBuilder =", pageBuilder);
 
     if (!pageBuilder) {
       throw new Error(

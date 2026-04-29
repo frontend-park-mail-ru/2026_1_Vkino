@@ -1,15 +1,15 @@
 import BasePage from "../BasePage.js";
 import "./SupportCreate.precompiled.js";
-import "../../css/support-create.scss";
-import { supportService } from "../../js/SupportService.js";
-import { validateEmail } from "../../js/password/validation.js";
-import { router } from "../../router/index.js";
-import { authStore } from "../../store/authStore.js";
+import "@/css/support-create.scss";
+import { supportService } from "@/js/SupportService.js";
+import { validateEmail } from "@/js/password/validation.js";
+import { router } from "@/router/index.js";
+import { authStore } from "@/store/authStore.js";
 import {
   extractSupportTicket,
   SUPPORT_CATEGORY_OPTIONS,
   validateSupportFile,
-} from "../../utils/support.js";
+} from "@/utils/support.js";
 const SUPPORT_WIDGET_EVENTS = {
   closeRequest: "vkino:support-widget-close-request",
   ticketCreated: "vkino:support-ticket-created",

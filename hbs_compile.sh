@@ -18,3 +18,4 @@ handlebars ./src/pages/Catalog/Catalog.hbs -f ./src/pages/Catalog/Catalog.precom
 handlebars ./src/pages/WatchParty/WatchParty.hbs -f ./src/pages/WatchParty/WatchParty.precompiled.js
 handlebars ./src/pages/SupportTickets/SupportTickets.hbs -f ./src/pages/SupportTickets/SupportTickets.precompiled.js
 handlebars ./src/pages/SupportCreate/SupportCreate.hbs -f ./src/pages/SupportCreate/SupportCreate.precompiled.js
+handlebars ./src/pages/Friends/Friends.hbs -f ./src/pages/Friends/Friends.precompiled.js

@@ -1,6 +1,5 @@
 <div class="page page_profile">
   <header id="header"></header>
-
   <main class="profile-page">
     {{#if isLoading}}
       <section class="profile-hero profile-hero_loading">
@@ -17,40 +16,24 @@
       </section>
     {{else}}
       <section class="profile-hero">
-        <a
-          class="profile-hero__settings-button"
-          href="/settings"
-          router-link
-          aria-label="Редактировать профиль"
-          title="Редактировать профиль"
-        >
+        <a class="profile-hero__settings-button" href="/settings" router-link aria-label="Редактировать профиль" title="Редактировать профиль">
           <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M10.4 2.8h3.2l.5 2.3a7.4 7.4 0 0 1 1.7.7l2-1.2 2.3 2.3-1.2 2a7.4 7.4 0 0 1 .7 1.7l2.3.5v3.2l-2.3.5a7.4 7.4 0 0 1-.7 1.7l1.2 2-2.3 2.3-2-1.2a7.4 7.4 0 0 1-1.7.7l-.5 2.3h-3.2l-.5-2.3a7.4 7.4 0 0 1-1.7-.7l-2 1.2-2.3-2.3 1.2-2a7.4 7.4 0 0 1-.7-1.7l-2.3-.5v-3.2l2.3-.5a7.4 7.4 0 0 1 .7-1.7l-1.2-2 2.3-2.3 2 1.2a7.4 7.4 0 0 1 1.7-.7z"
-            />
+            <path d="M10.4 2.8h3.2l.5 2.3a7.4 7.4 0 0 1 1.7.7l2-1.2 2.3 2.3-1.2 2a7.4 7.4 0 0 1 .7 1.7l2.3.5v3.2l-2.3.5a7.4 7.4 0 0 1-.7 1.7l1.2 2-2.3 2.3-2-1.2a7.4 7.4 0 0 1-1.7.7l-.5 2.3h-3.2l-.5-2.3a7.4 7.4 0 0 1-1.7-.7l-2 1.2-2.3-2.3 1.2-2a7.4 7.4 0 0 1-.7-1.7l-2.3-.5v-3.2l2.3-.5a7.4 7.4 0 0 1 .7-1.7l-1.2-2 2.3-2.3 2 1.2a7.4 7.4 0 0 1 1.7-.7z"/>
             <circle cx="12" cy="12" r="3.1" />
           </svg>
         </a>
-
         <div class="profile-hero__avatar-wrap">
-          <img
-            class="profile-hero__avatar"
-            src="{{avatarUrl}}"
-            alt="Аватар пользователя"
-          />
+          <img class="profile-hero__avatar" src="{{avatarUrl}}" alt="Аватар пользователя" />
         </div>
-
         <div class="profile-hero__content">
           <div class="profile-hero__eyebrow">Личный профиль</div>
           <h1 class="profile-hero__name">{{displayName}}</h1>
           <p class="profile-hero__email">{{email}}</p>
-
           <div class="profile-hero__facts">
             <article class="profile-fact">
               <span class="profile-fact__label">Email</span>
               <span class="profile-fact__value">{{email}}</span>
             </article>
-
             <article class="profile-fact">
               <span class="profile-fact__label">Дата рождения</span>
               <span class="profile-fact__value">{{birthdateLabel}}</span>
@@ -62,41 +45,135 @@
       {{#if errorMessage}}
         <div class="profile-banner" role="status">
           <span>{{errorMessage}}</span>
-          <button
-            type="button"
-            class="profile-banner__button"
-            data-action="retry-profile"
-          >
-            Повторить
-          </button>
+          <button type="button" class="profile-banner__button" data-action="retry-profile">Повторить</button>
         </div>
       {{/if}}
 
-      {{#if featuredMovies.length}}
+      {{#if continueWatching.length}}
         <section class="profile-section">
-          <div
-            class="profile-carousel-slot"
-            data-profile-carousel="featured"
-          ></div>
+          <h2 class="profile-section-title">Продолжить просмотр</h2>
+          <div class="profile-carousel-slot" data-profile-carousel="continue"></div>
         </section>
       {{/if}}
 
-      {{#if recentMovies.length}}
+      {{#if watchHistory.length}}
         <section class="profile-section">
-          <div
-            class="profile-carousel-slot"
-            data-profile-carousel="recent"
-          ></div>
+          <h2 class="profile-section-title"><a href="/profile/history" router-link>Недавно просмотренные</a></h2>
+          <div class="profile-carousel-slot" data-profile-carousel="history"></div>
         </section>
       {{/if}}
+      {{#if shouldGroupEmptyStates}}
+        <div class="profile-empty-row">
+          <section class="profile-section profile-section--empty">
+            <h2 class="profile-section-title"><a href="/favorites" router-link>Избранное</a></h2>
+            <div class="empty-state-card">
+              <a
+                href="/favorites"
+                class="empty-state-icon empty-state-icon--favorites"
+                aria-label="Перейти в избранное"
+                router-link
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+              </a>
+              <p class="empty-state-text">Вы ещё не лайкали фильмы</p>
+              <a href="/movies" class="btn btn-accent btn-sm" router-link>Смотреть каталог</a>
+            </div>
+          </section>
 
-      {{#if favoriteMovies.length}}
-        <section class="profile-section">
-          <div
-            class="profile-carousel-slot"
-            data-profile-carousel="favorites"
-          ></div>
-        </section>
+          <section class="profile-section profile-section--empty">
+            <h2 class="profile-section-title"><a href="/friends" router-link>Друзья</a></h2>
+            <div class="empty-state-card">
+              <a
+                href="/friends"
+                class="empty-state-icon empty-state-icon--friends"
+                aria-label="Перейти к поиску друзей"
+                router-link
+              >
+                <svg class="empty-state-icon__svg" viewBox="0 0 24 24" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                  <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="1.5" fill="none" />
+                  <line x1="19" y1="8" x2="19" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                  <line x1="16" y1="11" x2="22" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+              </a>
+              <p class="empty-state-text">У вас пока нет друзей</p>
+              <a href="/friends" class="btn btn-accent btn-sm" router-link>Найти друзей</a>
+            </div>
+          </section>
+        </div>
+      {{else}}
+        {{#if favorites.length}}
+          <section class="profile-section">
+            <h2 class="profile-section-title"><a href="/favorites" router-link>Избранное</a></h2>
+            <div class="profile-carousel-slot" data-profile-carousel="favorites"></div>
+          </section>
+        {{else}}
+          <section class="profile-section profile-section--empty">
+            <h2 class="profile-section-title"><a href="/favorites" router-link>Избранное</a></h2>
+            <div class="empty-state-card">
+              <a
+                href="/favorites"
+                class="empty-state-icon empty-state-icon--favorites"
+                aria-label="Перейти в избранное"
+                router-link
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+              </a>
+              <p class="empty-state-text">Вы ещё не лайкали фильмы</p>
+              <a href="/movies" class="btn btn-accent btn-sm" router-link>Смотреть каталог</a>
+            </div>
+          </section>
+        {{/if}}
+
+        {{#if friendsPreview.length}}
+          <section class="profile-section">
+            <h2 class="profile-section-title"><a href="/friends" router-link>Друзья</a></h2>
+            <ul class="friends-preview-grid">
+              {{#each friendsPreview}}
+                <li class="friend-preview-card">
+                  <div class="friend-avatar">
+                    {{#if this.avatarUrl}}
+                      <img src="{{this.avatarUrl}}" alt="{{this.displayName}}" />
+                    {{else}}
+                      <span class="avatar-initials">{{this.initials}}</span>
+                    {{/if}}
+                  </div>
+                  <span class="friend-name">{{this.displayName}}</span>
+                </li>
+              {{/each}}
+              {{#if hasMoreFriends}}
+                <li class="friend-preview-more">
+                  <a href="/friends" router-link>Ещё <span class="friend-count">+{{remainingCount}}</span></a>
+                </li>
+              {{/if}}
+            </ul>
+          </section>
+        {{else}}
+          <section class="profile-section profile-section--empty">
+            <h2 class="profile-section-title"><a href="/friends" router-link>Друзья</a></h2>
+            <div class="empty-state-card">
+              <a
+                href="/friends"
+                class="empty-state-icon empty-state-icon--friends"
+                aria-label="Перейти к поиску друзей"
+                router-link
+              >
+                <svg class="empty-state-icon__svg" viewBox="0 0 24 24" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                  <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="1.5" fill="none" />
+                  <line x1="19" y1="8" x2="19" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                  <line x1="16" y1="11" x2="22" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+              </a>
+              <p class="empty-state-text">У вас пока нет друзей</p>
+              <a href="/friends" class="btn btn-accent btn-sm" router-link>Найти друзей</a>
+            </div>
+          </section>
+        {{/if}}
       {{/if}}
     {{/if}}
   </main>

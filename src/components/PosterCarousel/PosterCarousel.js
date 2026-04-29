@@ -1,5 +1,5 @@
-import { BaseComponent } from "../BaseComponent.js";
-import MoviePosterComponent from "../MoviePoster/MoviePoster.js";
+import { BaseComponent } from "@/components/BaseComponent.js";
+import MoviePosterComponent from "@/components/MoviePoster/MoviePoster.js";
 import "./PosterCarousel.precompiled.js";
 
 export default class PosterCarouselComponent extends BaseComponent {
@@ -303,8 +303,11 @@ function buildCarouselContext(context = {}) {
       ...movie,
       size: centeredHero ? "hero" : movie.size || posterSize,
       variant: centeredHero ? "hero" : movie.variant || posterVariant,
+      actionText: movie.actionText || context.actionText,
       slotKey: movie.slotKey || `${context.slug || "carousel"}-${index}`,
       slideIndex: index,
+      progress: movie.progress || null,
+      showProgress: Boolean(context.showProgress && movie.progress),
     })),
   };
 }

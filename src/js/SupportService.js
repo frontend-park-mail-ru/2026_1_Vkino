@@ -1,8 +1,8 @@
-import { apiService } from "./api.js";
+import { apiService } from "@/js/api.js";
 import {
   getSupportFileDisplayName,
   validateSupportFile,
-} from "../utils/support.js";
+} from "@/utils/support.js";
 
 export class SupportService {
   constructor(apiServiceInstance) {

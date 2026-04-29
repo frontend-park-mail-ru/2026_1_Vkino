@@ -29,9 +29,12 @@
             alt="Постер фильма {{movie.title}}"
           />
           <button
-            class="movie-favorite-btn"
+            class="movie-favorite-btn {{#if movie.isFavorite}}is-favorite{{/if}}"
             type="button"
-            aria-label="В избранное"
+            aria-label="{{#if movie.isFavorite}}Убрать из избранного{{else}}В избранное{{/if}}"
+            data-movie-id="{{movie.id}}"
+            data-action="toggle-favorite"
+            {{#unless movie.id}}disabled{{/unless}}
           >
             <svg
               width="24"
@@ -44,6 +47,7 @@
                 d="M12.001 20.727L10.585 19.438C5.554 14.874 2.25 11.878 2.25 8.227C2.25 5.231 4.602 2.875 7.59 2.875C9.279 2.875 10.9 3.662 12.001 4.907C13.101 3.662 14.722 2.875 16.411 2.875C19.399 2.875 21.75 5.231 21.75 8.227C21.75 11.878 18.447 14.874 13.417 19.438L12.001 20.727Z"
                 stroke="currentColor"
                 stroke-width="1.8"
+                fill="{{#if movie.isFavorite}}currentColor{{else}}none{{/if}}"
               />
             </svg>
           </button>
