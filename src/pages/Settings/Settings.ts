@@ -1,0 +1,626 @@
+// @ts-nocheck
+// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
+import BasePage from "../BasePage.ts";
+import "./Settings.precompiled.js";
+import "@/css/settings.scss";
+
+import { initPasswordToggle } from "@/js/password/eye-btn.ts";
+import { setError, validatePassword } from "@/js/password/validation.ts";
+import { userService } from "@/js/UserService.ts";
+import { authStore } from "@/store/authStore.ts";
+import { router } from "@/router/index.ts";
+import HeaderComponent from "@/components/Header/Header.ts";
+import { resolveAvatarUrl } from "@/utils/avatar.ts";
+import { extractProfile } from "@/utils/apiResponse.ts";
+
+export default class SettingsPage extends BasePage {
+  constructor(context = {}, parent = null, el = null) {
+    if (!el) {
+      throw new Error(
+        "SettingsPage: не передан корневой элемент для SettingsPage",
+      );
+    }
+
+    const mockCoinHistory = [
+      // { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
+      // { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
+      // { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
+      // { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
+      // { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
+      // { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
+      // { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
+      // { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
+      // { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
+      // { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
+    ];
+
+    const finalContext = {
+      userData: { email: "", birthDate: "", avatarUrl: "" }, // временно
+      coinHistory: mockCoinHistory,
+      emptyCoinsTitle: "Пока здесь пусто",
+      emptyCoinsDescription:
+        "Смотрите фильмы и участвуйте в активностях VKino, чтобы начать зарабатывать Vkino coins.",
+      ...context,
+    };
+
+    super(
+      finalContext,
+      Handlebars.templates["Settings.hbs"],
+      parent,
+      el,
+      "SettingsPage",
+    );
+
+    this._detachStyles = null;
+    this._destroyPasswordToggle = null;
+    this._originalValues = {};
+    this._editableInputHandlers = new Map();
+    this._passwordInputHandlers = new Map();
+    this._buttonHandlers = new Map();
+    this._avatarInputHandler = null;
+    this._pendingAvatarFile = null;
+    this._authUnsubscribe = null;
+
+    this.context.userData = this._buildUserDataFromStore(authStore.getState());
+  }
+
+  init() {
+    const state = authStore.getState();
+
+    if (state.status === "loading") {
+      this._authUnsubscribe = authStore.subscribe((newState) => {
+        if (newState.status === "loading") return;
+
+        if (!newState.user) {
+          router.go("/sign-in");
+          return;
+        }
+
+        this._authUnsubscribe?.();
+        this._authUnsubscribe = null;
+
+        this.refresh({
+          ...this.context,
+          userData: this._buildUserDataFromStore(newState),
+        });
+      });
+
+      return super.init();
+    }
+
+    if (!state.user) {
+      router.go("/sign-in");
+      return this;
+    }
+
+    this.context.userData = this._buildUserDataFromStore(state);
+    return super.init();
+  }
+
+  _buildUserDataFromStore(state) {
+    const userFromStore = state?.user || {};
+
+    return {
+      email: userFromStore.email || "",
+      birthDate: userFromStore.birthdate || "",
+      avatarUrl: resolveAvatarUrl(userFromStore.avatar_url),
+    };
+  }
+
+  addEventListeners() {
+    this._destroyPasswordToggle = initPasswordToggle(this.el);
+    this._setupEditableFields();
+    this._setupAvatarUpload();
+    this._setupPasswordValidation();
+    this._setupButtonHandlers();
+    this._checkForChanges();
+  }
+
+  _setupEditableFields() {
+    const editableInputs = this.el.querySelectorAll(
+      ".settings__input_editable",
+    );
+    editableInputs.forEach((input) => {
+      const field = input.dataset.field;
+      this._originalValues[field] = input.value;
+
+      const onInput = () => {
+        if (field === "birthdate") {
+          this._validateBirthDate();
+        }
+
+        this._setProfileSaveError("");
+        this._checkForChanges();
+      };
+
+      input.addEventListener("input", onInput);
+      input.addEventListener("blur", onInput);
+      this._editableInputHandlers.set(input, onInput);
+    });
+  }
+
+  _validateBirthDate() {
+    const birthDateInput = this.el.querySelector("#birthDate");
+    const errorEl = this.el.querySelector("#birthdate-error");
+    const value = String(birthDateInput?.value || "").trim();
+
+    if (!birthDateInput) {
+      return "";
+    }
+
+    if (!value) {
+      setError(birthDateInput, errorEl, "");
+      return "";
+    }
+
+    const today = new Date();
+    const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const message =
+      value > todayString
+        ? "Дата рождения не может быть позже сегодняшнего дня"
+        : "";
+
+    setError(birthDateInput, errorEl, message);
+    return message;
+  }
+
+  _setupAvatarUpload() {
+    const avatarInput = this.el.querySelector("#avatarInput");
+    if (!avatarInput) return;
+
+    const onChange = () => {
+      const file = avatarInput.files?.[0] || null;
+      if (!file) {
+        this._pendingAvatarFile = null;
+        this._setAvatarError("");
+        this._checkForChanges();
+        return;
+      }
+
+      const validationError = this._validateAvatarFile(file);
+      if (validationError) {
+        this._pendingAvatarFile = null;
+        avatarInput.value = "";
+        this._setAvatarError(validationError);
+        this._checkForChanges();
+        return;
+      }
+
+      this._pendingAvatarFile = file;
+      this._setAvatarError("");
+      this._previewAvatar(file);
+      this._checkForChanges();
+    };
+
+    avatarInput.addEventListener("change", onChange);
+    this._avatarInputHandler = onChange;
+  }
+
+  _validateAvatarFile(file) {
+    const maxBytes = 5 * 1024 * 1024;
+    const allowedTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
+
+    if (!allowedTypes.has(file.type)) {
+      return "Поддерживаются только PNG, JPG и WEBP";
+    }
+    if (file.size > maxBytes) {
+      return "Размер файла должен быть не больше 5MB";
+    }
+    return "";
+  }
+
+  _previewAvatar(file) {
+    const avatarPreview = this.el.querySelector('[data-role="avatar-preview"]');
+    if (!avatarPreview) return;
+    const objectUrl = URL.createObjectURL(file);
+    avatarPreview.src = objectUrl;
+    avatarPreview.onload = () => URL.revokeObjectURL(objectUrl);
+  }
+
+  _renderAvatar(url) {
+    const avatarPreview = this.el.querySelector('[data-role="avatar-preview"]');
+    if (!avatarPreview) return;
+
+    avatarPreview.src = resolveAvatarUrl(url);
+  }
+
+  _setAvatarError(message) {
+    const errorEl = this.el.querySelector("#avatar-error");
+    if (errorEl) errorEl.textContent = message;
+  }
+
+  _setProfileSaveError(message) {
+    const errorEl = this.el.querySelector("#profile-save-error");
+    if (errorEl) {
+      errorEl.textContent = message || "";
+    }
+  }
+
+  _setPasswordSuccess(message) {
+    const successEl = this.el.querySelector("#password-success");
+    if (successEl) {
+      successEl.textContent = message || "";
+    }
+  }
+
+  _setupPasswordValidation() {
+    const passwordFields = this._getPasswordFields();
+
+    passwordFields.forEach(({ input }) => {
+      if (!input) return;
+      const onInputOrBlur = () => {
+        this._setPasswordSuccess("");
+        this._validatePasswordField(input.id);
+        this._updatePasswordButtonState();
+      };
+      input.addEventListener("input", onInputOrBlur);
+      input.addEventListener("blur", onInputOrBlur);
+      this._passwordInputHandlers.set(input, onInputOrBlur);
+    });
+
+    this._updatePasswordButtonState();
+  }
+
+  _getPasswordFields() {
+    return [
+      {
+        id: "oldPassword",
+        input: this.el.querySelector("#oldPassword"),
+        errorEl: this.el.querySelector("#old-password-error"),
+      },
+      {
+        id: "newPassword",
+        input: this.el.querySelector("#newPassword"),
+        errorEl: this.el.querySelector("#new-password-error"),
+      },
+      {
+        id: "confirmPassword",
+        input: this.el.querySelector("#confirmPassword"),
+        errorEl: this.el.querySelector("#confirm-password-error"),
+      },
+    ];
+  }
+
+  _validatePasswordField(fieldId) {
+    const old = this.el.querySelector("#oldPassword")?.value || "";
+    const newP = this.el.querySelector("#newPassword")?.value || "";
+    const conf = this.el.querySelector("#confirmPassword")?.value || "";
+
+    const hasAny = !!old || !!newP || !!conf;
+
+    if (fieldId === "oldPassword") {
+      const msg = hasAny && !old ? "Введите текущий пароль" : "";
+      setError(
+        this.el.querySelector("#oldPassword"),
+        this.el.querySelector("#old-password-error"),
+        msg,
+      );
+      return msg;
+    }
+
+    if (fieldId === "newPassword") {
+      const msg = newP
+        ? validatePassword(newP)
+        : hasAny
+          ? "Введите новый пароль"
+          : "";
+      setError(
+        this.el.querySelector("#newPassword"),
+        this.el.querySelector("#new-password-error"),
+        msg,
+      );
+
+      if (conf && conf !== newP) {
+        setError(
+          this.el.querySelector("#confirmPassword"),
+          this.el.querySelector("#confirm-password-error"),
+          "Пароли не совпадают",
+        );
+      } else if (!conf && newP) {
+        setError(
+          this.el.querySelector("#confirmPassword"),
+          this.el.querySelector("#confirm-password-error"),
+          "Повторите новый пароль",
+        );
+      } else {
+        setError(
+          this.el.querySelector("#confirmPassword"),
+          this.el.querySelector("#confirm-password-error"),
+          "",
+        );
+      }
+
+      return msg;
+    }
+
+    if (fieldId === "confirmPassword") {
+      const msg =
+        conf && conf !== newP
+          ? "Пароли не совпадают"
+          : hasAny && !conf
+            ? "Повторите новый пароль"
+            : "";
+      setError(
+        this.el.querySelector("#confirmPassword"),
+        this.el.querySelector("#confirm-password-error"),
+        msg,
+      );
+      return msg;
+    }
+
+    return "";
+  }
+
+  _updatePasswordButtonState() {
+    const old = this.el.querySelector("#oldPassword")?.value || "";
+    const newP = this.el.querySelector("#newPassword")?.value || "";
+    const conf = this.el.querySelector("#confirmPassword")?.value || "";
+
+    const hasAny = !!old || !!newP || !!conf;
+    const isComplete = !!old && !!newP && !!conf;
+    const isValidPass = !validatePassword(newP);
+    const passwordsMatch = newP === conf;
+
+    const btn = this.el.querySelector('[data-action="change-password"]');
+    if (!btn) return;
+
+    const isActive = isComplete && isValidPass && passwordsMatch;
+
+    if (isActive) {
+      btn.classList.add("btn_accent");
+      btn.classList.remove("btn_outline");
+    } else {
+      btn.classList.remove("btn_accent");
+      btn.classList.add("btn_outline");
+    }
+
+    btn.disabled = !hasAny || !isActive;
+  }
+
+  _checkForChanges() {
+    const editableInputs = this.el.querySelectorAll(
+      ".settings__input_editable",
+    );
+    let hasChanges = false;
+    const birthDateError = this._validateBirthDate();
+
+    for (const input of editableInputs) {
+      const field = input.dataset.field;
+      if (input.value !== this._originalValues[field]) {
+        hasChanges = true;
+        break;
+      }
+    }
+
+    hasChanges = hasChanges || !!this._pendingAvatarFile;
+
+    const saveBtn = this.el.querySelector('[data-action="save-profile"]');
+    if (!saveBtn) return;
+
+    if (hasChanges) {
+      saveBtn.classList.add("btn_accent");
+      saveBtn.classList.remove("btn_outline");
+      saveBtn.disabled = !!birthDateError;
+    } else {
+      saveBtn.classList.remove("btn_accent");
+      saveBtn.classList.add("btn_outline");
+      saveBtn.disabled = true;
+    }
+  }
+
+  _setupButtonHandlers() {
+    const saveBtn = this.el.querySelector('[data-action="save-profile"]');
+    const changePwdBtn = this.el.querySelector(
+      '[data-action="change-password"]',
+    );
+
+    if (saveBtn) {
+      const onSaveClick = async (e) => {
+        e.preventDefault();
+        if (saveBtn.disabled) return;
+
+        await this._saveProfile();
+      };
+
+      saveBtn.addEventListener("click", onSaveClick);
+      this._buttonHandlers.set(saveBtn, onSaveClick);
+    }
+
+    if (changePwdBtn) {
+      const onChangePasswordClick = async (e) => {
+        e.preventDefault();
+        if (!this._validateAllPasswordFields()) {
+          this._updatePasswordButtonState();
+          return;
+        }
+        await this._changePassword();
+      };
+
+      changePwdBtn.addEventListener("click", onChangePasswordClick);
+      this._buttonHandlers.set(changePwdBtn, onChangePasswordClick);
+    }
+  }
+
+  _getUpdatedData() {
+    const birthdateInput = this.el.querySelector("#birthDate");
+    const birthdate = String(birthdateInput?.value || "").trim();
+
+    return {
+      birthdate: birthdate || null,
+    };
+  }
+
+  async _saveProfile() {
+    const birthDateError = this._validateBirthDate();
+    if (birthDateError) {
+      return;
+    }
+
+    this._setProfileSaveError("");
+    const updated = this._getUpdatedData();
+    const saveBtn = this.el.querySelector('[data-action="save-profile"]');
+    if (saveBtn) saveBtn.disabled = true;
+
+    const profileResult = await userService.updateProfile(
+      updated.birthdate,
+      this._pendingAvatarFile,
+    );
+    if (!profileResult.ok) {
+      this._setProfileSaveError(
+        profileResult.error ||
+          "Не удалось сохранить профиль. Попробуйте позже.",
+      );
+      if (saveBtn) saveBtn.disabled = false;
+      return;
+    }
+
+    const normalizedProfile = extractProfile(profileResult.resp) || {};
+    this._renderAvatar(normalizedProfile.avatar_url);
+
+    this._pendingAvatarFile = null;
+    const avatarInput = this.el.querySelector("#avatarInput");
+    if (avatarInput) avatarInput.value = "";
+    this._setAvatarError("");
+    this._setProfileSaveError("");
+
+    authStore.updateUserProfile(normalizedProfile);
+
+    if (normalizedProfile.birthdate !== undefined) {
+      this._originalValues.birthdate = normalizedProfile.birthdate || "";
+    }
+
+    if (normalizedProfile.avatar_url !== undefined) {
+      this.context.userData.avatarUrl = resolveAvatarUrl(
+        normalizedProfile.avatar_url,
+      );
+    }
+
+    // Обновляем оригинальные значения для отслеживания изменений
+    Object.entries(updated).forEach(([field, value]) => {
+      this._originalValues[field] = value;
+    });
+
+    if (saveBtn) {
+      saveBtn.classList.remove("btn_accent");
+      saveBtn.classList.add("btn_outline");
+      saveBtn.disabled = true;
+    }
+
+    this._checkForChanges();
+  }
+
+  async _changePassword() {
+    const old = this.el.querySelector("#oldPassword")?.value;
+    const newP = this.el.querySelector("#newPassword")?.value;
+    const conf = this.el.querySelector("#confirmPassword")?.value;
+
+    if (newP !== conf) {
+      return;
+    }
+
+    const changeResult = await userService.changePassword({
+      old_password: old,
+      new_password: newP,
+    });
+
+    if (!changeResult.ok) {
+      this._setPasswordSuccess("");
+      setError(
+        this.el.querySelector("#oldPassword"),
+        this.el.querySelector("#old-password-error"),
+        changeResult.error || "Не удалось сменить пароль",
+      );
+      return;
+    }
+
+    const inputs = this.el.querySelectorAll(".settings__input_password_field");
+    inputs.forEach((input) => (input.value = ""));
+
+    const fields = this._getPasswordFields();
+    fields.forEach(({ input, errorEl }) => setError(input, errorEl, ""));
+    this._setPasswordSuccess("Пароль успешно обновлен");
+
+    const btn = this.el.querySelector('[data-action="change-password"]');
+    if (btn) {
+      btn.classList.remove("btn_accent");
+      btn.classList.add("btn_outline");
+      btn.disabled = true;
+    }
+  }
+
+  _validateAllPasswordFields() {
+    return this._getPasswordFields().every(
+      ({ id }) => !this._validatePasswordField(id),
+    );
+  }
+
+  removeEventListeners() {
+    if (this._authUnsubscribe) {
+      this._authUnsubscribe();
+      this._authUnsubscribe = null;
+    }
+
+    for (const [input, handler] of this._editableInputHandlers) {
+      input.removeEventListener("input", handler);
+      input.removeEventListener("blur", handler);
+    }
+    this._editableInputHandlers.clear();
+
+    for (const [input, handler] of this._passwordInputHandlers) {
+      input.removeEventListener("input", handler);
+      input.removeEventListener("blur", handler);
+    }
+    this._passwordInputHandlers.clear();
+
+    if (this._avatarInputHandler) {
+      const avatarInput = this.el.querySelector("#avatarInput");
+      if (avatarInput)
+        avatarInput.removeEventListener("change", this._avatarInputHandler);
+      this._avatarInputHandler = null;
+    }
+
+    if (this._destroyPasswordToggle) {
+      this._destroyPasswordToggle();
+      this._destroyPasswordToggle = null;
+    }
+
+    const saveBtn = this.el.querySelector('[data-action="save-profile"]');
+    const changePwdBtn = this.el.querySelector(
+      '[data-action="change-password"]',
+    );
+
+    if (saveBtn)
+      saveBtn.removeEventListener("click", this._buttonHandlers.get(saveBtn));
+    if (changePwdBtn)
+      changePwdBtn.removeEventListener(
+        "click",
+        this._buttonHandlers.get(changePwdBtn),
+      );
+  }
+
+  beforeDestroy() {
+    if (this._detachStyles) {
+      this._detachStyles();
+      this._detachStyles = null;
+    }
+  }
+
+  setupChildren() {
+    const header = this.el.querySelector("#header");
+    if (!header) {
+      throw new Error("Settings: не найден header в шаблоне Settings.hbs");
+    }
+
+    this.addChild(
+      "header",
+      new HeaderComponent(
+        {
+          isAuthorized: true,
+          userName: this.context.userData.email,
+        },
+        this,
+        header,
+      ),
+    );
+  }
+}

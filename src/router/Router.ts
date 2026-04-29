@@ -1,5 +1,5 @@
 export interface PageInstance {
-  init: () => void;
+  init: () => void | PageInstance;
   destroy?: () => void;
 }
 
@@ -65,8 +65,9 @@ export class Router {
    */
   go(path: string): void {
     const normalizedPath = this._formatPath(path);
+    const currentPath = `${window.location.pathname}${window.location.search}`;
 
-    if (window.location.pathname === normalizedPath) {
+    if (currentPath === normalizedPath) {
       return;
     }
 

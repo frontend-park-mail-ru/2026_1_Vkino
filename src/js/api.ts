@@ -2,27 +2,46 @@
  * Сервис для выполнения HTTP-запросов к API backend.
  * Управляет базовым URL, пространством имен эндпоинтов и токеном авторизации.
  */
+export type HttpMethod = "DELETE" | "GET" | "HEAD" | "PATCH" | "POST" | "PUT";
 
-type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
+export type JsonRecord = Record<string, unknown>;
 
-type JsonRecord = Record<string, unknown>;
+export type RequestData = JsonRecord | FormData | null;
 
-type RequestData = JsonRecord | FormData | null;
+export type RequestHeaders = Record<string, string>;
 
-type RequestHeaders = Record<string, string>;
+export type QueryValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | readonly (string | number | boolean | null | undefined)[];
+
+export type QueryParams = Record<string, QueryValue>;
+
 const RESPONSE_SOURCE_HEADER = "x-vkino-response-source";
 
 interface RequestOptions {
   method?: HttpMethod;
   data?: RequestData;
+  query?: QueryParams | URLSearchParams | null;
   headers?: RequestHeaders;
+  signal?: AbortSignal | null;
 }
 
 interface RawTextResponse {
   raw: string;
 }
 
-type ParsedResponseBody = JsonRecord | RawTextResponse | null;
+type ParsedResponseBody =
+  | JsonRecord
+  | readonly unknown[]
+  | RawTextResponse
+  | string
+  | number
+  | boolean
+  | null;
 
 export interface ResponseMeta {
   source: string;
@@ -34,6 +53,7 @@ export interface ApiResponse<T = ParsedResponseBody> {
   status: number;
   resp: T | null;
   error: string;
+  aborted: boolean;
   meta: ResponseMeta;
 }
 
@@ -97,11 +117,14 @@ export class ApiService {
   }
 
   /**
-   * Формирует полный URL для запроса с учетом namespace и endpoint.
+   * Формирует полный URL для запроса с учетом namespace, endpoint и query-параметров.
    * @param endpoint конечная точка API
    * @returns сформированный URL
    */
-  buildUrl(endpoint: string = ""): string {
+  buildUrl(
+    endpoint: string = "",
+    query: QueryParams | URLSearchParams | null = null,
+  ): string {
     const normalizedNamespace = this.namespace
       ? `/${String(this.namespace).replace(/^\/+|\/+$/g, "")}`
       : "";
@@ -110,7 +133,10 @@ export class ApiService {
       ? `/${String(endpoint).replace(/^\/+/, "")}`
       : "";
 
-    return `${this.baseUrl}${normalizedNamespace}${normalizedEndpoint}`;
+    return appendQueryParams(
+      `${this.baseUrl}${normalizedNamespace}${normalizedEndpoint}`,
+      query,
+    );
   }
 
   /**
@@ -121,9 +147,34 @@ export class ApiService {
    */
   async request<T = ParsedResponseBody>(
     endpoint: string,
-    { method = "GET", data = null, headers = {} }: RequestOptions = {},
+    {
+      method = "GET",
+      data = null,
+      query = null,
+      headers = {},
+      signal = null,
+    }: RequestOptions = {},
   ): Promise<ApiResponse<T>> {
-    const url = this.buildUrl(endpoint);
+    const normalizedMethod = String(method || "GET").toUpperCase() as HttpMethod;
+    const bodyAllowed = normalizedMethod !== "GET" && normalizedMethod !== "HEAD";
+
+    return this._performRequest<T>(this.buildUrl(endpoint, query), {
+      method: normalizedMethod,
+      data: bodyAllowed ? data : null,
+      headers,
+      signal,
+    });
+  }
+
+  async _performRequest<T = ParsedResponseBody>(
+    url: string,
+    {
+      method = "GET",
+      data = null,
+      headers = {},
+      signal = null,
+    }: Omit<RequestOptions, "query"> = {},
+  ): Promise<ApiResponse<T>> {
     const accessToken = this.getAccessToken();
 
     const fetchHeaders: RequestHeaders = {
@@ -134,6 +185,7 @@ export class ApiService {
     const fetchParams: RequestInit = {
       method,
       credentials: "include",
+      signal: signal || undefined,
       headers: fetchHeaders,
     };
 
@@ -155,11 +207,15 @@ export class ApiService {
     try {
       response = await fetch(url, fetchParams);
     } catch (error: unknown) {
+      const aborted =
+        error instanceof DOMException && error.name === "AbortError";
+
       return {
         ok: false,
         status: 0,
         resp: null,
-        error: getErrorMessage(error),
+        error: aborted ? "" : getErrorMessage(error),
+        aborted,
         meta: createResponseMeta("network-error"),
       };
     }
@@ -181,6 +237,7 @@ export class ApiService {
       status: response.status,
       resp: parsedBody as T | null,
       error: extractErrorMessage(parsedBody),
+      aborted: false,
       meta: extractResponseMeta(response),
     };
   }
@@ -190,8 +247,20 @@ export class ApiService {
    * @param endpoint конечная точка API
    * @returns результат запроса
    */
-  get<T = ParsedResponseBody>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: "GET" });
+  get<T = ParsedResponseBody>(
+    endpoint: string,
+    {
+      query = null,
+      headers = {},
+      signal = null,
+    }: Pick<RequestOptions, "headers" | "query" | "signal"> = {},
+  ): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: "GET",
+      query,
+      headers,
+      signal,
+    });
   }
 
   /**
@@ -218,6 +287,13 @@ export class ApiService {
     data: RequestData = null,
   ): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: "PUT", data });
+  }
+
+  patch<T = ParsedResponseBody>(
+    endpoint: string,
+    data: RequestData = null,
+  ): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: "PATCH", data });
   }
 
   /**
@@ -251,12 +327,63 @@ function extractErrorMessage(resp: unknown): string {
   return "";
 }
 
+function appendQueryParams(
+  url: string,
+  query: QueryParams | URLSearchParams | null = null,
+): string {
+  if (!query) {
+    return url;
+  }
+
+  const params =
+    query instanceof URLSearchParams
+      ? new URLSearchParams(query)
+      : new URLSearchParams();
+
+  if (!(query instanceof URLSearchParams)) {
+    Object.entries(query).forEach(([key, value]) => {
+      appendQueryValue(params, key, value);
+    });
+  }
+
+  const queryString = params.toString();
+
+  if (!queryString) {
+    return url;
+  }
+
+  return `${url}${url.includes("?") ? "&" : "?"}${queryString}`;
+}
+
+function appendQueryValue(
+  params: URLSearchParams,
+  key: string,
+  value: QueryValue,
+): void {
+  if (value === null || value === undefined) {
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => appendQueryValue(params, key, item));
+    return;
+  }
+
+  const normalizedValue = typeof value === "string" ? value.trim() : value;
+
+  if (normalizedValue === "") {
+    return;
+  }
+
+  params.append(key, String(normalizedValue));
+}
+
 /**
  * Безопасно извлекает сообщение ошибки из unknown.
  */
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message) {
-    return error.message;
+      return error.message;
   }
 
   return "Network error";
