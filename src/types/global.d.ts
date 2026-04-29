@@ -18,13 +18,37 @@ declare global {
 
   interface Element {
     value?: string;
+    checked?: boolean;
+    dataset: DOMStringMap;
+    disabled?: boolean;
+    files?: FileList | null;
+    hidden?: boolean | "until-found";
+    height?: number;
     style: CSSStyleDeclaration;
+    width?: number;
     offsetWidth: number;
+    offsetHeight: number;
     scrollLeft: number;
     scrollWidth: number;
     clientWidth: number;
+    clientHeight: number;
     scrollTop: number;
     scrollHeight: number;
+    selectionStart?: number | null;
+    selectionEnd?: number | null;
+    contentWindow?: WindowProxy | null;
+    onload?: ((this: GlobalEventHandlers, ev: Event) => any) | null;
+    src?: string;
+    focus(options?: FocusOptions): void;
+    blur(): void;
+    reset(): void;
+    scrollTo(options: ScrollToOptions): void;
+    setSelectionRange(
+      start: number,
+      end: number,
+      direction?: "forward" | "backward" | "none",
+    ): void;
+    getContext?(contextId: "2d"): CanvasRenderingContext2D | null;
   }
 
   interface Window {

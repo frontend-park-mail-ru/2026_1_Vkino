@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import { BaseComponent } from "@/components/BaseComponent.ts";
 import "./MoviePlayer.precompiled.js";
 import { authStore } from "@/store/authStore.ts";
@@ -99,7 +97,11 @@ export default class MoviePlayerComponent extends BaseComponent {
     this.videoEl = null;
   }
 
-  async open(movieData, initialEpisodeId = null, options = {}) {
+  async open(
+    movieData: AnyRecord,
+    initialEpisodeId: string | null = null,
+    options: AnyRecord = {},
+  ) {
     this._urlStartSeconds = Math.max(
       0,
       Math.floor(Number(options.startSeconds) || 0),
@@ -1225,10 +1227,15 @@ function createInitialContext() {
   };
 }
 
-function buildOpenContext(movieData, activeEpisodeId) {
-  const episodes = markActiveEpisode(movieData.episodes, activeEpisodeId);
+function buildOpenContext(movieData: AnyRecord, activeEpisodeId: string) {
+  const episodes = markActiveEpisode(
+    (movieData.episodes as AnyRecord[]) || [],
+    activeEpisodeId,
+  );
   const activeEpisode =
-    episodes.find((episode) => episode.isActive) || episodes[0] || null;
+    (episodes.find((episode) => episode.isActive) as AnyRecord | undefined) ||
+    episodes[0] ||
+    null;
 
   return {
     isOpen: true,
@@ -1355,7 +1362,10 @@ function resolveDirectPlaybackPayload(episode: AnyRecord | null = null) {
   };
 }
 
-function markActiveEpisode(episodes: AnyRecord[] = [], activeEpisodeId = "") {
+function markActiveEpisode(
+  episodes: AnyRecord[] = [],
+  activeEpisodeId = "",
+): AnyRecord[] {
   return episodes.map((episode) => ({
     ...episode,
     isActive: String(episode.id) === String(activeEpisodeId),

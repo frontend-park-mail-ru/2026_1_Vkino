@@ -1,8 +1,38 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 /**
  * @fileoverview Эффект "взрыва" бутылки на странице регистрации.
  */
+
+interface OriginPoint {
+  x: number;
+  y: number;
+}
+
+interface BaseEffectParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  ay: number;
+  drag: number;
+  r: number;
+  op: number;
+  life: number;
+  decay: number;
+}
+
+interface DropParticle extends BaseEffectParticle {
+  t: "d";
+  cr: number;
+  cg: number;
+  cb: number;
+  stretch: number;
+}
+
+interface BubbleParticle extends BaseEffectParticle {
+  t: "b";
+}
+
+type EffectParticle = DropParticle | BubbleParticle;
 
 /**
  * Инициализирует интерактивный canvas-эффект для блока регистрации.
@@ -10,19 +40,19 @@
  * @param {ParentNode|null} root Корневой элемент страницы регистрации.
  * @returns {() => void} Функция очистки обработчиков и состояния эффекта.
  */
-export const initRegisterBottleEffect = (root) => {
+export const initRegisterBottleEffect = (root: ParentNode | null) => {
   if (!root) {
     return () => {};
   }
 
   let exploded = false;
 
-  const scene = root.querySelector("#scene");
-  const bw = root.querySelector("#bw");
-  const stream = root.querySelector("#stream");
-  const puddle = root.querySelector("#puddle");
-  const capGroup = root.querySelector("#capG");
-  const canvas = root.querySelector("#fx");
+  const scene = root.querySelector<HTMLElement>("#scene");
+  const bw = root.querySelector<HTMLElement>("#bw");
+  const stream = root.querySelector<HTMLElement>("#stream");
+  const puddle = root.querySelector<HTMLElement>("#puddle");
+  const capGroup = root.querySelector<HTMLElement>("#capG");
+  const canvas = root.querySelector<HTMLCanvasElement>("#fx");
 
   if (!scene || !bw || !stream || !puddle || !capGroup || !canvas) {
     return () => {};
@@ -35,11 +65,11 @@ export const initRegisterBottleEffect = (root) => {
   }
 
   /** @type {EffectParticle[]} */
-  let pts = [];
-  let rafId = null;
-  let last = null;
+  let pts: EffectParticle[] = [];
+  let rafId: number | null = null;
+  let last: number | null = null;
 
-  const rand = (a, b) => a + Math.random() * (b - a);
+  const rand = (a: number, b: number): number => a + Math.random() * (b - a);
 
   /**
    * Подгоняет размер canvas под окно.
@@ -75,7 +105,7 @@ export const initRegisterBottleEffect = (root) => {
    * @param {OriginPoint} o
    * @returns {void}
    */
-  const mkDrop = (o) => {
+  const mkDrop = (o: OriginPoint) => {
     const core = Math.random() < 0.68;
     const deg = core ? rand(-128, 8) : rand(-145, 25);
     const rad = (deg * Math.PI) / 180;
@@ -108,7 +138,7 @@ export const initRegisterBottleEffect = (root) => {
    * @param {OriginPoint} o
    * @returns {void}
    */
-  const mkBub = (o) => {
+  const mkBub = (o: OriginPoint) => {
     const deg = rand(-132, 12);
     const rad = (deg * Math.PI) / 180;
     const spd = rand(80, 300);
@@ -135,7 +165,7 @@ export const initRegisterBottleEffect = (root) => {
    * @param {number} a Текущая прозрачность.
    * @returns {void}
    */
-  const drawDrop = (p, a) => {
+  const drawDrop = (p: DropParticle, a: number) => {
     ctx.save();
     ctx.globalAlpha = a;
 
@@ -203,7 +233,7 @@ export const initRegisterBottleEffect = (root) => {
    * @param {number} a Текущая прозрачность.
    * @returns {void}
    */
-  const drawBub = (p, a) => {
+  const drawBub = (p: BubbleParticle, a: number) => {
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate(p.x, p.y);
@@ -251,7 +281,7 @@ export const initRegisterBottleEffect = (root) => {
    * @param {number} ts Timestamp requestAnimationFrame.
    * @returns {void}
    */
-  const loop = (ts) => {
+  const loop = (ts: number) => {
     if (!last) {
       last = ts;
     }

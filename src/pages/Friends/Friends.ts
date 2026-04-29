@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import BasePage from "@/pages/BasePage.ts";
 import "./Friends.precompiled.js";
 import "@/css/friends.scss";
@@ -12,7 +10,11 @@ import { resolveAvatarUrl, resolveMediaUrl } from "@/utils/media.ts";
 import { createDebouncedSearch } from "@/utils/SearchHelper.ts";
 
 export default class FriendsPage extends BasePage {
-  constructor(context = {}, parent = null, el = null) {
+  constructor(
+    context: AnyRecord = {},
+    parent: BasePage | null = null,
+    el: Element | null = null,
+  ) {
     if (!el) {
       throw new Error("FriendsPage: не передан корневой элемент");
     }
@@ -50,7 +52,7 @@ export default class FriendsPage extends BasePage {
     return this;
   }
 
-  async loadContext(options = {}) {
+  async loadContext(options: AnyRecord = {}) {
     const { searchQuery } = options;
     const [incoming, outgoing, friends] = await Promise.all([
       userService.getFriendRequests({ direction: "incoming", limit: 50 }),
@@ -64,7 +66,7 @@ export default class FriendsPage extends BasePage {
       ? normalizeRequests(outgoing.resp?.requests || [])
       : [];
     const nextSearchQuery = String(searchQuery || "").trim();
-    let nextSearchResults = [];
+    let nextSearchResults: AnyRecord[] = [];
 
     if (nextSearchQuery) {
       const result = await userService.searchUsers(nextSearchQuery, { limit: 10 });
@@ -110,8 +112,8 @@ export default class FriendsPage extends BasePage {
     window.clearTimeout(this._toastTimeoutId);
   }
 
-  _onInput = (event) => {
-    const input = event.target.closest("#friend-search-input");
+  _onInput = (event: Event) => {
+    const input = (event.target as Element | null)?.closest("#friend-search-input");
     if (!input) {
       return;
     }
@@ -122,7 +124,7 @@ export default class FriendsPage extends BasePage {
     this._debouncedSearch(query);
   };
 
-  _performSearch = async (query) => {
+  _performSearch = async (query: unknown) => {
     const normalizedQuery = String(query || "").trim();
     const requestToken = ++this._searchRequestToken;
 
@@ -136,13 +138,13 @@ export default class FriendsPage extends BasePage {
       return;
     }
 
-    const inputEl = this.el?.querySelector("#friend-search-input");
-    const valueSnapshot = inputEl ? inputEl.value : normalizedQuery;
+    const inputEl = this.el?.querySelector<HTMLInputElement>("#friend-search-input");
+    const valueSnapshot = inputEl ? String(inputEl.value || "") : normalizedQuery;
     const hadFocus = document.activeElement === inputEl;
-    const selStart = hadFocus
+    const selStart = hadFocus && inputEl
       ? (inputEl.selectionStart ?? valueSnapshot.length)
       : valueSnapshot.length;
-    const selEnd = hadFocus
+    const selEnd = hadFocus && inputEl
       ? (inputEl.selectionEnd ?? valueSnapshot.length)
       : valueSnapshot.length;
 
@@ -166,8 +168,8 @@ export default class FriendsPage extends BasePage {
   /**
    * После полного refresh DOM поля ввода пересоздаётся — восстанавливаем значение и курсор.
    */
-  _restoreSearchInput(value, selStart, selEnd) {
-    const inp = this.el?.querySelector("#friend-search-input");
+  _restoreSearchInput(value: string, selStart: number, selEnd: number) {
+    const inp = this.el?.querySelector<HTMLInputElement>("#friend-search-input");
     if (!inp) {
       return;
     }
@@ -184,8 +186,8 @@ export default class FriendsPage extends BasePage {
     }
   }
 
-  _onClick = async (event) => {
-    const actionBtn = event.target.closest("[data-action]");
+  _onClick = async (event: Event) => {
+    const actionBtn = (event.target as Element | null)?.closest("[data-action]");
     if (!actionBtn) return;
     const action = actionBtn.dataset.action;
 
@@ -235,7 +237,7 @@ export default class FriendsPage extends BasePage {
         return;
       }
 
-      const card = actionBtn.closest(".friend-card");
+      const card = actionBtn.closest(".friend-card") as HTMLElement | null;
       const result = await userService.deleteFriend(friendId);
 
       if (!result.ok) {
@@ -261,8 +263,8 @@ export default class FriendsPage extends BasePage {
     }
   };
 
-  _showFriendsToast(message, isError = false) {
-    const el = this.el?.querySelector('[data-role="friends-toast"]');
+  _showFriendsToast(message: string, isError = false) {
+    const el = this.el?.querySelector<HTMLElement>('[data-role="friends-toast"]');
     if (!el) return;
     window.clearTimeout(this._toastTimeoutId);
     el.textContent = message;
@@ -276,9 +278,9 @@ export default class FriendsPage extends BasePage {
   }
 }
 
-function waitForTransitionEnd(element) {
-  return new Promise((resolve) => {
-    const done = (event) => {
+function waitForTransitionEnd(element: HTMLElement): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const done = (event: Event) => {
       if (event.target !== element) {
         return;
       }
@@ -293,14 +295,14 @@ function waitForTransitionEnd(element) {
   });
 }
 
-function normalizeRequests(items = []) {
+function normalizeRequests(items: AnyRecord[] = []): AnyRecord[] {
   return items.map((request) => ({
     ...request,
     sinceLabel: formatDate(request.created_at),
   }));
 }
 
-function normalizeFriends(items = []) {
+function normalizeFriends(items: AnyRecord[] = []): AnyRecord[] {
   return items.map((friend) => {
     const displayName = getDisplayNameFromEmail(friend.email) || "Пользователь";
     const avatarUrl = resolveAvatarUrl(friend, { resolveMediaUrl });
@@ -318,7 +320,10 @@ function normalizeFriends(items = []) {
  * @param {object[]} users
  * @param {{ friends?: object[]; outgoingRequests?: object[] }} rel
  */
-function enrichSearchResults(users = [], rel = {}) {
+function enrichSearchResults(
+  users: AnyRecord[] = [],
+  rel: AnyRecord = {},
+): AnyRecord[] {
   const friendIds = new Set(
     (rel.friends || []).map((f) => String(f.id)),
   );

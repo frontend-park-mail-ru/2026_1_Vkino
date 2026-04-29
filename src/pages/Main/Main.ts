@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import BasePage from "../BasePage.ts";
 import "./Main.precompiled.js";
 
@@ -41,7 +39,11 @@ export default class MainPage extends BasePage {
    * @param {Element|null} [el=null] - Корневой DOM-элемент страницы.
    * @throws {Error} Если не передан корневой элемент.
    */
-  constructor(context = {}, parent = null, el = null) {
+  constructor(
+    context: AnyRecord = {},
+    parent: BasePage | null = null,
+    el: Element | null = null,
+  ) {
     if (!el) {
       throw new Error("Main: не передан корневой элемент для MainPage");
     }
@@ -437,7 +439,7 @@ function shouldShowSupportWidget() {
   return !canManageSupportTicketStatus(authStore.getState().user?.role);
 }
 
-function buildSelectionEntries(selections = []) {
+function buildSelectionEntries(selections: AnyRecord[] = []): AnyRecord[] {
   if (!Array.isArray(selections)) {
     return [];
   }
@@ -450,7 +452,7 @@ function buildSelectionEntries(selections = []) {
   }));
 }
 
-function buildHeroEntry(selectionEntries = []) {
+function buildHeroEntry(selectionEntries: AnyRecord[] = []): AnyRecord {
   const featuredSelection =
     findSelectionEntryByTitle(selectionEntries, "Новинки") ||
     selectionEntries[0] ||
@@ -471,11 +473,11 @@ function buildHeroEntry(selectionEntries = []) {
   };
 }
 
-function normalizeMovies(movies = []) {
+function normalizeMovies(movies: AnyRecord[] = []): AnyRecord[] {
   return movies.map((movie, index) => normalizeMovie(movie, index));
 }
 
-function normalizeMovie(movie = {}, index = 0) {
+function normalizeMovie(movie: AnyRecord = {}, index = 0): AnyRecord {
   const movieId = String(movie.id ?? `movie-${index}`).trim();
 
   return {
@@ -511,7 +513,7 @@ function normalizeMovie(movie = {}, index = 0) {
   };
 }
 
-function buildFallbackHeroMovies() {
+function buildFallbackHeroMovies(): AnyRecord[] {
   return [
     {
       id: "fallback-hero-1",
@@ -566,7 +568,10 @@ function buildSelectionHref(title = "") {
     : "/selection";
 }
 
-function findSelectionEntryByTitle(selectionEntries = [], title = "") {
+function findSelectionEntryByTitle(
+  selectionEntries: AnyRecord[] = [],
+  title = "",
+): AnyRecord | null {
   const normalizedTitle = String(title || "")
     .trim()
     .toLowerCase();

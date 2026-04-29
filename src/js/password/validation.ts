@@ -1,20 +1,18 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 /**
  * @fileoverview Валидация формы авторизации/регистрации и отображение ошибок.
  */
 
-/**
- * @typedef {Object} AuthUserData
- * @property {string} email
- * @property {string} password
- */
+interface AuthUserData {
+  email: string;
+  password: string;
+}
 
-/**
- * @typedef {Object} AuthValidationOptions
- * @property {(authUserData: AuthUserData, form: HTMLFormElement) => (void|Promise<void>)} [onSubmit]
- * Пользовательский submit-обработчик при успешной валидации.
- */
+interface AuthValidationOptions {
+  onSubmit?: (
+    authUserData: AuthUserData,
+    form: HTMLFormElement,
+  ) => void | Promise<void>;
+}
 
 /**
  * Устанавливает текст ошибки и визуальное состояние поля.
@@ -24,7 +22,11 @@
  * @param {string} message Текст ошибки.
  * @returns {void}
  */
-export const setError = (el, errorEl, message) => {
+export const setError = (
+  el: Element | null,
+  errorEl: Element | null,
+  message: string,
+) => {
   if (el) el.classList.toggle("is-error", !!message);
   if (errorEl) errorEl.textContent = message || "";
 };
@@ -35,7 +37,7 @@ export const setError = (el, errorEl, message) => {
  * @param {string} [email=""] Значение поля email.
  * @returns {string} Пустая строка, если email валиден, иначе текст ошибки.
  */
-export const validateEmail = (email = "") => {
+export const validateEmail = (email = ""): string => {
   const trimmed = email.trim();
   if (!trimmed) return "Введите email";
   if (trimmed.length > 254) return "Email не должен быть длиннее 254 символов";
@@ -63,8 +65,8 @@ export const validateEmail = (email = "") => {
  * @param {string} [password=""] Значение поля пароля.
  * @returns {string} Пустая строка, если пароль валиден, иначе текст ошибки.
  */
-export const validatePassword = (password = "") => {
-  const issues = [];
+export const validatePassword = (password = ""): string => {
+  const issues: string[] = [];
 
   if (password.length < 6) issues.push("минимум 6 символов");
   if (password.length > 72) issues.push("максимум 72 символов");
@@ -84,22 +86,25 @@ export const validatePassword = (password = "") => {
  * @param {AuthValidationOptions} [options={}] Дополнительные обработчики.
  * @returns {() => void} Функция очистки: снимает обработчики и флаг инициализации.
  */
-export const initAuthValidation = (form, options = {}) => {
-  if (!form || form.dataset.validationReady === "true") {
+export const initAuthValidation = (
+  form: Element | null,
+  options: AuthValidationOptions = {},
+) => {
+  if (!(form instanceof HTMLFormElement) || form.dataset.validationReady === "true") {
     return () => {};
   }
 
   form.dataset.validationReady = "true";
 
-  const email = form.querySelector('input[type="email"]');
-  const pass = form.querySelector("#password");
-  const passRepeat = form.querySelector("#password-repeat");
+  const email = form.querySelector<HTMLInputElement>('input[type="email"]');
+  const pass = form.querySelector<HTMLInputElement>("#password");
+  const passRepeat = form.querySelector<HTMLInputElement>("#password-repeat");
 
-  const emailError = form.querySelector("#email-error");
-  const passError = form.querySelector("#password-error");
-  const passRepeatError = form.querySelector("#password-repeat-error");
+  const emailError = form.querySelector<HTMLElement>("#email-error");
+  const passError = form.querySelector<HTMLElement>("#password-error");
+  const passRepeatError = form.querySelector<HTMLElement>("#password-repeat-error");
 
-  const fieldErrorPairs = [
+  const fieldErrorPairs: Array<[HTMLInputElement | null, HTMLElement | null]> = [
     [email, emailError],
     [pass, passError],
     [passRepeat, passRepeatError],
@@ -111,7 +116,7 @@ export const initAuthValidation = (form, options = {}) => {
    * @param {HTMLElement|null} field
    * @returns {string} Текст ошибки или пустая строка.
    */
-  const validateField = (field) => {
+  const validateField = (field: HTMLInputElement | null): string => {
     if (!field) return "";
 
     if (field === email) {
@@ -152,8 +157,8 @@ export const initAuthValidation = (form, options = {}) => {
    * @param {Event} event
    * @returns {void}
    */
-  const handleInput = (event) => {
-    validateField(event.target);
+  const handleInput = (event: Event) => {
+    validateField(event.target as HTMLInputElement | null);
   };
 
   /**
@@ -162,7 +167,7 @@ export const initAuthValidation = (form, options = {}) => {
    * @param {SubmitEvent} e
    * @returns {Promise<void>}
    */
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: SubmitEvent) => {
     let hasErrors = false;
     form.noValidate = true;
 

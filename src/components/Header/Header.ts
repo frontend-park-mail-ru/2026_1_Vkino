@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import { BaseComponent } from "@/components/BaseComponent.ts";
 import "@/components/Header/Header.precompiled.js";
 import { authStore } from "@/store/authStore.ts";
@@ -26,7 +24,11 @@ export default class HeaderComponent extends BaseComponent {
    * @param {Element} el корневой элемент компонента
    * @throws {Error} если не передан parent или el
    */
-  constructor(context = {}, parent = null, el = null) {
+  constructor(
+    context: AnyRecord = {},
+    parent: BaseComponent | null = null,
+    el: Element | null = null,
+  ) {
     if (!parent) {
       throw new Error("Header: не передан parent для HeaderComponent");
     }

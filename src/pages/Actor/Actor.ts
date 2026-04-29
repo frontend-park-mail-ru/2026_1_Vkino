@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import BasePage from "../BasePage.ts";
 import "./Actor.precompiled.js";
 
@@ -27,7 +25,11 @@ export default class ActorPage extends BasePage {
    * @param {Element|null} [el=null] - Корневой DOM-элемент страницы.
    * @throws {Error} Если не передан корневой элемент.
    */
-  constructor(context = {}, parent = null, el = null) {
+  constructor(
+    context: AnyRecord = {},
+    parent: BasePage | null = null,
+    el: Element | null = null,
+  ) {
     if (!el) {
       throw new Error("Actor: не передан корневой элемент для ActorPage");
     }
@@ -195,7 +197,7 @@ export default class ActorPage extends BasePage {
    * @param {Object|null} actor данные актера с бэка
    * @returns {Object|null}
    */
-  _mapActor(actor, fallbackMovies = []) {
+  _mapActor(actor: AnyRecord | null, fallbackMovies: AnyRecord[] = []) {
     if (!actor) {
       return null;
     }
@@ -308,7 +310,7 @@ export default class ActorPage extends BasePage {
    * @param {Object} actor
    * @returns {Object[]}
    */
-  _getActorMovies(actor) {
+  _getActorMovies(actor: AnyRecord) {
     const movieCollections = [
       actor.movies,
       actor.Movies,
@@ -322,9 +324,9 @@ export default class ActorPage extends BasePage {
     return Array.isArray(movies) ? movies : [];
   }
 
-  _mergeMovies(primaryMovies, fallbackMovies) {
-    const mergedMovies = [];
-    const seenIds = new Set();
+  _mergeMovies(primaryMovies: AnyRecord[] = [], fallbackMovies: AnyRecord[] = []) {
+    const mergedMovies: AnyRecord[] = [];
+    const seenIds = new Set<string>();
 
     [primaryMovies, fallbackMovies].forEach((movieCollection) => {
       if (!Array.isArray(movieCollection)) {
@@ -352,7 +354,7 @@ export default class ActorPage extends BasePage {
     return mergedMovies;
   }
 
-  _getMoviesFromSelections(selections, actor) {
+  _getMoviesFromSelections(selections: AnyRecord[] = [], actor: AnyRecord | null) {
     if (!Array.isArray(selections) || !actor || typeof actor !== "object") {
       return [];
     }
@@ -392,7 +394,7 @@ export default class ActorPage extends BasePage {
     );
   }
 
-  _movieMatchesActor(movie, actorId, actorName) {
+  _movieMatchesActor(movie: AnyRecord, actorId: string, actorName: string) {
     const movieActorCollections = [
       movie.actors,
       movie.Actors,
@@ -448,7 +450,7 @@ export default class ActorPage extends BasePage {
    * @param {Object[]} movies
    * @returns {Object[]}
    */
-  _mapMovies(movies) {
+  _mapMovies(movies: AnyRecord[] = []) {
     return movies
       .filter((movie) => {
         if (!movie || typeof movie !== "object") {

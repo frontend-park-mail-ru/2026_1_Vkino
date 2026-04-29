@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import { BaseComponent } from "@/components/BaseComponent.ts";
 import MoviePosterComponent from "@/components/MoviePoster/MoviePoster.ts";
 import "./PosterCarousel.precompiled.js";
@@ -53,8 +51,8 @@ export default class PosterCarouselComponent extends BaseComponent {
   }
 
   addEventListeners() {
-    const prevButton = this.el.querySelector('[data-action="scroll-prev"]');
-    const nextButton = this.el.querySelector('[data-action="scroll-next"]');
+    const prevButton = this.el.querySelector<HTMLElement>('[data-action="scroll-prev"]');
+    const nextButton = this.el.querySelector<HTMLElement>('[data-action="scroll-next"]');
     const viewport = this.el.querySelector<HTMLElement>('[data-role="viewport"]');
     const slides = this.el.querySelectorAll<HTMLElement>(".poster-carousel__slide");
 
@@ -79,8 +77,8 @@ export default class PosterCarouselComponent extends BaseComponent {
   }
 
   removeEventListeners() {
-    const prevButton = this.el.querySelector('[data-action="scroll-prev"]');
-    const nextButton = this.el.querySelector('[data-action="scroll-next"]');
+    const prevButton = this.el.querySelector<HTMLElement>('[data-action="scroll-prev"]');
+    const nextButton = this.el.querySelector<HTMLElement>('[data-action="scroll-next"]');
     const viewport = this.el.querySelector<HTMLElement>('[data-role="viewport"]');
     const slides = this.el.querySelectorAll<HTMLElement>(".poster-carousel__slide");
 
@@ -102,7 +100,7 @@ export default class PosterCarouselComponent extends BaseComponent {
   }
 
   _disableImageDragging() {
-    const images = this.el.querySelectorAll(".poster-carousel__slide img");
+    const images = this.el.querySelectorAll<HTMLImageElement>(".poster-carousel__slide img");
     images.forEach((img) => {
       img.setAttribute("draggable", "false");
     });
@@ -141,7 +139,8 @@ export default class PosterCarouselComponent extends BaseComponent {
 
   _onSlideClick(e) {
     if (!this.context.centeredHero) return;
-    const slide = e.currentTarget;
+    const slide = e.currentTarget as HTMLElement | null;
+    if (!slide) return;
     if (slide.classList.contains("is-prev")) {
       this._cycleHero(-1);
     } else if (slide.classList.contains("is-next")) {
@@ -218,7 +217,7 @@ export default class PosterCarouselComponent extends BaseComponent {
   }
 
   _scrollByDirection(direction) {
-    const viewport = this.el.querySelector('[data-role="viewport"]');
+    const viewport = this.el.querySelector<HTMLElement>('[data-role="viewport"]');
     if (!viewport) return;
 
     viewport.scrollBy({
@@ -244,7 +243,7 @@ export default class PosterCarouselComponent extends BaseComponent {
     if (!this.context.centeredHero || this._isHeroCycling) return;
 
     const track = this.el.querySelector<HTMLElement>(".poster-carousel__track");
-    const slides = Array.from(track?.children || []);
+    const slides = Array.from(track?.children || []) as HTMLElement[];
 
     if (!track || slides.length < 3) return;
 
@@ -297,7 +296,7 @@ export default class PosterCarouselComponent extends BaseComponent {
 const HERO_CYCLE_DURATION_MS = 320;
 
 function buildCarouselContext(context: AnyRecord = {}) {
-  const movies = Array.isArray(context.movies) ? context.movies : [];
+  const movies: AnyRecord[] = Array.isArray(context.movies) ? context.movies : [];
   const posterSize = context.posterSize || "medium";
   const posterVariant = context.posterVariant || "default";
   const centeredHero = Boolean(context.centeredHero);

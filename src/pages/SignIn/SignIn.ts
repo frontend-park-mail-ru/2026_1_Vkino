@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import BasePage from "../BasePage.ts";
 import "./SignIn.precompiled.js";
 
@@ -21,7 +19,11 @@ export default class SignInPage extends BasePage {
    * @param {Element} el - Корневой DOM-элемент, в который отрисовывается страница.
    * @throws {Error} Если не передан корневой элемент `el`.
    */
-  constructor(context = {}, parent = null, el = null) {
+  constructor(
+    context: AnyRecord = {},
+    parent: BasePage | null = null,
+    el: Element | null = null,
+  ) {
     if (!el) {
       throw new Error("SignIn: не передан корневой элемент для SignIn");
     }
@@ -59,7 +61,7 @@ export default class SignInPage extends BasePage {
   addEventListeners() {
     this._destroyPasswordToggle = initPasswordToggle(this.el);
 
-    const form = this.el.querySelector('form[data-auth-form="login"]');
+    const form = this.el.querySelector<HTMLFormElement>('form[data-auth-form="login"]');
 
     this._destroyValidation = initAuthValidation(form, {
       onSubmit: this.handleSubmit.bind(this),
@@ -99,8 +101,8 @@ export default class SignInPage extends BasePage {
     const result = await authStore.signIn(authUserData);
 
     if (!result.ok) {
-      const password = this.el.querySelector("#password");
-      const passwordError = this.el.querySelector("#password-error");
+      const password = this.el.querySelector<HTMLInputElement>("#password");
+      const passwordError = this.el.querySelector<HTMLElement>("#password-error");
 
       setError(
         password,

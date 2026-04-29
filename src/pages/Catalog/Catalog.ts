@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import BasePage from "@/pages/BasePage";
 import "@/pages/Catalog/Catalog.precompiled.js";
 import "@/css/catalog.scss";
@@ -8,6 +6,7 @@ import HeaderComponent from "@/components/Header/Header.ts";
 import MoviePosterComponent from "@/components/MoviePoster/MoviePoster.ts";
 import PaginationComponent from "@/components/Pagination/Pagination.ts";
 import { movieService } from "@/js/MovieService.ts";
+import { getCacheFallbackNotice } from "@/utils/apiMeta.ts";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.ts";
 
 const DEFAULT_PAGE_SIZE = 12;
@@ -58,7 +57,11 @@ const CATALOG_CONFIGS = {
 };
 
 export default class CatalogPage extends BasePage {
-  constructor(context = {}, parent = null, el = null) {
+  constructor(
+    context: AnyRecord = {},
+    parent: BasePage | null = null,
+    el: Element | null = null,
+  ) {
     if (!el) {
       throw new Error("CatalogPage: не передан корневой элемент");
     }
@@ -99,9 +102,10 @@ export default class CatalogPage extends BasePage {
   }
 
   async loadContext() {
-    const { ok, status, resp, error } = await movieService.getSelectionsByTitles(
+    const selectionsResult = await movieService.getSelectionsByTitles(
       resolveRequestedSelectionTitles(this.context),
     );
+    const { ok, status, resp, error } = selectionsResult;
 
     if (!ok) {
       this.refresh(
@@ -234,7 +238,7 @@ export default class CatalogPage extends BasePage {
   };
 }
 
-function buildCatalogContext(context = {}) {
+function buildCatalogContext(context: AnyRecord = {}) {
   const catalogConfig = resolveCatalogConfig(context.catalogKey);
   const selectionTitle = resolveSelectionTitle(context);
   const title =
@@ -274,13 +278,13 @@ function buildCatalogContext(context = {}) {
   };
 }
 
-function resolveCatalogConfig(catalogKey = "") {
+function resolveCatalogConfig(catalogKey = ""): AnyRecord {
   const normalizedKey = normalizeString(catalogKey).toLowerCase();
 
   return CATALOG_CONFIGS[normalizedKey] || CATALOG_CONFIGS.movies;
 }
 
-function resolveRequestedSelectionTitles(context = {}) {
+function resolveRequestedSelectionTitles(context: AnyRecord = {}): string[] {
   const selectionTitle = resolveSelectionTitle(context);
 
   if (selectionTitle) {
@@ -292,7 +296,7 @@ function resolveRequestedSelectionTitles(context = {}) {
   return normalizeRequestedSelectionTitles(catalogConfig.requestSelectionTitles);
 }
 
-function normalizeRequestedSelectionTitles(titles = []) {
+function normalizeRequestedSelectionTitles(titles: unknown[] = []): string[] {
   if (!Array.isArray(titles)) {
     return [];
   }
@@ -300,7 +304,10 @@ function normalizeRequestedSelectionTitles(titles = []) {
   return titles.map((title) => normalizeString(title)).filter(Boolean);
 }
 
-function buildCatalogPool(selections = [], options = {}) {
+function buildCatalogPool(
+  selections: AnyRecord[] = [],
+  options: AnyRecord = {},
+): AnyRecord[] {
   const catalogKey = normalizeString(options.catalogKey).toLowerCase();
   const selectionTitle = normalizeString(options.selectionTitle);
   const normalizedSelections = normalizeSelections(selections);
@@ -347,7 +354,7 @@ function buildCatalogPool(selections = [], options = {}) {
   return allMovies;
 }
 
-function normalizeSelections(selections = []) {
+function normalizeSelections(selections: AnyRecord[] = []): AnyRecord[] {
   if (!Array.isArray(selections)) {
     return [];
   }
@@ -358,19 +365,19 @@ function normalizeSelections(selections = []) {
         normalizeString(selection?.title) ||
         normalizeString(selection?.name) ||
         `Подборка ${index + 1}`;
-      const movies = extractSelectionMovies(selection).map((movie, movieIndex) =>
-        normalizeCatalogItem(movie, movieIndex, title),
-      );
+      const movies = extractSelectionMovies(selection)
+        .map((movie, movieIndex) => normalizeCatalogItem(movie, movieIndex, title))
+        .filter((movie): movie is AnyRecord => Boolean(movie));
 
       return {
         title,
-        movies: movies.filter(Boolean),
+        movies,
       };
     })
     .filter((selection) => selection.movies.length);
 }
 
-function extractSelectionMovies(selection = {}) {
+function extractSelectionMovies(selection: AnyRecord = {}): AnyRecord[] {
   if (Array.isArray(selection?.movies)) {
     return selection.movies;
   }
@@ -386,17 +393,21 @@ function extractSelectionMovies(selection = {}) {
   return [];
 }
 
-function normalizeCatalogItems(items = []) {
+function normalizeCatalogItems(items: AnyRecord[] = []): AnyRecord[] {
   if (!Array.isArray(items)) {
     return [];
   }
 
   return items
     .map((item, index) => normalizeCatalogItem(item, index))
-    .filter(Boolean);
+    .filter((item): item is AnyRecord => Boolean(item));
 }
 
-function normalizeCatalogItem(movie = {}, index = 0, selectionTitle = "") {
+function normalizeCatalogItem(
+  movie: AnyRecord = {},
+  index = 0,
+  selectionTitle = "",
+): AnyRecord | null {
   if (!movie || typeof movie !== "object") {
     return null;
   }
@@ -452,7 +463,7 @@ function normalizeCatalogItem(movie = {}, index = 0, selectionTitle = "") {
   };
 }
 
-function normalizeGenres(genres) {
+function normalizeGenres(genres: unknown): string[] {
   if (Array.isArray(genres)) {
     return genres.filter(Boolean).map((genre) => String(genre).trim());
   }
@@ -467,7 +478,7 @@ function normalizeGenres(genres) {
   return [];
 }
 
-function normalizeContentType(value, selectionTitle = "") {
+function normalizeContentType(value: unknown, selectionTitle = ""): string {
   const normalizedValue = normalizeString(value).toLowerCase();
   const normalizedSelectionTitle = normalizeString(selectionTitle).toLowerCase();
 
@@ -498,8 +509,8 @@ function normalizeContentType(value, selectionTitle = "") {
   return "";
 }
 
-function dedupeMovies(movies = []) {
-  const uniqueMovies = new Map();
+function dedupeMovies(movies: AnyRecord[] = []): AnyRecord[] {
+  const uniqueMovies = new Map<string, AnyRecord>();
 
   movies.forEach((movie, index) => {
     if (!movie) {
@@ -516,7 +527,7 @@ function dedupeMovies(movies = []) {
   return Array.from(uniqueMovies.values());
 }
 
-function sortGenreCatalog(movies = []) {
+function sortGenreCatalog(movies: AnyRecord[] = []): AnyRecord[] {
   return movies.slice().sort((leftMovie, rightMovie) => {
     const leftGenre = leftMovie.genres[0] || "";
     const rightGenre = rightMovie.genres[0] || "";
@@ -528,7 +539,11 @@ function sortGenreCatalog(movies = []) {
   });
 }
 
-function paginateItems(items = [], currentPage = 1, pageSize = DEFAULT_PAGE_SIZE) {
+function paginateItems(
+  items: AnyRecord[] = [],
+  currentPage = 1,
+  pageSize = DEFAULT_PAGE_SIZE,
+) {
   const normalizedPageSize = normalizePositiveInteger(pageSize, DEFAULT_PAGE_SIZE);
   const totalPages = Math.max(1, Math.ceil(items.length / normalizedPageSize));
   const safeCurrentPage = Math.min(
@@ -544,7 +559,11 @@ function paginateItems(items = [], currentPage = 1, pageSize = DEFAULT_PAGE_SIZE
   };
 }
 
-function buildPaginationContext(currentPage = 1, totalPages = 1, basePath = "/") {
+function buildPaginationContext(
+  currentPage = 1,
+  totalPages = 1,
+  basePath = "/",
+) {
   const safeCurrentPage = normalizePositiveInteger(currentPage, 1);
   const safeTotalPages = normalizePositiveInteger(totalPages, 1);
 
@@ -558,7 +577,11 @@ function buildPaginationContext(currentPage = 1, totalPages = 1, basePath = "/")
   };
 }
 
-function buildPaginationItems(currentPage = 1, totalPages = 1, basePath = "/") {
+function buildPaginationItems(
+  currentPage = 1,
+  totalPages = 1,
+  basePath = "/",
+): AnyRecord[] {
   const visiblePages = new Set([
     1,
     totalPages,
@@ -569,7 +592,7 @@ function buildPaginationItems(currentPage = 1, totalPages = 1, basePath = "/") {
   const sortedPages = Array.from(visiblePages)
     .filter((page) => page >= 1 && page <= totalPages)
     .sort((leftPage, rightPage) => leftPage - rightPage);
-  const items = [];
+  const items: AnyRecord[] = [];
 
   sortedPages.forEach((page, index) => {
     const previousPage = sortedPages[index - 1];
@@ -609,7 +632,7 @@ function buildSkeletonItems(count = DEFAULT_PAGE_SIZE) {
   }));
 }
 
-function matchesSelectionTitle(title = "", titleVariants = []) {
+function matchesSelectionTitle(title = "", titleVariants: string[] = []) {
   if (!titleVariants.length) {
     return false;
   }
@@ -619,7 +642,7 @@ function matchesSelectionTitle(title = "", titleVariants = []) {
   return titleVariants.some((variant) => normalizedTitle.includes(variant));
 }
 
-function applyCatalogDocumentTitle(catalogKey, titleFallback = "") {
+function applyCatalogDocumentTitle(catalogKey: unknown, titleFallback = "") {
   const key = normalizeString(catalogKey).toLowerCase();
   const fromConfig = CATALOG_CONFIGS[key]?.title;
   const title = normalizeString(titleFallback) || fromConfig || "";
@@ -628,7 +651,10 @@ function applyCatalogDocumentTitle(catalogKey, titleFallback = "") {
   }
 }
 
-function findSelectionByTitle(selections = [], title = "") {
+function findSelectionByTitle(
+  selections: AnyRecord[] = [],
+  title = "",
+): AnyRecord | null {
   const normalizedTitle = normalizeString(title).toLowerCase();
 
   if (!normalizedTitle) {
@@ -643,7 +669,7 @@ function findSelectionByTitle(selections = [], title = "") {
   );
 }
 
-function mapCatalogLoadError(status, errorMessage = "") {
+function mapCatalogLoadError(status: number, errorMessage = "") {
   if (status === 404) {
     return "Каталог не найден";
   }
@@ -665,7 +691,7 @@ function readCurrentPageFromLocation() {
   return normalizePositiveInteger(params.get("page"), 1);
 }
 
-function resolveSelectionTitle(context = {}) {
+function resolveSelectionTitle(context: AnyRecord = {}) {
   const explicitTitle = normalizeString(context.selectionTitle);
 
   if (explicitTitle) {
@@ -697,7 +723,7 @@ function readSelectionTitleFromLocation() {
   }
 }
 
-function normalizePositiveInteger(value, fallback = 1) {
+function normalizePositiveInteger(value: unknown, fallback = 1) {
   const normalizedValue = Number(value);
 
   if (!Number.isFinite(normalizedValue) || normalizedValue < 1) {
@@ -707,6 +733,6 @@ function normalizePositiveInteger(value, fallback = 1) {
   return Math.floor(normalizedValue);
 }
 
-function normalizeString(value) {
+function normalizeString(value: unknown) {
   return String(value ?? "").trim();
 }

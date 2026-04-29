@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import BasePage from "../BasePage.ts";
 import "./Settings.precompiled.js";
 import "@/css/settings.scss";
@@ -14,7 +12,11 @@ import { resolveAvatarUrl } from "@/utils/avatar.ts";
 import { extractProfile } from "@/utils/apiResponse.ts";
 
 export default class SettingsPage extends BasePage {
-  constructor(context = {}, parent = null, el = null) {
+  constructor(
+    context: AnyRecord = {},
+    parent: BasePage | null = null,
+    el: Element | null = null,
+  ) {
     if (!el) {
       throw new Error(
         "SettingsPage: не передан корневой элемент для SettingsPage",
@@ -53,7 +55,7 @@ export default class SettingsPage extends BasePage {
 
     this._detachStyles = null;
     this._destroyPasswordToggle = null;
-    this._originalValues = {};
+    this._originalValues = {} as Record<string, string | null>;
     this._editableInputHandlers = new Map();
     this._passwordInputHandlers = new Map();
     this._buttonHandlers = new Map();
@@ -117,11 +119,14 @@ export default class SettingsPage extends BasePage {
   }
 
   _setupEditableFields() {
-    const editableInputs = this.el.querySelectorAll(
+    const editableInputs = this.el.querySelectorAll<HTMLInputElement>(
       ".settings__input_editable",
     );
     editableInputs.forEach((input) => {
       const field = input.dataset.field;
+      if (!field) {
+        return;
+      }
       this._originalValues[field] = input.value;
 
       const onInput = () => {
@@ -140,8 +145,8 @@ export default class SettingsPage extends BasePage {
   }
 
   _validateBirthDate() {
-    const birthDateInput = this.el.querySelector("#birthDate");
-    const errorEl = this.el.querySelector("#birthdate-error");
+    const birthDateInput = this.el.querySelector<HTMLInputElement>("#birthDate");
+    const errorEl = this.el.querySelector<HTMLElement>("#birthdate-error");
     const value = String(birthDateInput?.value || "").trim();
 
     if (!birthDateInput) {
@@ -165,7 +170,7 @@ export default class SettingsPage extends BasePage {
   }
 
   _setupAvatarUpload() {
-    const avatarInput = this.el.querySelector("#avatarInput");
+    const avatarInput = this.el.querySelector<HTMLInputElement>("#avatarInput");
     if (!avatarInput) return;
 
     const onChange = () => {
@@ -209,16 +214,16 @@ export default class SettingsPage extends BasePage {
     return "";
   }
 
-  _previewAvatar(file) {
-    const avatarPreview = this.el.querySelector('[data-role="avatar-preview"]');
+  _previewAvatar(file: File) {
+    const avatarPreview = this.el.querySelector<HTMLImageElement>('[data-role="avatar-preview"]');
     if (!avatarPreview) return;
     const objectUrl = URL.createObjectURL(file);
     avatarPreview.src = objectUrl;
     avatarPreview.onload = () => URL.revokeObjectURL(objectUrl);
   }
 
-  _renderAvatar(url) {
-    const avatarPreview = this.el.querySelector('[data-role="avatar-preview"]');
+  _renderAvatar(url: string) {
+    const avatarPreview = this.el.querySelector<HTMLImageElement>('[data-role="avatar-preview"]');
     if (!avatarPreview) return;
 
     avatarPreview.src = resolveAvatarUrl(url);
@@ -386,6 +391,9 @@ export default class SettingsPage extends BasePage {
 
     for (const input of editableInputs) {
       const field = input.dataset.field;
+      if (!field) {
+        continue;
+      }
       if (input.value !== this._originalValues[field]) {
         hasChanges = true;
         break;
@@ -474,7 +482,7 @@ export default class SettingsPage extends BasePage {
       return;
     }
 
-    const normalizedProfile = extractProfile(profileResult.resp) || {};
+    const normalizedProfile = (extractProfile(profileResult.resp) || {}) as AnyRecord;
     this._renderAvatar(normalizedProfile.avatar_url);
 
     this._pendingAvatarFile = null;

@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import BasePage from "../BasePage.ts";
 import "./SignUp.precompiled.js";
 import "@/css/register.scss";
@@ -29,7 +27,11 @@ export default class SignUpPage extends BasePage {
    * @param {BasePage|null} [parent=null] Родительская страница.
    * @param {HTMLElement|null} [el=null] Корневой DOM-элемент страницы.
    */
-  constructor(context = {}, parent = null, el = null) {
+  constructor(
+    context: AnyRecord = {},
+    parent: BasePage | null = null,
+    el: Element | null = null,
+  ) {
     if (!el) {
       throw new Error("SignUp: не передан корневой элемент для SignUp");
     }
@@ -69,7 +71,7 @@ export default class SignUpPage extends BasePage {
   addEventListeners() {
     this._destroyPasswordToggle = initPasswordToggle(this.el);
 
-    const form = this.el.querySelector('form[data-auth-form="register"]');
+    const form = this.el.querySelector<HTMLFormElement>('form[data-auth-form="register"]');
     this._destroyValidation = initAuthValidation(form, {
       onSubmit: this.handleSubmit.bind(this),
     });
@@ -115,10 +117,10 @@ export default class SignUpPage extends BasePage {
     };
 
     if (!result.ok) {
-      const email = this.el.querySelector('input[type="email"]');
-      const emailError = this.el.querySelector("#email-error");
-      const password = this.el.querySelector("#password");
-      const passwordError = this.el.querySelector("#password-error");
+      const email = this.el.querySelector<HTMLInputElement>('input[type="email"]');
+      const emailError = this.el.querySelector<HTMLElement>("#email-error");
+      const password = this.el.querySelector<HTMLInputElement>("#password");
+      const passwordError = this.el.querySelector<HTMLElement>("#password-error");
       const message =
         MapError[result.resp?.Error] ||
         result.resp?.message ||

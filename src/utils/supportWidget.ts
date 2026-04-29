@@ -1,5 +1,5 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
+import type { AnyRecord } from "@/types/shared.ts";
+
 const SUPPORT_WIDGET_FRAME_PATH = "/support/new?embed=1";
 const SUPPORT_WIDGET_TOAST_DURATION = 4800;
 const SUPPORT_WIDGET_EVENTS = {
@@ -8,7 +8,21 @@ const SUPPORT_WIDGET_EVENTS = {
 };
 
 export class SupportWidgetController {
-  constructor(root, options = {}) {
+  root: Element | null;
+  framePath: string;
+  toastDuration: number;
+  _isOpen: boolean;
+  _toastMessage: string;
+  _toastTone: string;
+  _toastTimeoutId: number;
+
+  constructor(
+    root: Element | null,
+    options: {
+      framePath?: string;
+      toastDuration?: number;
+    } = {},
+  ) {
     this.root = root;
     this.framePath =
       options.framePath || SUPPORT_WIDGET_FRAME_PATH;
@@ -50,7 +64,7 @@ export class SupportWidgetController {
     this._syncSupportWidget();
   }
 
-  close({ restoreFocus = true } = {}) {
+  close({ restoreFocus = true }: { restoreFocus?: boolean } = {}) {
     this._isOpen = false;
     this._syncSupportWidget();
 
@@ -61,7 +75,7 @@ export class SupportWidgetController {
     }
   }
 
-  showToast(message, tone = "") {
+  showToast(message: unknown, tone = "") {
     window.clearTimeout(this._toastTimeoutId);
 
     this._toastMessage = String(message || "").trim();
@@ -79,8 +93,8 @@ export class SupportWidgetController {
     }, this.toastDuration);
   }
 
-  _onClick = (event) => {
-    const actionTarget = event.target.closest("[data-action]");
+  _onClick = (event: Event) => {
+    const actionTarget = (event.target as Element | null)?.closest("[data-action]");
 
     if (!actionTarget || !this.root?.contains(actionTarget)) {
       return;
@@ -104,21 +118,21 @@ export class SupportWidgetController {
     }
   };
 
-  _onDocumentClick = (event) => {
+  _onDocumentClick = (event: Event) => {
     if (!this._isOpen || !this.root) {
       return;
     }
 
     const widget = this.root.querySelector('[data-role="support-widget"]');
 
-    if (!widget || widget.contains(event.target)) {
+    if (!widget || widget.contains(event.target as Node | null)) {
       return;
     }
 
     this.close({ restoreFocus: false });
   };
 
-  _onKeyDown = (event) => {
+  _onKeyDown = (event: KeyboardEvent) => {
     if (event.key !== "Escape" || !this._isOpen) {
       return;
     }
@@ -126,14 +140,14 @@ export class SupportWidgetController {
     this.close();
   };
 
-  _onSupportFrameMessage = (event) => {
+  _onSupportFrameMessage = (event: MessageEvent) => {
     if (!this.root || event.origin !== window.location.origin) {
       return;
     }
 
     const frame = this.root.querySelector('[data-role="support-widget-frame"]');
     const payload =
-      event.data && typeof event.data === "object" ? event.data : null;
+      event.data && typeof event.data === "object" ? (event.data as AnyRecord) : null;
 
     if (!frame || event.source !== frame.contentWindow || !payload?.type) {
       return;

@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import BasePage from "../BasePage.ts";
 import "./SupportCreate.precompiled.js";
 import "@/css/support-create.scss";
@@ -21,7 +19,11 @@ const SUPPORT_WIDGET_EVENTS = {
  * Страница создания нового обращения в техническую поддержку.
  */
 export default class SupportCreatePage extends BasePage {
-  constructor(context = {}, parent = null, el = null) {
+  constructor(
+    context: AnyRecord = {},
+    parent: BasePage | null = null,
+    el: Element | null = null,
+  ) {
     if (!el) {
       throw new Error(
         "SupportCreatePage: не передан корневой элемент для SupportCreatePage",
@@ -344,15 +346,15 @@ export default class SupportCreatePage extends BasePage {
   }
 
   _getForm() {
-    return this.el.querySelector('[data-support-form="create-ticket"]');
+    return this.el.querySelector<HTMLFormElement>('[data-support-form="create-ticket"]');
   }
 
   _getSubmitButton() {
-    return this.el.querySelector('button[type="submit"]');
+    return this.el.querySelector<HTMLButtonElement>('button[type="submit"]');
   }
 
   _getField(fieldName) {
-    return this.el.querySelector(`[name="${fieldName}"]`);
+    return this.el.querySelector<Element>(`[name="${fieldName}"]`);
   }
 
   _getErrorElement(fieldName) {
@@ -528,7 +530,7 @@ export default class SupportCreatePage extends BasePage {
     this._closeCategoryMenu();
   }
 
-  _notifyParent(type, payload = {}) {
+  _notifyParent(type: string, payload: AnyRecord = {}) {
     if (!this._isEmbedded || window.parent === window) {
       return;
     }
@@ -543,7 +545,7 @@ export default class SupportCreatePage extends BasePage {
   }
 }
 
-function resolveEmbeddedMode(context = {}) {
+function resolveEmbeddedMode(context: AnyRecord = {}) {
   if (typeof context.isEmbedded === "boolean") {
     return context.isEmbedded;
   }
@@ -553,7 +555,7 @@ function resolveEmbeddedMode(context = {}) {
   return params.get("embed") === "1";
 }
 
-function mapSupportCreateError(result = {}) {
+function mapSupportCreateError(result: AnyRecord = {}) {
   const rawError = String(
     result.error ||
       result.resp?.Error ||

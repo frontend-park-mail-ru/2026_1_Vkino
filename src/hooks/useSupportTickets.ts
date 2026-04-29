@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import { supportService } from "@/js/SupportService.ts";
 import {
   buildSupportConversationMessages,
@@ -12,6 +10,14 @@ import {
   SUPPORT_CATEGORY_OPTIONS,
 } from "@/utils/support.ts";
 import type { AnyRecord } from "@/types/shared.ts";
+import type {
+  SupportActionResult,
+  SupportCurrentUser,
+  SupportMessage,
+  SupportStatistics,
+  SupportTicket,
+  SupportViewSnapshot,
+} from "@/types/support.ts";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "Все" },
@@ -25,17 +31,30 @@ const STATUS_OPTIONS = [
 export function useSupportTickets(currentUser: AnyRecord = {}) {
   let contextAbortController: AbortController | null = null;
   let messageAbortController: AbortController | null = null;
-  const state = {
+  const state: {
+    searchQuery: string;
+    statusFilter: string;
+    categoryFilter: string;
+    selectedTicketId: string;
+    allTickets: SupportTicket[];
+    selectedMessages: SupportMessage[];
+    statistics: SupportStatistics;
+  } = {
     searchQuery: "",
     statusFilter: "all",
     categoryFilter: "all",
     selectedTicketId: "",
-    allTickets: [] as AnyRecord[],
-    selectedMessages: [] as AnyRecord[],
+    allTickets: [],
+    selectedMessages: [],
     statistics: createEmptyStatistics(),
   };
 
-  const roleContext: AnyRecord = {
+  const roleContext: SupportCurrentUser = {
+    id: String(currentUser.id || currentUser.user_id || "").trim(),
+    email: String(currentUser.email || "").trim(),
+    role: String(currentUser.role || "user").trim().toLowerCase() || "user",
+    displayName: String(currentUser.displayName || currentUser.name || "").trim(),
+    isAdmin: String(currentUser.role || "").trim().toLowerCase() === "admin",
     ...currentUser,
     isStaff: canManageSupportTicketStatus(currentUser.role),
   };
@@ -64,7 +83,7 @@ export function useSupportTickets(currentUser: AnyRecord = {}) {
       ? state.selectedTicketId
       : "";
     const requestSignal = signal || createContextSignal();
-    const requests = [
+    const requests: Promise<AnyRecord>[] = [
       supportService.getTickets({
         signal: requestSignal,
       }),
@@ -303,7 +322,7 @@ export function useSupportTickets(currentUser: AnyRecord = {}) {
     messageAbortController = null;
   }
 
-  function getSnapshot() {
+  function getSnapshot(): SupportViewSnapshot {
     const filteredTickets = getFilteredTickets();
     const selectedTicket =
       filteredTickets.find((ticket) => ticket.id === state.selectedTicketId) ||
@@ -476,7 +495,7 @@ export function useSupportTickets(currentUser: AnyRecord = {}) {
     return messageAbortController.signal;
   }
 
-  function appendSelectedMessage(message) {
+  function appendSelectedMessage(message: SupportMessage | null) {
     if (!message || !message.id) {
       return;
     }
@@ -515,8 +534,8 @@ export function useSupportTickets(currentUser: AnyRecord = {}) {
 }
 
 function buildResult(
-  results: AnyRecord[] = [],
-  snapshot: AnyRecord = {},
+  results: Array<AnyRecord | null> = [],
+  snapshot: SupportViewSnapshot,
   {
     ok = null,
     status = null,
@@ -530,8 +549,10 @@ function buildResult(
     aborted?: boolean;
     blocked?: boolean;
   } = {},
-) {
-  const normalizedResults = results.filter(Boolean);
+): SupportActionResult {
+  const normalizedResults = results.filter(
+    (result): result is AnyRecord => Boolean(result),
+  );
   const failedResult = normalizedResults.find((result) => result.ok === false);
 
   return {
@@ -544,7 +565,7 @@ function buildResult(
   };
 }
 
-function createEmptyStatistics(): AnyRecord {
+function createEmptyStatistics(): SupportStatistics {
   return {
     total: 0,
     openCount: 0,
@@ -559,7 +580,7 @@ function createEmptyStatistics(): AnyRecord {
 function extractCreatedSupportMessage(
   payload: AnyRecord | null,
   currentUser: AnyRecord = {},
-) {
+): SupportMessage | null {
   const messagePayload =
     payload?.message ||
     payload?.Message ||

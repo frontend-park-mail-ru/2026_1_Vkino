@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import BasePage from "../BasePage.ts";
 import "./Profile.precompiled.js";
 import "@/css/profile.scss";
@@ -30,7 +28,11 @@ export default class ProfilePage extends BasePage {
    * @param {BasePage|null} [parent=null] родительский компонент
    * @param {Element|null} [el=null] корневой DOM-элемент страницы
    */
-  constructor(context = {}, parent = null, el = null) {
+  constructor(
+    context: AnyRecord = {},
+    parent: BasePage | null = null,
+    el: Element | null = null,
+  ) {
     if (!el) {
       throw new Error(
         "ProfilePage: не передан корневой элемент для ProfilePage",
@@ -139,7 +141,7 @@ export default class ProfilePage extends BasePage {
     }
 
     const profile = profileResult.ok
-      ? extractProfile(profileResult.resp) || {}
+      ? ((extractProfile(profileResult.resp) || {}) as AnyRecord)
       : fallbackProfile;
 
     if (profileResult.ok) {
@@ -287,7 +289,7 @@ export default class ProfilePage extends BasePage {
  * @param {Object} [profile={}] данные профиля пользователя
  * @returns {{displayName: string, email: string, birthdateLabel: string, avatarUrl: string}}
  */
-function buildProfileIdentity(profile = {}) {
+function buildProfileIdentity(profile: AnyRecord = {}) {
   const email = String(profile.email || "").trim();
   const displayName = getDisplayNameFromEmail(email) || "Пользователь";
 
@@ -299,8 +301,8 @@ function buildProfileIdentity(profile = {}) {
   };
 }
 
-function buildProfileCarousels(context = {}) {
-  const carousels = [
+function buildProfileCarousels(context: AnyRecord = {}): AnyRecord[] {
+  const carousels: AnyRecord[] = [
     {
       slotKey: "continue",
       title: "",
@@ -336,7 +338,10 @@ function buildProfileCarousels(context = {}) {
   );
 }
 
-function normalizeWatchProgress(items = [], options = {}) {
+function normalizeWatchProgress(
+  items: AnyRecord[] = [],
+  options: AnyRecord = {},
+): AnyRecord[] {
   const actionText =
     options.actionText != null && options.actionText !== ""
       ? options.actionText
@@ -344,8 +349,8 @@ function normalizeWatchProgress(items = [], options = {}) {
 
   return items.map((item) => {
     const { duration: durationRaw, position: positionRaw } = normalizeTimeFields(item);
-    const duration = Number.isFinite(durationRaw) ? durationRaw : 0;
-    const position = Number.isFinite(positionRaw) ? positionRaw : 0;
+    const duration = Number.isFinite(Number(durationRaw)) ? Number(durationRaw) : 0;
+    const position = Number.isFinite(Number(positionRaw)) ? Number(positionRaw) : 0;
 
     const rawApiProgressPercent = Number(
       item.progress_percent ?? item.progressPercent ?? item.progress?.percent,
@@ -399,11 +404,11 @@ function normalizeWatchProgress(items = [], options = {}) {
   });
 }
 
-function normalizeId(value) {
+function normalizeId(value: unknown) {
   return String(value ?? "").trim();
 }
 
-function normalizeFriendsPreview(friends = []) {
+function normalizeFriendsPreview(friends: AnyRecord[] = []): AnyRecord[] {
   return friends.map((friend) => {
     const displayName = getDisplayNameFromEmail(friend.email) || "Пользователь";
     return {
@@ -422,7 +427,7 @@ function normalizeFriendsPreview(friends = []) {
  * @param {string[]|string} genres жанры фильма
  * @returns {string[]} нормализованный список жанров
  */
-function normalizeMovieCards(cards = []) {
+function normalizeMovieCards(cards: AnyRecord[] = []): AnyRecord[] {
   return cards.map((card) => ({
     id: String(card.id),
     title: card.title,

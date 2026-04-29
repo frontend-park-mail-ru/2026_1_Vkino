@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import BasePage from "@/pages/BasePage.ts";
 import "@/pages/WatchParty/WatchParty.precompiled.js";
 import "@/css/watch-party.scss";
@@ -33,7 +31,11 @@ const HERO_COPY = {
 };
 
 export default class WatchPartyPage extends BasePage {
-  constructor(context = {}, parent = null, el = null) {
+  constructor(
+    context: AnyRecord = {},
+    parent: BasePage | null = null,
+    el: Element | null = null,
+  ) {
     if (!el) {
       throw new Error(
         "WatchPartyPage: не передан корневой элемент для WatchPartyPage",
@@ -552,7 +554,7 @@ export default class WatchPartyPage extends BasePage {
     });
   }
 
-  _addBetOption() {
+  _addBetOption(_trigger?: Element) {
     if (this._mode !== "room") {
       return;
     }
@@ -1084,7 +1086,7 @@ function buildRoomChatContext(roomData, uiState) {
   };
 }
 
-function buildRoomPlayerMovieData(roomData = {}) {
+function buildRoomPlayerMovieData(roomData: AnyRecord = {}) {
   const movieTitle = normalizeText(roomData.movie?.title) || "Видео";
   const playerSource = roomData.playerSource || {};
   const episodeId =
@@ -1993,7 +1995,7 @@ function formatVotersText(count) {
   return `${count} ${pluralizeParticipants(count)} проголосовали`;
 }
 
-function resolveSelectedOptionLabel(options = []) {
+function resolveSelectedOptionLabel(options: AnyRecord[] = []) {
   const selectedOption = options.find((option) => option.isSelected);
 
   if (!selectedOption) {
@@ -2003,7 +2005,7 @@ function resolveSelectedOptionLabel(options = []) {
   return `Ваш выбор: ${selectedOption.label}`;
 }
 
-function sumOptionVotes(options = []) {
+function sumOptionVotes(options: AnyRecord[] = []) {
   if (!Array.isArray(options)) {
     return 0;
   }

@@ -1,10 +1,28 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import { ApiService, apiService } from "@/js/api.ts";
+import type { AnyRecord } from "@/types/shared.ts";
 import {
   getSupportFileDisplayName,
   validateSupportFile,
 } from "@/utils/support.ts";
+
+interface SupportRequestOptions {
+  signal?: AbortSignal | null;
+}
+
+interface SupportUploadOptions {
+  file?: File | null;
+  fileKey?: string;
+  signal?: AbortSignal | null;
+}
+
+interface SupportUploadResult extends AnyRecord {
+  ok: boolean;
+  status: number;
+  resp: AnyRecord | null;
+  error: string;
+  aborted: boolean;
+  fileKey: string;
+}
 
 export class SupportService {
   [key: string]: any;
@@ -13,7 +31,10 @@ export class SupportService {
     this.api = apiServiceInstance.withNamespace("support");
   }
 
-  async createTicket(payload = {}, requestOptions = {}) {
+  async createTicket(
+    payload: AnyRecord = {},
+    requestOptions: SupportRequestOptions = {},
+  ) {
     const uploadedAttachment = await this._resolveUpload({
       file:
         payload.attachment instanceof File
@@ -32,7 +53,7 @@ export class SupportService {
     const normalizedUserEmail = String(
       payload.email || payload.userEmail || payload.user_email || "",
     ).trim();
-    const normalizedPayload = {
+    const normalizedPayload: AnyRecord = {
       title: String(payload.subject || payload.title || "").trim(),
       category: String(payload.category || "").trim(),
       description: String(payload.message || payload.description || "").trim(),
@@ -59,8 +80,14 @@ export class SupportService {
     userEmail = "",
     supportLine = null,
     signal = null,
+  }: {
+    status?: string;
+    category?: string;
+    userEmail?: string;
+    supportLine?: number | string | null;
+    signal?: AbortSignal | null;
   } = {}) {
-    const query = {};
+    const query: AnyRecord = {};
     const normalizedStatus = String(status || "").trim();
     const normalizedCategory = String(category || "").trim();
     const normalizedUserEmail = String(
@@ -93,7 +120,11 @@ export class SupportService {
     });
   }
 
-  async updateTicket(ticketId, payload = {}, requestOptions = {}) {
+  async updateTicket(
+    ticketId: string | number,
+    payload: AnyRecord = {},
+    requestOptions: SupportRequestOptions = {},
+  ) {
     const normalizedTicketId = String(ticketId || "").trim();
 
     if (!normalizedTicketId) {
@@ -120,7 +151,7 @@ export class SupportService {
       return uploadedAttachment;
     }
 
-    const normalizedPayload = {};
+    const normalizedPayload: AnyRecord = {};
     const normalizedCategory = String(payload.category || "").trim();
     const normalizedStatus = String(payload.status || "").trim();
     const normalizedTitle = String(payload.title || "").trim();
@@ -184,7 +215,10 @@ export class SupportService {
     return result;
   }
 
-  async getTicketMessages(ticketId, { signal = null } = {}) {
+  async getTicketMessages(
+    ticketId: string | number,
+    { signal = null }: SupportRequestOptions = {},
+  ) {
     const normalizedTicketId = String(ticketId || "").trim();
 
     if (!normalizedTicketId) {
@@ -205,7 +239,11 @@ export class SupportService {
     );
   }
 
-  async createTicketMessage(ticketId, payload = {}, requestOptions = {}) {
+  async createTicketMessage(
+    ticketId: string | number,
+    payload: AnyRecord = {},
+    requestOptions: SupportRequestOptions = {},
+  ) {
     const normalizedTicketId = String(ticketId || "").trim();
     const normalizedContent = String(
       payload.message || payload.content || "",
@@ -244,7 +282,7 @@ export class SupportService {
       };
     }
 
-    const messagePayload = {};
+    const messagePayload: AnyRecord = {};
 
     if (normalizedContent) {
       messagePayload.content = normalizedContent;
@@ -264,14 +302,18 @@ export class SupportService {
     );
   }
 
-  async getStatistics({ signal = null } = {}) {
+  async getStatistics({ signal = null }: SupportRequestOptions = {}) {
     return this.api.request("/statistics", {
       method: "GET",
       signal,
     });
   }
 
-  async _resolveUpload({ file = null, fileKey = "", signal = null } = {}) {
+  async _resolveUpload({
+    file = null,
+    fileKey = "",
+    signal = null,
+  }: SupportUploadOptions = {}): Promise<SupportUploadResult> {
     const normalizedFileKey = String(fileKey || "").trim();
 
     if (normalizedFileKey) {

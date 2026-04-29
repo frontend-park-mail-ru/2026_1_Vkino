@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import BasePage from "../BasePage.ts";
 import "./Movie.precompiled.js";
 import HeaderComponent from "@/components/Header/Header.ts";
@@ -32,7 +30,11 @@ const CONTENT_TYPE_BY_KEY = {
 };
 
 export default class MoviePage extends BasePage {
-  constructor(context = {}, parent = null, el = null) {
+  constructor(
+    context: AnyRecord = {},
+    parent: BasePage | null = null,
+    el: Element | null = null,
+  ) {
     if (!el) {
       throw new Error("Movie: не передан корневой элемент для Movie");
     }
@@ -244,7 +246,7 @@ export default class MoviePage extends BasePage {
     await this._openPlayer(episodeId, { startSeconds });
   }
 
-  async _openPlayer(initialEpisodeId = "", options = {}) {
+  async _openPlayer(initialEpisodeId = "", options: AnyRecord = {}) {
     const player = this.getChild("movie-player");
 
     if (!player || this.context.loading || this.context.hasError) {
@@ -405,7 +407,7 @@ function createEmptyMovieData(movieId = "") {
   };
 }
 
-function mapMovieDtoToViewModel(dto) {
+function mapMovieDtoToViewModel(dto: AnyRecord = {}) {
   if (!dto || typeof dto !== "object") {
     return createEmptyMovieData();
   }
@@ -442,12 +444,12 @@ function mapMovieDtoToViewModel(dto) {
   };
 }
 
-function mapEpisodes(value) {
+function mapEpisodes(value: unknown): AnyRecord[] {
   if (!Array.isArray(value)) {
     return [];
   }
 
-  return value
+  const mappedEpisodes = value
     .map((episode, index) => {
       if (!episode || typeof episode !== "object") {
         return null;
@@ -470,8 +472,9 @@ function mapEpisodes(value) {
         imgUrl: normalizeImageUrl(episode.img_url) || DEFAULT_POSTER_URL,
       };
     })
-    .filter(Boolean)
-    .sort((leftEpisode, rightEpisode) => {
+    .filter(Boolean) as AnyRecord[];
+
+  return mappedEpisodes.sort((leftEpisode, rightEpisode) => {
       if (leftEpisode.seasonNumber !== rightEpisode.seasonNumber) {
         return leftEpisode.seasonNumber - rightEpisode.seasonNumber;
       }
@@ -480,7 +483,7 @@ function mapEpisodes(value) {
     });
 }
 
-function normalizeEpisodePreviewUrl(episodes) {
+function normalizeEpisodePreviewUrl(episodes: AnyRecord[] = []) {
   if (!Array.isArray(episodes) || !episodes.length) {
     return "";
   }
@@ -528,7 +531,7 @@ function mapAgeLimit(value) {
   return `${ageValue}+`;
 }
 
-function mapGenres(value) {
+function mapGenres(value: unknown) {
   if (!Array.isArray(value) || value.length === 0) {
     return "Не указаны";
   }
@@ -538,12 +541,12 @@ function mapGenres(value) {
   return genres.length ? genres.join(", ") : "Не указаны";
 }
 
-function mapActors(value) {
+function mapActors(value: unknown): AnyRecord[] {
   if (!Array.isArray(value)) {
     return [];
   }
 
-  return value
+  return (value
     .map((actor) => {
       if (!actor || typeof actor !== "object") {
         return null;
@@ -565,7 +568,7 @@ function mapActors(value) {
         actionText: "Об актере",
       };
     })
-    .filter(Boolean);
+    .filter(Boolean)) as AnyRecord[];
 }
 
 function mapCountry(countryId) {
@@ -637,7 +640,7 @@ function normalizeString(value) {
   return "";
 }
 
-function resolveInitialEpisode(movie = {}) {
+function resolveInitialEpisode(movie: AnyRecord = {}) {
   const episodes = Array.isArray(movie.episodes) ? movie.episodes : [];
 
   if (!episodes.length) {
@@ -647,12 +650,12 @@ function resolveInitialEpisode(movie = {}) {
   return episodes[0];
 }
 
-function isPlayerWatchLocation(location) {
+function isPlayerWatchLocation(location: Location) {
   const params = new URLSearchParams(location.search);
   return params.get("watch") === "1";
 }
 
-function readWatchState(location, movie = {}) {
+function readWatchState(location: Location, movie: AnyRecord = {}) {
   const params = new URLSearchParams(location.search);
   let startSeconds = 0;
   const startRaw = normalizeString(params.get("start"));
@@ -689,7 +692,7 @@ function readWatchState(location, movie = {}) {
   };
 }
 
-function buildWatchUrl(movieId, episodeId = "", startSeconds = 0) {
+function buildWatchUrl(movieId: unknown, episodeId = "", startSeconds = 0) {
   const encodedMovieId = encodeURIComponent(normalizeString(movieId));
   const params = new URLSearchParams();
   params.set("watch", "1");

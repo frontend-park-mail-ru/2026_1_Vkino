@@ -62,7 +62,7 @@ export class MovieService {
    * @param {string[]} [titles=[]] названия подборок
    * @returns {Promise<Object>} результат запроса с массивом подборок
    */
-  async getSelectionsByTitles(titles = []) {
+  async getSelectionsByTitles(titles: unknown[] = []) {
     const normalizedTitles = normalizeSelectionTitles(titles);
 
     if (!normalizedTitles.length) {

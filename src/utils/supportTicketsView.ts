@@ -1,10 +1,17 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import {
   canManageSupportTicketStatus,
   getSupportCategoryLabel,
 } from "./support.ts";
 import { getDisplayNameFromEmail } from "./user.ts";
+import type { AnyRecord } from "@/types/shared.ts";
+import type {
+  SupportCurrentUser,
+  SupportMessage,
+  SupportSelectOption,
+  SupportTicket,
+  SupportUiState,
+  SupportViewSnapshot,
+} from "@/types/support.ts";
 
 export const DEFAULT_SUPPORT_REPLY_FILE_HINT =
   "Можно приложить PNG, JPG, WEBP или PDF до 10 МБ";
@@ -12,7 +19,7 @@ export const DEFAULT_SUPPORT_REPLY_FILE_HINT =
 export const SUPPORT_REQUESTS_BLOCKED_MESSAGE =
   "Сервис обращений пока недоступен. Перезагрузите страницу после появления ручки.";
 
-const STATUS_FILTER_OPTIONS = [
+const STATUS_FILTER_OPTIONS: SupportSelectOption[] = [
   { value: "all", label: "Все" },
   { value: "open", label: "Открыты" },
   { value: "in_progress", label: "В работе" },
@@ -44,7 +51,9 @@ const STATUS_META = {
   },
 };
 
-export function resolveSupportCurrentUser(user = {}) {
+export function resolveSupportCurrentUser(
+  user: AnyRecord = {},
+): SupportCurrentUser {
   const id = String(user?.id || user?.user_id || "").trim();
   const email = String(user?.email || "").trim();
   const role = String(user?.role || "user").trim().toLowerCase() || "user";
@@ -63,6 +72,9 @@ export function resolveSupportCurrentUser(user = {}) {
 export function buildSupportShellContext({
   isLoading = false,
   currentUser = {},
+}: {
+  isLoading?: boolean;
+  currentUser?: AnyRecord;
 } = {}) {
   return {
     isLoading,
@@ -85,7 +97,10 @@ export function buildSupportShellContext({
   };
 }
 
-export function buildSupportHeroContext(snapshot = {}, currentUser = {}) {
+export function buildSupportHeroContext(
+  snapshot: AnyRecord = {},
+  currentUser: SupportCurrentUser | AnyRecord = {},
+) {
   if (currentUser.isStaff) {
     return {
       isStaff: true,
@@ -125,8 +140,11 @@ export function buildSupportHeroContext(snapshot = {}, currentUser = {}) {
   };
 }
 
-export function buildSupportSidebarContext(snapshot = {}, currentUser = {}) {
-  const filteredTickets = snapshot.filteredTickets || [];
+export function buildSupportSidebarContext(
+  snapshot: SupportViewSnapshot | AnyRecord = {},
+  currentUser: SupportCurrentUser | AnyRecord = {},
+) {
+  const filteredTickets = (snapshot.filteredTickets || []) as SupportTicket[];
   const selectedTicketId = snapshot.selectedTicket?.id || snapshot.selectedTicketId;
   const selectedFilterLabel = getFilterLabel(snapshot.statusFilter);
 
@@ -170,9 +188,9 @@ export function buildSupportSidebarContext(snapshot = {}, currentUser = {}) {
 }
 
 export function buildSupportConversationContext(
-  snapshot = {},
-  currentUser = {},
-  uiState = {},
+  snapshot: SupportViewSnapshot | AnyRecord = {},
+  currentUser: SupportCurrentUser | AnyRecord = {},
+  uiState: SupportUiState | AnyRecord = {},
 ) {
   const selectedTicket = snapshot.selectedTicket || null;
   const normalizedReplyFileMeta =
@@ -236,7 +254,7 @@ export function buildSupportNoticeClass(tone = "") {
   return `support-tickets__notice support-tickets__notice--${tone}`;
 }
 
-export function resolveSupportRatingErrorMessage(result = {}) {
+export function resolveSupportRatingErrorMessage(result: AnyRecord = {}) {
   return result.error || "Не удалось сохранить оценку.";
 }
 
@@ -256,7 +274,7 @@ function buildStaffHeroDescription(role = "") {
   return "Общая сводка по доступным обращениям: сколько открыто, в работе, ждут пользователя, решены и закрыты.";
 }
 
-function buildUserOverviewCards(tickets = []) {
+function buildUserOverviewCards(tickets: SupportTicket[] = []) {
   const summary = tickets.reduce(
     (accumulator, ticket) => {
       accumulator.total += 1;
@@ -307,7 +325,11 @@ function buildUserOverviewCards(tickets = []) {
   ];
 }
 
-function buildUserTicketsSummary(count, selectedStatus, selectedFilterLabel) {
+function buildUserTicketsSummary(
+  count: number,
+  selectedStatus: string,
+  selectedFilterLabel: string,
+) {
   if (!count) {
     if (selectedStatus === "all") {
       return "Пока нет обращений. Создайте первое, чтобы начать диалог с поддержкой.";
@@ -324,12 +346,12 @@ function buildUserTicketsSummary(count, selectedStatus, selectedFilterLabel) {
 }
 
 function buildStaffTicketsSummary(
-  count,
+  count: number,
   searchQuery = "",
   statusFilter = "all",
   categoryFilter = "all",
 ) {
-  const filters = [];
+  const filters: string[] = [];
 
   if (statusFilter !== "all") {
     filters.push(`статус «${getFilterLabel(statusFilter)}»`);
@@ -356,7 +378,7 @@ function buildStaffTicketsSummary(
   return `${count} ${pluralizeSupportTickets(count)} подходят под ${filters.join(", ")}.`;
 }
 
-function buildUserEmptyListMessage(selectedStatus) {
+function buildUserEmptyListMessage(selectedStatus: string) {
   if (selectedStatus === "all") {
     return "Создайте первое обращение, чтобы быстро связаться с поддержкой и отслеживать ответ прямо в диалоге.";
   }
@@ -364,7 +386,11 @@ function buildUserEmptyListMessage(selectedStatus) {
   return `По статусу «${getFilterLabel(selectedStatus)}» обращений пока нет. Попробуйте другой фильтр или создайте новое обращение.`;
 }
 
-function buildTicketCardView(ticket, selectedTicketId, currentUser = {}) {
+function buildTicketCardView(
+  ticket: SupportTicket,
+  selectedTicketId: string,
+  currentUser: SupportCurrentUser | AnyRecord = {},
+) {
   const statusMeta = getSupportStatusMeta(ticket.status);
   const isActive = ticket.id === selectedTicketId;
 
@@ -385,10 +411,10 @@ function buildTicketCardView(ticket, selectedTicketId, currentUser = {}) {
 }
 
 function buildSelectedTicketView(
-  ticket,
-  messages = [],
-  currentUser = {},
-  uiState = {},
+  ticket: SupportTicket,
+  messages: SupportMessage[] = [],
+  currentUser: SupportCurrentUser | AnyRecord = {},
+  uiState: SupportUiState | AnyRecord = {},
 ) {
   const statusMeta = getSupportStatusMeta(ticket.status);
   const normalizedRating = normalizeSupportTicketRating(
@@ -456,9 +482,9 @@ function buildSelectedTicketView(
 }
 
 function resolveConversationMessagePresentation(
-  message = {},
-  ticket = {},
-  currentUser = {},
+  message: SupportMessage | AnyRecord = {},
+  ticket: SupportTicket | AnyRecord = {},
+  currentUser: SupportCurrentUser | AnyRecord = {},
 ) {
   const ticketOwnerId = String(ticket.userId || "").trim();
   const senderId = String(message.senderId || "").trim();
@@ -490,15 +516,21 @@ function resolveConversationMessagePresentation(
   };
 }
 
-function buildSelectOptions(options = [], selectedValue = "") {
+function buildSelectOptions(
+  options: SupportSelectOption[] = [],
+  selectedValue = "",
+): SupportSelectOption[] {
   return options.map((option) => ({
     ...option,
     selectedAttr: option.value === selectedValue ? " selected" : "",
   }));
 }
 
-function buildCategoryOptions(options = [], selectedValue = "") {
-  const normalizedOptions = [
+function buildCategoryOptions(
+  options: SupportSelectOption[] = [],
+  selectedValue = "",
+): SupportSelectOption[] {
+  const normalizedOptions: SupportSelectOption[] = [
     {
       value: "all",
       label: "Все категории",
@@ -509,7 +541,7 @@ function buildCategoryOptions(options = [], selectedValue = "") {
   return buildSelectOptions(normalizedOptions, selectedValue || "all");
 }
 
-function buildTicketStatusOptions(selectedStatus = "") {
+function buildTicketStatusOptions(selectedStatus = ""): SupportSelectOption[] {
   return [
     { value: "open", label: "Открыт" },
     { value: "in_progress", label: "В работе" },
@@ -522,7 +554,7 @@ function buildTicketStatusOptions(selectedStatus = "") {
   }));
 }
 
-function buildRatingOptions(selectedRating = 0) {
+function buildRatingOptions(selectedRating = 0): SupportSelectOption[] {
   return [1, 2, 3, 4, 5].map((value) => ({
     value: String(value),
     label: `${value} из 5`,
@@ -537,7 +569,7 @@ function getFilterLabel(status = "all") {
   );
 }
 
-function pluralizeSupportTickets(count) {
+function pluralizeSupportTickets(count: number) {
   const absCount = Math.abs(Number(count));
   const lastTwoDigits = absCount % 100;
   const lastDigit = absCount % 10;
@@ -557,7 +589,7 @@ function pluralizeSupportTickets(count) {
   return "обращений";
 }
 
-function pluralizeSupportMessages(count) {
+function pluralizeSupportMessages(count: number) {
   const absCount = Math.abs(Number(count));
   const lastTwoDigits = absCount % 100;
   const lastDigit = absCount % 10;

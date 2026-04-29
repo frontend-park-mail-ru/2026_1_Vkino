@@ -1,8 +1,13 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import { unwrapPayload } from "./apiResponse.ts";
+import type { AnyRecord } from "@/types/shared.ts";
+import type {
+  SupportMessage,
+  SupportSelectOption,
+  SupportStatistics,
+  SupportTicket,
+} from "@/types/support.ts";
 
-export const SUPPORT_CATEGORY_OPTIONS = [
+export const SUPPORT_CATEGORY_OPTIONS: SupportSelectOption[] = [
   { value: "bug", label: "Ошибка" },
   { value: "feature", label: "Новая функция" },
   { value: "complaint", label: "Жалоба" },
@@ -24,7 +29,10 @@ const REALTIME_IGNORED_ACTIONS = new Set([
   "ack",
 ]);
 
-export function extractSupportTickets(payload, options = {}) {
+export function extractSupportTickets(
+  payload: unknown,
+  options: AnyRecord = {},
+): SupportTicket[] {
   const unwrapped = unwrapPayload(payload);
   const collection = pickArrayCandidate(unwrapped, [
     "tickets",
@@ -43,10 +51,13 @@ export function extractSupportTickets(payload, options = {}) {
 
   return collection
     .map((ticket) => normalizeSupportTicket(ticket, options))
-    .filter((ticket) => ticket.id);
+    .filter((ticket): ticket is SupportTicket => Boolean(ticket.id));
 }
 
-export function extractSupportTicket(payload, options = {}) {
+export function extractSupportTicket(
+  payload: unknown,
+  options: AnyRecord = {},
+): SupportTicket | null {
   const unwrapped = unwrapPayload(payload);
 
   if (!unwrapped || typeof unwrapped !== "object" || Array.isArray(unwrapped)) {
@@ -66,7 +77,10 @@ export function extractSupportTicket(payload, options = {}) {
   return normalizeSupportTicket(candidate, options);
 }
 
-export function extractSupportMessages(payload, options = {}) {
+export function extractSupportMessages(
+  payload: unknown,
+  options: AnyRecord = {},
+): SupportMessage[] {
   const unwrapped = unwrapPayload(payload);
   const collection = pickArrayCandidate(unwrapped, [
     "messages",
@@ -86,7 +100,10 @@ export function extractSupportMessages(payload, options = {}) {
   return collection.map((message) => normalizeSupportMessage(message, options));
 }
 
-export function extractSupportStatistics(payload, fallbackTickets = []) {
+export function extractSupportStatistics(
+  payload: unknown,
+  fallbackTickets: SupportTicket[] = [],
+): SupportStatistics {
   const unwrapped = unwrapPayload(payload);
   const statsSource =
     pickObjectCandidate(unwrapped, [
@@ -154,7 +171,10 @@ export function extractSupportStatistics(payload, fallbackTickets = []) {
   };
 }
 
-export function normalizeSupportTicket(ticket = {}, options = {}) {
+export function normalizeSupportTicket(
+  ticket: AnyRecord = {},
+  options: AnyRecord = {},
+): SupportTicket {
   if (!ticket || typeof ticket !== "object") {
     return createEmptyTicket();
   }
@@ -261,7 +281,10 @@ export function normalizeSupportTicket(ticket = {}, options = {}) {
   };
 }
 
-export function normalizeSupportMessage(message = {}, options = {}) {
+export function normalizeSupportMessage(
+  message: AnyRecord = {},
+  options: AnyRecord = {},
+): SupportMessage {
   if (!message || typeof message !== "object") {
     return createEmptyMessage();
   }
@@ -378,7 +401,7 @@ export function normalizeSupportMessage(message = {}, options = {}) {
   };
 }
 
-export function resolveSupportCategory(source) {
+export function resolveSupportCategory(source: AnyRecord | null = null) {
   if (!source) {
     return {
       categoryPrimary: "",
@@ -494,7 +517,7 @@ export function normalizeSupportStatus(value = "") {
 }
 
 export function shouldSyncSupportRealtimePayload(
-  payload,
+  payload: unknown,
   selectedTicketId = "",
 ) {
   const normalizedSelectedTicketId = String(selectedTicketId || "").trim();
@@ -524,7 +547,7 @@ export function shouldSyncSupportRealtimePayload(
   return true;
 }
 
-export function extractSupportRealtimeTicketId(payload) {
+export function extractSupportRealtimeTicketId(payload: unknown) {
   const unwrapped = unwrapPayload(payload);
 
   return pickString(
@@ -539,7 +562,7 @@ export function extractSupportRealtimeTicketId(payload) {
   );
 }
 
-export function buildStatisticsCards(statistics = {}) {
+export function buildStatisticsCards(statistics: AnyRecord = {}) {
   return [
     {
       key: "total",
@@ -580,11 +603,13 @@ export function buildStatisticsCards(statistics = {}) {
 }
 
 export function buildSupportConversationMessages(
-  ticket = {},
-  messages = [],
-  options = {},
-) {
-  const normalizedMessages = Array.isArray(messages) ? [...messages] : [];
+  ticket: SupportTicket | AnyRecord | null = {},
+  messages: SupportMessage[] = [],
+  options: AnyRecord = {},
+): SupportMessage[] {
+  const normalizedMessages: SupportMessage[] = Array.isArray(messages)
+    ? [...messages]
+    : [];
   const initialMessage = buildInitialTicketMessage(ticket, options);
 
   if (!initialMessage) {
@@ -617,7 +642,9 @@ export function canManageSupportTicketStatus(role = "") {
   );
 }
 
-function buildStatisticsFromTickets(tickets = []) {
+function buildStatisticsFromTickets(
+  tickets: SupportTicket[] = [],
+): SupportStatistics {
   const summary = tickets.reduce(
     (accumulator, ticket) => {
       const status = normalizeSupportStatus(ticket?.status);
@@ -703,7 +730,7 @@ function createEmptyMessage() {
   };
 }
 
-export function validateSupportFile(file) {
+export function validateSupportFile(file: unknown) {
   if (!(file instanceof File)) {
     return "";
   }
@@ -719,7 +746,7 @@ export function validateSupportFile(file) {
   return "";
 }
 
-export function isSupportedSupportFile(file) {
+export function isSupportedSupportFile(file: File | null | undefined) {
   const fileType = String(file?.type || "").toLowerCase();
   const fileName = String(file?.name || "").toLowerCase();
 
@@ -748,9 +775,12 @@ export function getSupportFileDisplayName(fileKey = "") {
   return parts[parts.length - 1] || normalizedKey;
 }
 
-function pickArrayCandidate(source, keys = []) {
+function pickArrayCandidate(
+  source: unknown,
+  keys: string[] = [],
+): AnyRecord[] | null {
   if (Array.isArray(source)) {
-    return source;
+    return source as AnyRecord[];
   }
 
   if (!source || typeof source !== "object") {
@@ -766,7 +796,10 @@ function pickArrayCandidate(source, keys = []) {
   return null;
 }
 
-function pickObjectCandidate(source, keys = []) {
+function pickObjectCandidate(
+  source: unknown,
+  keys: string[] = [],
+): AnyRecord | null {
   if (!source || typeof source !== "object" || Array.isArray(source)) {
     return null;
   }
@@ -798,7 +831,7 @@ function inferNameFromEmail(email = "") {
   return namePart;
 }
 
-function normalizeSupportTicketRating(value) {
+function normalizeSupportTicketRating(value: unknown) {
   const rating = Number(value);
 
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
@@ -808,7 +841,7 @@ function normalizeSupportTicketRating(value) {
   return rating;
 }
 
-function pickSupportRatingCandidate(...values) {
+function pickSupportRatingCandidate(...values: unknown[]) {
   for (const value of values) {
     if (value === null || value === undefined) {
       continue;
@@ -824,7 +857,7 @@ function pickSupportRatingCandidate(...values) {
   return null;
 }
 
-function formatAverageRating(value) {
+function formatAverageRating(value: unknown) {
   const rating = Number(value);
 
   if (!Number.isFinite(rating) || rating <= 0) {
@@ -834,7 +867,7 @@ function formatAverageRating(value) {
   return rating.toFixed(1);
 }
 
-function toDecimal(...values) {
+function toDecimal(...values: unknown[]) {
   for (const value of values) {
     const normalized = Number(value);
 
@@ -846,19 +879,23 @@ function toDecimal(...values) {
   return 0;
 }
 
-function buildInitialTicketMessage(ticket = {}, options = {}) {
-  const description = String(ticket.description || "").trim();
-  const attachmentFileKey = String(ticket.attachmentFileKey || "").trim();
+function buildInitialTicketMessage(
+  ticket: SupportTicket | AnyRecord | null = {},
+  options: AnyRecord = {},
+): SupportMessage | null {
+  const normalizedTicket = (ticket || {}) as SupportTicket;
+  const description = String(normalizedTicket.description || "").trim();
+  const attachmentFileKey = String(normalizedTicket.attachmentFileKey || "").trim();
   const attachmentName =
-    String(ticket.attachmentName || "").trim() ||
+    String(normalizedTicket.attachmentName || "").trim() ||
     getSupportFileDisplayName(attachmentFileKey);
 
   if (!description && !attachmentFileKey) {
     return null;
   }
 
-  const ticketUserId = String(ticket.userId || "").trim();
-  const ticketUserEmail = String(ticket.userEmail || "").trim();
+  const ticketUserId = String(normalizedTicket.userId || "").trim();
+  const ticketUserEmail = String(normalizedTicket.userEmail || "").trim();
   const currentUserId = String(options.currentUserId || "").trim();
   const currentUserEmail = String(options.currentUserEmail || "")
     .trim()
@@ -869,7 +906,7 @@ function buildInitialTicketMessage(ticket = {}, options = {}) {
   );
 
   return {
-    id: `ticket-${ticket.id || "new"}-description`,
+    id: `ticket-${normalizedTicket.id || "new"}-description`,
     senderId: ticketUserId,
     senderName:
       inferNameFromEmail(ticketUserEmail) ||
@@ -877,7 +914,7 @@ function buildInitialTicketMessage(ticket = {}, options = {}) {
         ? String(options.currentUserDisplayName || "Вы").trim()
         : "Пользователь"),
     senderEmail: ticketUserEmail,
-    sentAt: ticket.createdAt || new Date().toISOString(),
+    sentAt: normalizedTicket.createdAt || new Date().toISOString(),
     text: description || (attachmentName ? "Прикреплён файл" : ""),
     attachmentFileKey,
     attachmentName,
@@ -886,7 +923,7 @@ function buildInitialTicketMessage(ticket = {}, options = {}) {
   };
 }
 
-function pickString(...values) {
+function pickString(...values: unknown[]) {
   for (const value of values) {
     if (typeof value === "string" && value.trim()) {
       return value.trim();
@@ -900,7 +937,7 @@ function pickString(...values) {
   return "";
 }
 
-function toNumber(...values) {
+function toNumber(...values: unknown[]) {
   for (const value of values) {
     const normalized = Number(value);
 

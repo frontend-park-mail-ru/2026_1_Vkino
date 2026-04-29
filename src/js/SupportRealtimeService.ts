@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import { ApiService, apiService } from "./api.ts";
 import type { AnyRecord } from "@/types/shared.ts";
 

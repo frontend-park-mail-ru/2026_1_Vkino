@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import { router } from "./router/index.ts";
 import MainPage from "./pages/Main/Main.ts";
 import MoviePage from "./pages/Movie/Movie.ts";

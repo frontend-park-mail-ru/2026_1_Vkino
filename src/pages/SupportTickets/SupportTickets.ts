@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import BasePage from "../BasePage.ts";
 import "./SupportTickets.precompiled.js";
 import "@/css/support-tickets.scss";
@@ -33,7 +31,11 @@ import {
 } from "@/utils/supportTicketsView.ts";
 
 export default class SupportTicketsPage extends BasePage {
-  constructor(context = {}, parent = null, el = null) {
+  constructor(
+    context: AnyRecord = {},
+    parent: BasePage | null = null,
+    el: Element | null = null,
+  ) {
     if (!el) {
       throw new Error(
         "SupportTicketsPage: не передан корневой элемент для SupportTicketsPage",
@@ -458,7 +460,7 @@ export default class SupportTicketsPage extends BasePage {
   }
 
   async _applyHookResult(
-    result = {},
+    result: AnyRecord = {},
     { scrollMessagesToBottom = false } = {},
   ) {
     if (result.aborted) {
@@ -490,7 +492,7 @@ export default class SupportTicketsPage extends BasePage {
   }
 
   _applySnapshot(
-    snapshot = this._ticketsHook?.getSnapshot() || {},
+    snapshot: AnyRecord = this._ticketsHook?.getSnapshot() || {},
     {
       forceRatingSync = false,
       scrollMessagesToBottom = false,
@@ -506,7 +508,7 @@ export default class SupportTicketsPage extends BasePage {
   }
 
   _refreshView(
-    snapshot = this._ticketsHook?.getSnapshot() || {},
+    snapshot: AnyRecord = this._ticketsHook?.getSnapshot() || {},
     { scrollMessagesToBottom = false } = {},
   ) {
     if (!this.el) {
@@ -549,7 +551,7 @@ export default class SupportTicketsPage extends BasePage {
     });
   }
 
-  _buildPageContext(snapshot = {}) {
+  _buildPageContext(snapshot: AnyRecord = {}) {
     const shellContext = buildSupportShellContext({
       isLoading: false,
       currentUser: this._currentUser,
@@ -754,14 +756,18 @@ export default class SupportTicketsPage extends BasePage {
     this._ratingError = "";
   }
 
-  _setReplyFileMeta(file = null) {
-    this._hasReplyFileSelection = Boolean(file instanceof File && file.name);
+  _setReplyFileMeta(file: File | null = null) {
+    const normalizedFile = file instanceof File ? file : null;
+    this._hasReplyFileSelection = Boolean(normalizedFile?.name);
     this._replyFileMeta = this._hasReplyFileSelection
-      ? `Файл: ${file.name}`
+      ? `Файл: ${normalizedFile?.name || ""}`
       : DEFAULT_SUPPORT_REPLY_FILE_HINT;
   }
 
-  _syncRatingDraftFromSelectedTicket(ticket = null, { force = false } = {}) {
+  _syncRatingDraftFromSelectedTicket(
+    ticket: AnyRecord | null = null,
+    { force = false }: { force?: boolean } = {},
+  ) {
     if (
       !ticket ||
       (ticket.status !== "resolved" && ticket.status !== "closed")
@@ -824,7 +830,7 @@ export default class SupportTicketsPage extends BasePage {
     }
   }
 
-  _capturePanelScrollState() {
+  _capturePanelScrollState(): AnyRecord | null {
     if (!this.el) {
       return null;
     }
@@ -843,8 +849,8 @@ export default class SupportTicketsPage extends BasePage {
   }
 
   _restorePanelScrollState(
-    scrollState,
-    { scrollMessagesToBottom = false } = {},
+    scrollState: AnyRecord | null,
+    { scrollMessagesToBottom = false }: { scrollMessagesToBottom?: boolean } = {},
   ) {
     if (!scrollState || !this.el) {
       return;
@@ -867,7 +873,7 @@ export default class SupportTicketsPage extends BasePage {
     }
   }
 
-  _scrollMessagesToBottom(behavior = "auto") {
+  _scrollMessagesToBottom(behavior: ScrollBehavior = "auto") {
     const messages = this.el?.querySelector(".support-tickets__messages");
 
     if (!messages) {

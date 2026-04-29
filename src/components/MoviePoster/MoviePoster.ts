@@ -1,5 +1,3 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import { BaseComponent } from "@/components/BaseComponent.ts";
 import "./MoviePoster.precompiled.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.ts";

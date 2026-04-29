@@ -1,10 +1,12 @@
-// @ts-nocheck
-// TODO(ts): Legacy dynamic UI module. Remove ts-nocheck after incremental typing.
 import { BaseComponent } from "@/components/BaseComponent.ts";
 import "@/components/WatchPartyRoomChat/WatchPartyRoomChat.precompiled.js";
 
 export default class WatchPartyRoomChatComponent extends BaseComponent {
-  constructor(context = {}, parent = null, el = null) {
+  constructor(
+    context: AnyRecord = {},
+    parent: BaseComponent | null = null,
+    el: Element | null = null,
+  ) {
     if (!parent) {
       throw new Error(
         "WatchPartyRoomChat: не передан parent для WatchPartyRoomChatComponent",
