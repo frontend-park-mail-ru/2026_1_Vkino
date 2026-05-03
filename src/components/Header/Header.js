@@ -2,12 +2,19 @@ import { BaseComponent } from "@/components/BaseComponent.js";
 import "@/components/Header/Header.precompiled.js";
 import { authStore } from "@/store/authStore.js";
 import { router } from "@/router/index.js";
+import { movieService } from "@/js/MovieService.js";
 import { resolveAvatarUrl } from "@/utils/avatar.js";
 import { getDisplayNameFromEmail } from "@/utils/user.js";
 import { canManageSupportTicketStatus } from "@/utils/support.js";
 
 
 const PENDING_SCROLL_TARGET_KEY = "vkino_pending_scroll_target";
+const SEARCH_DEBOUNCE_MS = 2000;
+const SEARCH_MOVIE_LIMIT = 4;
+const SEARCH_GENRE_LIMIT = 3;
+const SEARCH_ACTOR_LIMIT = 3;
+
+let searchDiscoveryIndexPromise = null;
 
 /**
  * Компонент header
@@ -35,6 +42,9 @@ export default class HeaderComponent extends BaseComponent {
     super(context, Handlebars.templates["Header.hbs"], parent, el);
 
     this._unsubscribe = null;
+    this._searchDebounceTimer = null;
+    this._searchRequestToken = 0;
+    this._pendingSearchQuery = "";
     this._onDocumentClickBound = this._onDocumentClick.bind(this);
     this._onWindowScrollBound = this._onWindowScroll.bind(this);
   }
@@ -77,6 +87,7 @@ export default class HeaderComponent extends BaseComponent {
       this._onScrollToSectionClick,
     );
     this._bindSubmitForm('[data-menu="search"]', this._onSearchSubmit);
+    this._bindInput('[data-role="header-search-input"]', this._onSearchInput);
     document.addEventListener("click", this._onDocumentClickBound);
     window.addEventListener("scroll", this._onWindowScrollBound, {
       passive: true,
@@ -115,8 +126,10 @@ export default class HeaderComponent extends BaseComponent {
       this._onScrollToSectionClick,
     );
     this._unbindSubmitForm('[data-menu="search"]', this._onSearchSubmit);
+    this._unbindInput('[data-role="header-search-input"]', this._onSearchInput);
     document.removeEventListener("click", this._onDocumentClickBound);
     window.removeEventListener("scroll", this._onWindowScrollBound);
+    window.clearTimeout(this._searchDebounceTimer);
   }
 
   /**
@@ -139,7 +152,15 @@ export default class HeaderComponent extends BaseComponent {
   _onSearchToggleClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    const nextIsOpen = !this.context.isSearchOpen;
     this.toggleSearch();
+
+    if (nextIsOpen) {
+      window.requestAnimationFrame(() => {
+        const input = this.el?.querySelector('[data-role="header-search-input"]');
+        input?.focus();
+      });
+    }
   };
 
   _onCloseAllMenusClick = () => {
@@ -169,8 +190,8 @@ export default class HeaderComponent extends BaseComponent {
   _onSearchSubmit = (e) => {
     e.preventDefault();
     const form = e.currentTarget;
-    const input = form?.querySelector('input[name="search"]');
-    const query = String(input?.value || "").trim();
+    const input = form?.querySelector('[data-role="header-search-input"]');
+    const query = normalizeText(input?.value);
 
     if (!query) {
       return;
@@ -178,6 +199,68 @@ export default class HeaderComponent extends BaseComponent {
 
     this.closeAllMenus();
     router.go(`/search?query=${encodeURIComponent(query)}`);
+  };
+
+  _onSearchInput = (e) => {
+    const query = normalizeText(e.currentTarget?.value);
+    this._pendingSearchQuery = query;
+
+    window.clearTimeout(this._searchDebounceTimer);
+
+    if (!query) {
+      this._searchRequestToken += 1;
+      this._applyMenuState(buildSearchContextPatch("", false, [], [], []));
+      return;
+    }
+
+    const requestToken = ++this._searchRequestToken;
+
+    this._searchDebounceTimer = window.setTimeout(async () => {
+      this._applyMenuState({
+        ...buildSearchContextPatch(query, true, [], [], []),
+        isSearchOpen: true,
+      });
+
+      const [movieResult, discoveryIndex] = await Promise.all([
+        movieService.searchMovies(query),
+        getSearchDiscoveryIndex(),
+      ]);
+
+      if (requestToken !== this._searchRequestToken) {
+        return;
+      }
+
+      const movies = movieResult.ok
+        ? normalizeSearchMovies(movieResult.resp?.movies, discoveryIndex).slice(
+            0,
+            SEARCH_MOVIE_LIMIT,
+          )
+        : [];
+      const genres = filterSearchGenres(discoveryIndex.genres, query).slice(
+        0,
+        SEARCH_GENRE_LIMIT,
+      );
+      const actors = (
+        movieResult.ok
+          ? normalizeSearchActors(movieResult.resp?.actors, discoveryIndex)
+          : filterSearchActors(discoveryIndex.actors, query)
+      ).slice(0, SEARCH_ACTOR_LIMIT);
+
+      this._applyMenuState(
+        buildSearchContextPatch(query, false, movies, genres, actors),
+      );
+
+      window.requestAnimationFrame(() => {
+        const input = this.el?.querySelector('[data-role="header-search-input"]');
+        if (!input) {
+          return;
+        }
+
+        input.focus();
+        const caretPosition = input.value.length;
+        input.setSelectionRange?.(caretPosition, caretPosition);
+      });
+    }, SEARCH_DEBOUNCE_MS);
   };
 
   _onLogoutClick = async (e) => {
@@ -241,6 +324,9 @@ export default class HeaderComponent extends BaseComponent {
       isBurgerMenuOpen: false,
       isProfileMenuOpen: false,
       isSearchOpen: !this.context.isSearchOpen,
+      ...(this.context.isSearchOpen
+        ? buildSearchContextPatch("", false, [], [], [])
+        : null),
     });
   }
 
@@ -253,6 +339,7 @@ export default class HeaderComponent extends BaseComponent {
       isBurgerMenuOpen: false,
       isProfileMenuOpen: false,
       isSearchOpen: false,
+      ...buildSearchContextPatch("", false, [], [], []),
     });
   }
 
@@ -283,6 +370,17 @@ export default class HeaderComponent extends BaseComponent {
         currentPath === "/watch-party" || currentPath.startsWith("/watch-party/"),
       isBurgerMenuOpen: currentContext.isBurgerMenuOpen ?? false,
       isSearchOpen: currentContext.isSearchOpen ?? false,
+      searchQuery: this._pendingSearchQuery || currentContext.searchQuery || "",
+      isSearchLoading: currentContext.isSearchLoading ?? false,
+      searchMovies: Array.isArray(currentContext.searchMovies)
+        ? currentContext.searchMovies
+        : [],
+      searchGenres: Array.isArray(currentContext.searchGenres)
+        ? currentContext.searchGenres
+        : [],
+      searchActors: Array.isArray(currentContext.searchActors)
+        ? currentContext.searchActors
+        : [],
       isProfileMenuOpen: isAuthorized
         ? (currentContext.isProfileMenuOpen ?? false)
         : false,
@@ -290,6 +388,11 @@ export default class HeaderComponent extends BaseComponent {
 
     return {
       ...nextContext,
+      isSearchPanelVisible: shouldShowSearchPanel(nextContext),
+      hasSearchResults:
+        nextContext.searchMovies.length > 0 ||
+        nextContext.searchGenres.length > 0 ||
+        nextContext.searchActors.length > 0,
       isAnyMenuOpen:
         nextContext.isBurgerMenuOpen || nextContext.isProfileMenuOpen,
     };
@@ -378,6 +481,323 @@ export default class HeaderComponent extends BaseComponent {
 
     node.removeEventListener("submit", handler);
   }
+
+  _bindInput(selector, handler) {
+    const node = this.el.querySelector(selector);
+    if (!node) {
+      return;
+    }
+
+    node.addEventListener("input", handler);
+  }
+
+  _unbindInput(selector, handler) {
+    const node = this.el.querySelector(selector);
+    if (!node) {
+      return;
+    }
+
+    node.removeEventListener("input", handler);
+  }
+}
+
+function shouldShowSearchPanel(context = {}) {
+  return Boolean(
+    context.isSearchOpen &&
+      (context.isSearchLoading || normalizeText(context.searchQuery)),
+  );
+}
+
+function buildSearchContextPatch(
+  searchQuery = "",
+  isSearchLoading = false,
+  searchMovies = [],
+  searchGenres = [],
+  searchActors = [],
+) {
+  return {
+    searchQuery,
+    isSearchLoading,
+    searchMovies,
+    searchGenres,
+    searchActors,
+  };
+}
+
+async function getSearchDiscoveryIndex() {
+  if (searchDiscoveryIndexPromise) {
+    return searchDiscoveryIndexPromise;
+  }
+
+  searchDiscoveryIndexPromise = movieService
+    .getAllSelections()
+    .then((result) => buildSearchDiscoveryIndex(result.ok ? result.resp : []))
+    .catch(() => buildSearchDiscoveryIndex([]));
+
+  return searchDiscoveryIndexPromise;
+}
+
+function buildSearchDiscoveryIndex(payload) {
+  const selections = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.selections)
+      ? payload.selections
+      : [];
+  const genresMap = new Map();
+  const actorsMap = new Map();
+  const moviesById = new Map();
+  const moviesByTitle = new Map();
+
+  selections.forEach((selection) => {
+    extractSelectionMovies(selection).forEach((movie) => {
+      const movieMeta = normalizeDiscoveryMovie(movie);
+      const movieIdKey = normalizeText(movieMeta.id);
+      const movieTitleKey = normalizeText(movieMeta.title).toLowerCase();
+
+      if (movieIdKey) {
+        moviesById.set(movieIdKey, movieMeta);
+      }
+      if (movieTitleKey && !moviesByTitle.has(movieTitleKey)) {
+        moviesByTitle.set(movieTitleKey, movieMeta);
+      }
+
+      movieMeta.genres.forEach((genre) => {
+        const key = genre.toLowerCase();
+        const current = genresMap.get(key) || {
+          title: genre,
+          count: 0,
+          imageUrl: movieMeta.imageUrl,
+          href: `/search?query=${encodeURIComponent(genre)}`,
+        };
+
+        current.count += 1;
+        if (!current.imageUrl) {
+          current.imageUrl = movieMeta.imageUrl;
+        }
+        genresMap.set(key, current);
+      });
+
+      extractMovieActors(movie).forEach((actor) => {
+        const actorName = normalizeText(actor.name);
+        if (!actorName) {
+          return;
+        }
+
+        const key = normalizeText(actor.id) || actorName.toLowerCase();
+        const current = actorsMap.get(key) || {
+          id: normalizeText(actor.id),
+          title: actorName,
+          count: 0,
+          imageUrl: actor.imageUrl || movieMeta.imageUrl,
+          href: actor.id
+            ? `/actor/${encodeURIComponent(actor.id)}`
+            : `/search?query=${encodeURIComponent(actorName)}`,
+        };
+
+        current.count += 1;
+        if (!current.imageUrl && actor.imageUrl) {
+          current.imageUrl = actor.imageUrl;
+        }
+        actorsMap.set(key, current);
+      });
+    });
+  });
+
+  return {
+    genres: Array.from(genresMap.values()).sort((left, right) =>
+      left.title.localeCompare(right.title, "ru"),
+    ),
+    actors: Array.from(actorsMap.values()).sort((left, right) =>
+      left.title.localeCompare(right.title, "ru"),
+    ),
+    moviesById,
+    moviesByTitle,
+  };
+}
+
+function extractSelectionMovies(selection = {}) {
+  if (Array.isArray(selection?.movies)) {
+    return selection.movies;
+  }
+
+  if (Array.isArray(selection?.Movies)) {
+    return selection.Movies;
+  }
+
+  if (Array.isArray(selection?.titles)) {
+    return selection.titles;
+  }
+
+  return [];
+}
+
+function normalizeDiscoveryMovie(movie = {}) {
+  const id = normalizeText(movie.id);
+  const title = normalizeText(movie.title || movie.name);
+  const imageUrl = normalizeText(
+    movie.img_url || movie.poster_url || movie.posterUrl || "",
+  );
+  const year = normalizeText(
+    movie.release_year || movie.year || movie.releaseYear || movie.production_year,
+  );
+  const country = normalizeText(
+    movie.country || movie.country_name || movie.countryLabel || movie.country_label,
+  );
+
+  return {
+    id,
+    title,
+    imageUrl,
+    subtitle: [year, country].filter(Boolean).join(", "),
+    genres: normalizeGenres(movie.genres || movie.genre),
+  };
+}
+
+function extractMovieActors(movie = {}) {
+  const people = [];
+
+  [movie.actors, movie.cast].forEach((collection) => {
+    if (!Array.isArray(collection)) {
+      return;
+    }
+
+    collection.forEach((person) => {
+      if (!person || typeof person !== "object") {
+        return;
+      }
+
+      people.push({
+        id: normalizeText(person.id || person.actor_id || person.ActorID),
+        name: normalizeText(
+          person.full_name ||
+            person.fullName ||
+            person.name ||
+            person.actor_name ||
+            [person.first_name, person.last_name].filter(Boolean).join(" "),
+        ),
+        imageUrl: normalizeText(
+          person.img_url || person.picture || person.picture_src || person.avatar,
+        ),
+      });
+    });
+  });
+
+  const singleActorName = normalizeText(movie.actor_name || movie.actor || movie.Actor);
+
+  if (singleActorName) {
+    people.push({
+      id: normalizeText(movie.actor_id || movie.ActorID),
+      name: singleActorName,
+      imageUrl: "",
+    });
+  }
+
+  return people;
+}
+
+function normalizeSearchMovies(movies = [], discoveryIndex = {}) {
+  if (!Array.isArray(movies)) {
+    return [];
+  }
+
+  return movies
+    .map((movie, index) => {
+      const movieId = normalizeText(movie?.id) || `search-movie-${index}`;
+      const title = normalizeText(movie?.title || movie?.name);
+      const fallback =
+        discoveryIndex.moviesById?.get(movieId) ||
+        discoveryIndex.moviesByTitle?.get(title.toLowerCase()) ||
+        null;
+
+      if (!title) {
+        return null;
+      }
+
+      return {
+        id: movieId,
+        title,
+        subtitle: normalizeText(fallback?.subtitle),
+        imageUrl: normalizeText(
+          movie?.img_url || movie?.poster_url || fallback?.imageUrl,
+        ),
+        href: `/movie/${encodeURIComponent(movieId)}`,
+      };
+    })
+    .filter(Boolean);
+}
+
+function filterSearchGenres(genres = [], query = "") {
+  const normalizedQuery = normalizeText(query).toLowerCase();
+
+  return genres.filter((genre) =>
+    normalizeText(genre.title).toLowerCase().includes(normalizedQuery),
+  );
+}
+
+function filterSearchActors(actors = [], query = "") {
+  const normalizedQuery = normalizeText(query).toLowerCase();
+
+  return actors.filter((actor) =>
+    normalizeText(actor.title).toLowerCase().includes(normalizedQuery),
+  );
+}
+
+function normalizeSearchActors(actors = [], discoveryIndex = {}) {
+  if (!Array.isArray(actors)) {
+    return [];
+  }
+
+  return actors
+    .map((actor, index) => {
+      const actorId = normalizeText(actor?.id) || `search-actor-${index}`;
+      const title = normalizeText(
+        actor?.full_name || actor?.fullName || actor?.name,
+      );
+      const fallback =
+        discoveryIndex.actors?.find(
+          (item) =>
+            normalizeText(item.id) === actorId ||
+            normalizeText(item.title).toLowerCase() === title.toLowerCase(),
+        ) || null;
+
+      if (!title) {
+        return null;
+      }
+
+      return {
+        id: actorId,
+        title,
+        count: Number.isFinite(Number(actor?.movies_count))
+          ? Number(actor.movies_count)
+          : Number.isFinite(Number(fallback?.count))
+            ? Number(fallback.count)
+            : 0,
+        imageUrl: normalizeText(
+          actor?.img_url || actor?.image_url || fallback?.imageUrl,
+        ),
+        href: `/actor/${encodeURIComponent(actorId)}`,
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeGenres(genres) {
+  if (Array.isArray(genres)) {
+    return genres.map((genre) => normalizeText(genre)).filter(Boolean);
+  }
+
+  if (typeof genres === "string") {
+    return genres
+      .split(",")
+      .map((genre) => normalizeText(genre))
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function normalizeText(value) {
+  return String(value ?? "").trim();
 }
 
 function scrollToMainSection(target) {
