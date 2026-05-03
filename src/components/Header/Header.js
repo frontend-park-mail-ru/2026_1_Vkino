@@ -168,6 +168,16 @@ export default class HeaderComponent extends BaseComponent {
 
   _onSearchSubmit = (e) => {
     e.preventDefault();
+    const form = e.currentTarget;
+    const input = form?.querySelector('input[name="search"]');
+    const query = String(input?.value || "").trim();
+
+    if (!query) {
+      return;
+    }
+
+    this.closeAllMenus();
+    router.go(`/search?query=${encodeURIComponent(query)}`);
   };
 
   _onLogoutClick = async (e) => {
