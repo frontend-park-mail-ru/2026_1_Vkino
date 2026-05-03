@@ -6,6 +6,7 @@ import HeaderComponent from "@/components/Header/Header.js";
 import MoviePosterComponent from "@/components/MoviePoster/MoviePoster.js";
 import PaginationComponent from "@/components/Pagination/Pagination.js";
 import { movieService } from "@/js/MovieService.js";
+import { getCacheFallbackNotice } from "@/utils/apiMeta.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
 
 const DEFAULT_PAGE_SIZE = 12;
@@ -97,9 +98,10 @@ export default class CatalogPage extends BasePage {
   }
 
   async loadContext() {
-    const { ok, status, resp, error } = await movieService.getSelectionsByTitles(
+    const selectionsResult = await movieService.getSelectionsByTitles(
       resolveRequestedSelectionTitles(this.context),
     );
+    const { ok, status, resp, error } = selectionsResult;
 
     if (!ok) {
       this.refresh(
@@ -170,7 +172,11 @@ export default class CatalogPage extends BasePage {
 
   onHide() {}
 
-  onRefresh() {}
+  onRefresh() {
+    if (!this._hasProvidedItems && this.context.isLoading) {
+      this.loadContext();
+    }
+  }
 
   _setupPosterGrid() {
     if (this.context.isLoading || this.context.hasError) {
