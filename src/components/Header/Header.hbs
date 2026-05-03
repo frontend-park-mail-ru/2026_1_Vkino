@@ -49,7 +49,7 @@
         >
           Совместный просмотр
         </a>
-        <a href="/">Избранное</a>
+        <a href="{{favoritesHref}}" router-link>Избранное</a>
         <button
           class="vk-header__search"
           type="button"
@@ -98,7 +98,7 @@
         data-action="close-all-menus"
       >{{supportTicketsLabel}}</a>
       <a href="/settings" router-link data-action="close-all-menus">Настройки</a>
-      <button type="button" data-action="logout">Выход</button>
+      <button type="button" class="vk-header__logout-button" data-action="logout">Выход</button>
     </div>
   {{/if}}
 </div>

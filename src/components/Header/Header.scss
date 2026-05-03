@@ -172,8 +172,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(217, 104, 45, 0.22);
+  border: 0;
   border-radius: 8px;
+  background: transparent;
   color: #efe0c9;
   flex-shrink: 0;
   width: 30px;
@@ -210,13 +211,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .vk-header__avatar {
   width: 40px;
   height: 40px;
   border-radius: 999px;
-  border: 2px solid #ff6a2a;
+  border: 0;
   background: #d9d9d9;
 }
 
@@ -258,6 +262,8 @@
 .vk-header__profile-menu button {
   position: relative;
   padding-left: 32px;
+  border: 0;
+  background: transparent;
 }
 
 .vk-header__profile-menu button::before {
@@ -268,6 +274,11 @@
   transform: translateY(-50%);
   font-size: 14px;
   color: inherit;
+}
+
+.vk-header__search {
+  border: 0;
+  background: transparent;
 }
 
 .vk-header__overlay {

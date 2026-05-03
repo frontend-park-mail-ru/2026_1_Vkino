@@ -132,8 +132,8 @@
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-secondary);
-  border: 1px solid rgba(230, 204, 171, 0.14);
-  background: rgba(255, 255, 255, 0.03);
+  border: 0;
+  background: transparent;
 }
 
 .settings-main .icon-button {
@@ -143,15 +143,16 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(230, 204, 171, 0.14);
+  border: 0;
+  background: transparent;
   transition:
     border-color var(--duration-fast) var(--ease-default),
     background-color var(--duration-fast) var(--ease-default);
 }
 
 .settings-main .icon-button:hover {
-  border-color: rgba(255, 87, 31, 0.34);
-  background-color: var(--accent-subtle);
+  background-color: transparent;
+  color: var(--accent);
 }
 
 .settings__eye-btn svg {
