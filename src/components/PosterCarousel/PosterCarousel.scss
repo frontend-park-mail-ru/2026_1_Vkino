@@ -138,7 +138,7 @@
 }
 
 .poster-carousel--centered-hero .poster-carousel__slide--hero {
-  width: clamp(260px, 28vw, 380px);
+  width: clamp(320px, 30vw, 800px);
   height: clamp(300px, 33vw, 380px);
   opacity: 0.58;
   filter: saturate(0.8);
@@ -148,7 +148,7 @@
 }
 
 .poster-carousel--centered-hero .poster-carousel__slide--hero.is-active {
-  width: clamp(360px, 40vw, 560px);
+  width: clamp(420px, 40vw, 900px);
   height: clamp(320px, 36vw, 420px);
   opacity: 1;
   filter: none;

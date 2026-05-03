@@ -26,6 +26,8 @@
 
 .main-hero-slot {
   padding-top: var(--space-6);
+  margin-left: calc(var(--space-8) * -1);
+  margin-right: calc(var(--space-8) * -1);
 }
 
 .selection-carousels {
@@ -253,6 +255,11 @@
   .main-content > * {
     padding-left: var(--space-4);
     padding-right: var(--space-4);
+  }
+
+  .main-hero-slot {
+    margin-left: calc(var(--space-4) * -1);
+    margin-right: calc(var(--space-4) * -1);
   }
 
   .main-support-widget {
