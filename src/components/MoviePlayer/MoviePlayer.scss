@@ -394,6 +394,86 @@
   min-width: 0;
 }
 
+.movie-player__episode-menu {
+  position: relative;
+}
+
+.movie-player__episode-menu-trigger {
+  min-height: 32px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 6, 4, 0.82);
+  color: #fff1dd;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.movie-player__episode-menu-trigger:hover {
+  background: rgba(255, 106, 42, 0.14);
+  border-color: rgba(255, 146, 78, 0.34);
+  color: #fff7ec;
+}
+
+.movie-player__episode-menu-trigger-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.movie-player__episode-menu-popup {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 12px);
+  width: min(360px, calc(100vw - 48px));
+  max-height: min(52vh, 420px);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 6, 4, 0.98);
+  outline: 1px solid rgba(255, 255, 255, 0.04);
+  outline-offset: -1px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    visibility 0.18s ease;
+}
+
+.movie-player__episode-menu.is-open .movie-player__episode-menu-popup {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.movie-player__episode-menu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.movie-player__episode-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
 .movie-player__icon-control {
   width: 28px;
   height: 28px;
@@ -580,6 +660,10 @@
   background: rgba(255, 255, 255, 0.03);
   border-color: rgba(255, 255, 255, 0.06);
   color: #fff7eb;
+}
+
+.movie-player__episode-menu .movie-player__episode-item {
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .movie-player__episode-item:hover {
