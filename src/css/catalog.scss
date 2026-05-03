@@ -64,9 +64,7 @@
     ),
     linear-gradient(180deg, rgba(31, 12, 7, 0.96), rgba(15, 5, 2, 0.96));
   background-size: 240% 100%, 100% 100%;
-  box-shadow:
-    inset 0 0 0 1px rgba(230, 204, 171, 0.08),
-    0 18px 40px rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(230, 204, 171, 0.12);
   animation: catalog-skeleton 1.5s linear infinite;
 }
 
@@ -94,15 +92,18 @@
   min-height: 42px;
   padding: 0 1rem;
   border-radius: 999px;
+  border: 1px solid rgba(230, 204, 171, 0.16);
   background: rgba(255, 255, 255, 0.08);
   color: #fff3e3;
   font-weight: var(--weight-semibold);
   transition:
+    border-color var(--duration-fast) var(--ease-default),
     background var(--duration-fast) var(--ease-default),
     transform var(--duration-fast) var(--ease-default);
 }
 
 .catalog-page__banner-button:hover {
+  border-color: rgba(255, 106, 42, 0.34);
   background: rgba(255, 106, 42, 0.18);
   transform: translateY(-1px);
 }

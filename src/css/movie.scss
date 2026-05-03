@@ -26,7 +26,6 @@
   border-radius: var(--radius-xl);
   overflow: hidden;
   border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-md);
 }
 
 .movie-main-poster {
@@ -171,6 +170,7 @@
     var(--accent-color-2),
     var(--accent-color)
   );
+  border-color: rgba(255, 87, 31, 0.42);
   color: var(--text-on-accent);
 }
 
@@ -180,6 +180,7 @@
     var(--accent-color),
     var(--accent-color-2)
   );
+  border-color: rgba(255, 87, 31, 0.58);
 }
 
 .movie-btn-secondary {
@@ -226,7 +227,6 @@
   border-radius: var(--radius-xl);
   overflow: hidden;
   border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-md);
 }
 
 .movie-trailer-disabled {
@@ -254,7 +254,7 @@
   align-items: center;
   justify-content: center;
   font-size: 1.6rem;
-  box-shadow: var(--shadow-accent);
+  border: 1px solid rgba(255, 87, 31, 0.42);
 }
 
 .movie-empty-overlay {

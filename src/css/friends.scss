@@ -21,7 +21,6 @@
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   font-size: var(--text-sm);
-  box-shadow: var(--shadow-md);
   transition: opacity var(--duration-fast) var(--ease-default);
 }
 
@@ -88,7 +87,6 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--bg-surface) 90%, transparent);
-  box-shadow: var(--shadow-sm);
 }
 
 .friend-requests__title,
@@ -275,7 +273,6 @@
   transition:
     transform 0.28s var(--ease-default),
     border-color var(--duration-fast) var(--ease-default),
-    box-shadow var(--duration-fast) var(--ease-default),
     opacity 0.28s var(--ease-default);
 }
 
@@ -288,7 +285,6 @@
 .friend-card:hover {
   transform: translateY(-2px);
   border-color: rgba(255, 87, 31, 0.28);
-  box-shadow: var(--shadow-md);
 }
 
 .friend-card__avatar {
@@ -389,7 +385,6 @@
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
   opacity: 0;
   pointer-events: none;
   transform: translateX(-50%) translateY(4px);

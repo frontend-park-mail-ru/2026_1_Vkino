@@ -53,8 +53,7 @@
 .catalog-pagination__link.is-current {
   color: #fff4e6;
   background: linear-gradient(180deg, #ff7b33 0%, #ff5a1e 100%);
-  border-color: transparent;
-  box-shadow: 0 10px 24px rgba(255, 90, 30, 0.24);
+  border-color: rgba(255, 90, 30, 0.42);
 }
 
 .catalog-pagination__control.is-disabled {

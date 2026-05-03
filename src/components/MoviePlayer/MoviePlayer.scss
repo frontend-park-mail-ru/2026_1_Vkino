@@ -57,9 +57,8 @@
     rgba(24, 14, 9, 0.97) 0%,
     rgba(9, 6, 4, 0.98) 100%
   );
-  box-shadow:
-    0 24px 90px rgba(0, 0, 0, 0.5),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  outline: 1px solid rgba(255, 255, 255, 0.03);
+  outline-offset: -1px;
   overflow: hidden;
 }
 
@@ -137,8 +136,7 @@
     background 0.18s ease,
     border-color 0.18s ease,
     transform 0.18s ease,
-    color 0.18s ease,
-    box-shadow 0.18s ease;
+    color 0.18s ease;
 }
 
 .movie-player__icon-button {
@@ -204,15 +202,12 @@
   border-radius: 24px;
   overflow: hidden;
   background: #050303;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 16px 48px rgba(0, 0, 0, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .movie-player--embedded .movie-player__video-frame {
   min-height: clamp(280px, 42vw, 640px);
   border-radius: 0;
-  box-shadow: none;
 }
 
 .movie-player__video {
@@ -265,7 +260,7 @@
   font-size: 1.8rem;
   line-height: 1;
   background: rgba(255, 87, 31, 0.9);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 87, 31, 0.42);
   transform: translate(-50%, -50%);
   transition: transform var(--duration-fast) var(--ease-default);
   padding-left: 4px;
@@ -287,7 +282,6 @@
   color: #fff5e7;
   background: rgba(11, 7, 5, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
 }
 
 .movie-player__state--error,
@@ -367,8 +361,8 @@
   width: 12px;
   height: 12px;
   border-radius: 999px;
+  border: 3px solid rgba(255, 108, 47, 0.18);
   background: #ff6c2f;
-  box-shadow: 0 0 0 3px rgba(255, 108, 47, 0.18);
   margin-top: -4px;
 }
 
@@ -381,10 +375,9 @@
 .movie-player__progress::-moz-range-thumb {
   width: 12px;
   height: 12px;
-  border: none;
+  border: 3px solid rgba(255, 108, 47, 0.18);
   border-radius: 999px;
   background: #ff6c2f;
-  box-shadow: 0 0 0 3px rgba(255, 108, 47, 0.18);
 }
 
 .movie-player__control-row {
@@ -411,11 +404,12 @@
   border-radius: 999px;
   color: #ff6c2f;
   background: transparent;
-  border-color: transparent;
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .movie-player__icon-control:hover {
   background: rgba(255, 108, 47, 0.12);
+  border-color: rgba(255, 108, 47, 0.32);
 }
 
 .movie-player__icon-control--chat {
@@ -534,7 +528,8 @@
     rgba(255, 255, 255, 0.04),
     rgba(255, 255, 255, 0.02)
   );
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  outline: 1px solid rgba(255, 255, 255, 0.02);
+  outline-offset: -1px;
 }
 
 .movie-player__episodes-block {
@@ -599,9 +594,8 @@
     rgba(255, 173, 112, 0.08)
   );
   border-color: rgba(255, 154, 88, 0.4);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 194, 153, 0.1),
-    0 10px 24px rgba(0, 0, 0, 0.18);
+  outline: 1px solid rgba(255, 194, 153, 0.1);
+  outline-offset: -1px;
 }
 
 .movie-player__episode-index,

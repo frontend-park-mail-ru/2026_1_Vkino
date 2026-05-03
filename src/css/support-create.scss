@@ -40,7 +40,6 @@
 .support-create__card {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
 }
 
 .support-create__hero-copy {
@@ -68,7 +67,6 @@
   padding: 1rem 1rem 0.95rem;
   border: 0;
   border-radius: 0;
-  box-shadow: none;
   background:
     linear-gradient(135deg, rgba(255, 87, 31, 0.16), transparent 58%),
     linear-gradient(180deg, rgba(14, 6, 3, 0.98), rgba(9, 3, 1, 0.98));
@@ -130,7 +128,6 @@
   padding: 0.85rem 1rem 1rem;
   border: 0;
   border-radius: 0;
-  box-shadow: none;
   background: #090201;
 }
 
@@ -196,8 +193,7 @@
   padding: 0.85rem 0.95rem;
   transition:
     border-color var(--duration-fast) var(--ease-default),
-    background-color var(--duration-fast) var(--ease-default),
-    box-shadow var(--duration-fast) var(--ease-default);
+    background-color var(--duration-fast) var(--ease-default);
 }
 
 .support-create__input:focus {
@@ -260,7 +256,6 @@
   border-top: none;
   border-bottom-left-radius: 14px;
   border-bottom-right-radius: 14px;
-  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.38);
 }
 
 .support-create__category-option {
@@ -393,7 +388,7 @@
   color: var(--text-on-accent);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
-  box-shadow: var(--shadow-accent);
+  border: 1px solid rgba(255, 87, 31, 0.42);
   transition:
     transform var(--duration-fast) var(--ease-default),
     background-color var(--duration-fast) var(--ease-default);
