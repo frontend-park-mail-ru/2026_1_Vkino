@@ -26,8 +26,12 @@
 
 .main-hero-slot {
   padding-top: var(--space-6);
-  margin-left: calc(var(--space-8) * -1);
-  margin-right: calc(var(--space-8) * -1);
+  width: 100vw;
+  max-width: none;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .selection-carousels {
@@ -258,8 +262,9 @@
   }
 
   .main-hero-slot {
-    margin-left: calc(var(--space-4) * -1);
-    margin-right: calc(var(--space-4) * -1);
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
   }
 
   .main-support-widget {

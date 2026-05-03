@@ -90,7 +90,7 @@
   gap: 22px;
   width: max-content;
   min-width: 100%;
-  padding: 12px 48px;
+  padding: 12px 0px;
 }
 
 .poster-carousel__slide {
@@ -134,7 +134,7 @@
   width: 100%;
   min-width: 100%;
   padding-block: 16px;
-  padding-inline: 24px;
+  padding-inline: 0;
 }
 
 .poster-carousel--centered-hero .poster-carousel__slide--hero {
@@ -240,6 +240,14 @@
   top: calc(50% + 2px);
 }
 
+.poster-carousel--centered-hero .poster-carousel__arrow--prev {
+  left: 16px;
+}
+
+.poster-carousel--centered-hero .poster-carousel__arrow--next {
+  right: 16px;
+}
+
 @media (max-width: 1100px) {
   .poster-carousel__slide--hero {
     width: 560px;
@@ -249,6 +257,11 @@
   .poster-carousel__slide--medium {
     width: 224px;
     height: 320px;
+  }
+
+  .poster-carousel--centered-hero .poster-carousel__track {
+    justify-content: center;
+    padding-inline: 0;
   }
 
   .poster-carousel--centered-hero .poster-carousel__slide--compact {
@@ -264,6 +277,14 @@
   .poster-carousel--centered-hero .poster-carousel__slide--hero.is-active {
     width: clamp(360px, 42vw, 500px);
     height: clamp(300px, 34vw, 380px);
+  }
+
+  .poster-carousel--centered-hero .poster-carousel__arrow--prev {
+    left: 16px;
+  }
+
+  .poster-carousel--centered-hero .poster-carousel__arrow--next {
+    right: 16px;
   }
 }
 
@@ -310,6 +331,14 @@
   .poster-carousel__arrow {
     width: 38px;
     height: 50px;
+  }
+
+  .poster-carousel--centered-hero .poster-carousel__arrow--prev {
+    left: 16px;
+  }
+
+  .poster-carousel--centered-hero .poster-carousel__arrow--next {
+    right: 16px;
   }
 }
 
