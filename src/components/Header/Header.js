@@ -9,7 +9,7 @@ import { canManageSupportTicketStatus } from "@/utils/support.js";
 
 
 const PENDING_SCROLL_TARGET_KEY = "vkino_pending_scroll_target";
-const SEARCH_DEBOUNCE_MS = 2000;
+const SEARCH_DEBOUNCE_MS = 500;
 const SEARCH_MOVIE_LIMIT = 4;
 const SEARCH_GENRE_LIMIT = 3;
 const SEARCH_ACTOR_LIMIT = 3;
