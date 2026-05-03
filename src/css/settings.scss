@@ -27,7 +27,6 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: var(--space-6);
-  box-shadow: var(--shadow-sm);
 }
 
 .settings__title,
@@ -133,6 +132,8 @@
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-secondary);
+  border: 0;
+  background: transparent;
 }
 
 .settings-main .icon-button {
@@ -142,11 +143,16 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-full);
-  transition: background-color var(--duration-fast) var(--ease-default);
+  border: 0;
+  background: transparent;
+  transition:
+    border-color var(--duration-fast) var(--ease-default),
+    background-color var(--duration-fast) var(--ease-default);
 }
 
 .settings-main .icon-button:hover {
-  background-color: var(--accent-subtle);
+  background-color: transparent;
+  color: var(--accent);
 }
 
 .settings__eye-btn svg {
@@ -199,6 +205,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 0.65rem 1rem;
   font-weight: var(--weight-medium);
@@ -216,11 +223,13 @@
 
 .settings-main .btn_accent {
   background: var(--accent);
+  border-color: rgba(255, 87, 31, 0.42);
   color: var(--text-on-accent);
 }
 
 .settings-main .btn_accent:hover {
   background: var(--accent-hover);
+  border-color: rgba(255, 87, 31, 0.58);
 }
 
 .settings__coins-history-list {

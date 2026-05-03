@@ -298,14 +298,21 @@ function buildProfileIdentity(profile = {}) {
 }
 
 function buildProfileCarousels(context = {}) {
+  const continueWatching = Array.isArray(context.continueWatching)
+    ? context.continueWatching
+    : [];
+  const watchHistory = Array.isArray(context.watchHistory)
+    ? context.watchHistory
+    : [];
+  const favorites = Array.isArray(context.favorites) ? context.favorites : [];
   const carousels = [
     {
       slotKey: "continue",
       title: "",
-      movies: context.continueWatching,
+      movies: continueWatching,
       posterVariant: "landscape",
       posterSize: "large",
-      showArrows: true,
+      showArrows: continueWatching.length > 1,
       showProgress: true,
       actionText: "Продолжить просмотр",
     },
@@ -313,7 +320,7 @@ function buildProfileCarousels(context = {}) {
       slotKey: "history",
       title: "",
       titleHref: "/profile/history",
-      movies: context.watchHistory,
+      movies: watchHistory,
       posterVariant: "default",
       posterSize: "medium",
       showArrows: false,
@@ -322,7 +329,7 @@ function buildProfileCarousels(context = {}) {
       slotKey: "favorites",
       title: "",
       titleHref: "/favorites",
-      movies: context.favorites,
+      movies: favorites,
       posterVariant: "compact",
       posterSize: "medium",
       showArrows: false,

@@ -47,6 +47,7 @@ export default class MoviePlayerComponent extends BaseComponent {
 
     this._onDocumentKeyDownBound = this._onDocumentKeyDown.bind(this);
     this._onDocumentMouseMoveBound = this._onDocumentMouseMove.bind(this);
+    this._onDocumentClickBound = this._onDocumentClick.bind(this);
     this._onFullscreenChangeBound = this._onFullscreenChange.bind(this);
     this._onBeforeUnloadBound = this._onBeforeUnload.bind(this);
   }
@@ -67,6 +68,7 @@ export default class MoviePlayerComponent extends BaseComponent {
       document.addEventListener("keydown", this._onDocumentKeyDownBound);
       document.addEventListener("mousemove", this._onDocumentMouseMoveBound);
     }
+    document.addEventListener("click", this._onDocumentClickBound);
     document.addEventListener(
       "fullscreenchange",
       this._onFullscreenChangeBound,
@@ -78,6 +80,7 @@ export default class MoviePlayerComponent extends BaseComponent {
     this._unbindDomEvents();
     document.removeEventListener("keydown", this._onDocumentKeyDownBound);
     document.removeEventListener("mousemove", this._onDocumentMouseMoveBound);
+    document.removeEventListener("click", this._onDocumentClickBound);
     document.removeEventListener(
       "fullscreenchange",
       this._onFullscreenChangeBound,
@@ -530,6 +533,25 @@ export default class MoviePlayerComponent extends BaseComponent {
       );
     });
 
+    const episodeMenu = this.el.querySelector('[data-role="episode-menu"]');
+    const episodeMenuTrigger = this.el.querySelector(
+      '[data-action="toggle-episode-menu"]',
+    );
+
+    episodeMenu?.classList.toggle("is-open", this.context.isEpisodeMenuOpen);
+    episodeMenuTrigger?.setAttribute(
+      "aria-expanded",
+      this.context.isEpisodeMenuOpen ? "true" : "false",
+    );
+
+    this.el.querySelectorAll('[data-action="select-episode"]').forEach((node) => {
+      const isActive =
+        normalizeString(node.dataset?.episodeId) ===
+        normalizeString(this.context.activeEpisodeId);
+
+      node.classList.toggle("is-active", isActive);
+    });
+
     if (titleEl) {
       titleEl.textContent = this.context.episodeTitle;
     }
@@ -590,6 +612,10 @@ export default class MoviePlayerComponent extends BaseComponent {
     this._bindAction('[data-action="seek-forward"]', this._onSeekForwardClick);
     this._bindAction('[data-action="toggle-mute"]', this._onToggleMuteClick);
     this._bindAction(
+      '[data-action="toggle-episode-menu"]',
+      this._onToggleEpisodeMenuClick,
+    );
+    this._bindAction(
       '[data-action="toggle-fullscreen"]',
       this._onToggleFullscreenClick,
       true,
@@ -636,6 +662,10 @@ export default class MoviePlayerComponent extends BaseComponent {
       this._onSeekForwardClick,
     );
     this._unbindAction('[data-action="toggle-mute"]', this._onToggleMuteClick);
+    this._unbindAction(
+      '[data-action="toggle-episode-menu"]',
+      this._onToggleEpisodeMenuClick,
+    );
     this._unbindAction(
       '[data-action="toggle-fullscreen"]',
       this._onToggleFullscreenClick,
@@ -878,6 +908,17 @@ export default class MoviePlayerComponent extends BaseComponent {
     this.toggleMute();
   };
 
+  _onToggleEpisodeMenuClick = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    this.context = {
+      ...this.context,
+      isEpisodeMenuOpen: !this.context.isEpisodeMenuOpen,
+    };
+    this.updateUI();
+  };
+
   _onSeekBackwardClick = (event) => {
     event.preventDefault();
     this._seekTo((Number(this.videoEl?.currentTime) || 0) - SEEK_STEP_SECONDS);
@@ -903,6 +944,10 @@ export default class MoviePlayerComponent extends BaseComponent {
 
   _onSelectEpisodeClick = async (event) => {
     event.preventDefault();
+    this.context = {
+      ...this.context,
+      isEpisodeMenuOpen: false,
+    };
     const episodeId = event.currentTarget?.dataset?.episodeId;
 
     if (!episodeId || episodeId === this.context.activeEpisodeId) {
@@ -914,6 +959,24 @@ export default class MoviePlayerComponent extends BaseComponent {
       restoreProgress: true,
     });
   };
+
+  _onDocumentClick(event) {
+    if (!this.context.isEpisodeMenuOpen || !this.el) {
+      return;
+    }
+
+    const menu = this.el.querySelector('[data-role="episode-menu"]');
+
+    if (menu?.contains(event.target)) {
+      return;
+    }
+
+    this.context = {
+      ...this.context,
+      isEpisodeMenuOpen: false,
+    };
+    this.updateUI();
+  }
 
   _onProgressInput = (event) => {
     const target = event.currentTarget;
@@ -1203,6 +1266,8 @@ function createInitialContext() {
     activeEpisode: null,
     episodes: [],
     hasEpisodes: false,
+    showEpisodeMenuButton: false,
+    isEpisodeMenuOpen: false,
     episodesCountLabel: "",
     episodeTitle: "Видео",
     episodeDescription: "",
@@ -1222,6 +1287,11 @@ function buildOpenContext(movieData, activeEpisodeId) {
   const episodes = markActiveEpisode(movieData.episodes, activeEpisodeId);
   const activeEpisode =
     episodes.find((episode) => episode.isActive) || episodes[0] || null;
+  const normalizedContentType = normalizeString(movieData.contentType).toLowerCase();
+  const shouldShowEpisodeMenu =
+    (normalizedContentType === "series" ||
+      normalizedContentType === "serial") &&
+    episodes.length > 0;
 
   return {
     isOpen: true,
@@ -1241,6 +1311,8 @@ function buildOpenContext(movieData, activeEpisodeId) {
     activeEpisode,
     episodes,
     hasEpisodes: episodes.length > 1,
+    showEpisodeMenuButton: shouldShowEpisodeMenu,
+    isEpisodeMenuOpen: false,
     episodesCountLabel: `${episodes.length} ${pluralizeEpisodes(episodes.length)}`,
     episodeTitle: activeEpisode?.displayTitle || movieData.title,
     episodeDescription: activeEpisode?.description || movieData.description,

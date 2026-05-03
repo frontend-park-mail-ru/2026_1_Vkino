@@ -25,20 +25,98 @@
           class="vk-header__search-input"
           type="search"
           name="search"
+          value="{{searchQuery}}"
           placeholder="Введите название"
           autocomplete="off"
+          data-role="header-search-input"
         />
         <button
           class="vk-header__search-submit"
-          type="button"
-          data-action="toggle-search"
-          aria-label="Скрыть поиск"
+          type="submit"
+          aria-label="Найти"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="11" cy="11" r="5.5"></circle>
             <path d="M15.5 15.5L20 20"></path>
           </svg>
         </button>
+
+        {{#if isSearchPanelVisible}}
+          <div class="vk-header__search-panel">
+            {{#if isSearchLoading}}
+              <div class="vk-header__search-state">Ищем...</div>
+            {{else}}
+              {{#if searchMovies.length}}
+                <section class="vk-header__search-group">
+                  <h3 class="vk-header__search-group-title">Фильмы</h3>
+                  <div class="vk-header__search-list">
+                    {{#each searchMovies}}
+                      <a href="{{href}}" class="vk-header__search-item" router-link>
+                        <div class="vk-header__search-thumb">
+                          {{#if imageUrl}}
+                            <img src="{{imageUrl}}" alt="{{title}}" loading="lazy" />
+                          {{/if}}
+                        </div>
+                        <div class="vk-header__search-copy">
+                          <div class="vk-header__search-item-title">{{title}}</div>
+                          {{#if subtitle}}
+                            <div class="vk-header__search-item-meta">{{subtitle}}</div>
+                          {{/if}}
+                        </div>
+                      </a>
+                    {{/each}}
+                  </div>
+                </section>
+              {{/if}}
+
+              {{#if searchGenres.length}}
+                <section class="vk-header__search-group">
+                  <h3 class="vk-header__search-group-title">Жанры</h3>
+                  <div class="vk-header__search-list">
+                    {{#each searchGenres}}
+                      <a href="{{href}}" class="vk-header__search-item" router-link>
+                        <div class="vk-header__search-thumb">
+                          {{#if imageUrl}}
+                            <img src="{{imageUrl}}" alt="{{title}}" loading="lazy" />
+                          {{/if}}
+                        </div>
+                        <div class="vk-header__search-copy">
+                          <div class="vk-header__search-item-title">{{title}}</div>
+                          <div class="vk-header__search-item-meta">Фильмов на платформе: {{count}}</div>
+                        </div>
+                      </a>
+                    {{/each}}
+                  </div>
+                </section>
+              {{/if}}
+
+              {{#if searchActors.length}}
+                <section class="vk-header__search-group">
+                  <h3 class="vk-header__search-group-title">Актёры</h3>
+                  <div class="vk-header__search-list">
+                    {{#each searchActors}}
+                      <a href="{{href}}" class="vk-header__search-item" router-link>
+                        <div class="vk-header__search-thumb">
+                          {{#if imageUrl}}
+                            <img src="{{imageUrl}}" alt="{{title}}" loading="lazy" />
+                          {{/if}}
+                        </div>
+                        <div class="vk-header__search-copy">
+                          <div class="vk-header__search-item-title">{{title}}</div>
+                          <div class="vk-header__search-item-meta">Фильмов на платформе: {{count}}</div>
+                        </div>
+                      </a>
+                    {{/each}}
+                  </div>
+                </section>
+              {{/if}}
+
+              {{#unless hasSearchResults}}
+                <div class="vk-header__search-state">Ничего не найдено</div>
+              {{/unless}}
+            {{/if}}
+          </div>
+        {{/if}}
       </form>
     {{else}}
       <nav class="vk-header__nav" aria-label="Основная навигация">
@@ -49,7 +127,7 @@
         >
           Совместный просмотр
         </a>
-        <a href="/">Избранное</a>
+        <a href="{{favoritesHref}}" router-link>Избранное</a>
         <button
           class="vk-header__search"
           type="button"
@@ -98,7 +176,7 @@
         data-action="close-all-menus"
       >{{supportTicketsLabel}}</a>
       <a href="/settings" router-link data-action="close-all-menus">Настройки</a>
-      <button type="button" data-action="logout">Выход</button>
+      <button type="button" class="vk-header__logout-button" data-action="logout">Выход</button>
     </div>
   {{/if}}
 </div>

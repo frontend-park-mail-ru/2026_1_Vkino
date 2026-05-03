@@ -8,7 +8,7 @@
 .poster-carousel__header {
   display: flex;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .poster-carousel__title-link {
@@ -90,7 +90,7 @@
   gap: 22px;
   width: max-content;
   min-width: 100%;
-  padding: 12px 48px;
+  padding: 4px 0 12px;
 }
 
 .poster-carousel__slide {
@@ -134,11 +134,11 @@
   width: 100%;
   min-width: 100%;
   padding-block: 16px;
-  padding-inline: 24px;
+  padding-inline: 0;
 }
 
 .poster-carousel--centered-hero .poster-carousel__slide--hero {
-  width: clamp(260px, 28vw, 380px);
+  width: clamp(320px, 30vw, 800px);
   height: clamp(300px, 33vw, 380px);
   opacity: 0.58;
   filter: saturate(0.8);
@@ -148,7 +148,7 @@
 }
 
 .poster-carousel--centered-hero .poster-carousel__slide--hero.is-active {
-  width: clamp(360px, 40vw, 560px);
+  width: clamp(420px, 40vw, 900px);
   height: clamp(320px, 36vw, 420px);
   opacity: 1;
   filter: none;
@@ -189,9 +189,7 @@
 .poster-carousel--centered-hero
   .poster-carousel__slide:not(.is-active)
   .movie-poster-card__media {
-  box-shadow:
-    inset 0 0 0 1px rgba(230, 204, 171, 0.08),
-    0 12px 28px rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(230, 204, 171, 0.12);
 }
 
 .poster-carousel__slot {
@@ -210,8 +208,8 @@
   justify-content: center;
   border-radius: 14px;
   background: rgba(245, 232, 208, 0.18);
+  border: 1px solid rgba(245, 232, 208, 0.06);
   color: #ff6a2a;
-  box-shadow: inset 0 0 0 1px rgba(245, 232, 208, 0.06);
   z-index: 3;
   transition:
     background 0.2s ease,
@@ -242,6 +240,14 @@
   top: calc(50% + 2px);
 }
 
+.poster-carousel--centered-hero .poster-carousel__arrow--prev {
+  left: 16px;
+}
+
+.poster-carousel--centered-hero .poster-carousel__arrow--next {
+  right: 16px;
+}
+
 @media (max-width: 1100px) {
   .poster-carousel__slide--hero {
     width: 560px;
@@ -251,6 +257,11 @@
   .poster-carousel__slide--medium {
     width: 224px;
     height: 320px;
+  }
+
+  .poster-carousel--centered-hero .poster-carousel__track {
+    justify-content: center;
+    padding-inline: 0;
   }
 
   .poster-carousel--centered-hero .poster-carousel__slide--compact {
@@ -266,6 +277,14 @@
   .poster-carousel--centered-hero .poster-carousel__slide--hero.is-active {
     width: clamp(360px, 42vw, 500px);
     height: clamp(300px, 34vw, 380px);
+  }
+
+  .poster-carousel--centered-hero .poster-carousel__arrow--prev {
+    left: 16px;
+  }
+
+  .poster-carousel--centered-hero .poster-carousel__arrow--next {
+    right: 16px;
   }
 }
 
@@ -312,6 +331,14 @@
   .poster-carousel__arrow {
     width: 38px;
     height: 50px;
+  }
+
+  .poster-carousel--centered-hero .poster-carousel__arrow--prev {
+    left: 16px;
+  }
+
+  .poster-carousel--centered-hero .poster-carousel__arrow--next {
+    right: 16px;
   }
 }
 

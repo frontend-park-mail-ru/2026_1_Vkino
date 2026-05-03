@@ -56,6 +56,18 @@ async function start() {
       (root) => new CatalogPage({ catalogKey: "genres" }, null, root),
     )
     .registerRoute(
+      "/search",
+      (root) =>
+        new CatalogPage(
+          {
+            catalogKey: "search",
+            basePath: "/search",
+          },
+          null,
+          root,
+        ),
+    )
+    .registerRoute(
       "/movies",
       (root) =>
         new CatalogPage(

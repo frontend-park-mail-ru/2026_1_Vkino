@@ -96,9 +96,8 @@
   gap: var(--space-12);
   align-items: center;
   position: relative;
-  box-shadow:
-    var(--shadow-lg),
-    0 0 80px var(--accent-subtle);
+  outline: 1px solid rgba(255, 87, 31, 0.16);
+  outline-offset: -1px;
 }
 
 /* ---- Колонка с формой ---- */
@@ -130,9 +129,8 @@
       var(--auth-close-surface-start),
       var(--auth-close-surface-end)
     );
-  box-shadow:
-    var(--shadow-lg),
-    inset 0 1px 0 var(--auth-close-sheen);
+  outline: 1px solid rgba(255, 255, 255, 0.04);
+  outline-offset: -1px;
   backdrop-filter: blur(16px);
   color: var(--auth-close-text);
   text-decoration: none;
@@ -143,7 +141,7 @@
     border-color var(--duration-fast) var(--ease-default),
     background var(--duration-fast) var(--ease-default),
     color var(--duration-fast) var(--ease-default),
-    box-shadow var(--duration-fast) var(--ease-default);
+    outline-color var(--duration-fast) var(--ease-default);
 }
 
 .auth-styles .auth-close-link::before {
@@ -180,10 +178,7 @@
     );
   color: var(--auth-close-text-hover);
   transform: translateY(-3px) scale(1.03);
-  box-shadow:
-    var(--shadow-lg),
-    var(--shadow-accent),
-    inset 0 1px 0 var(--auth-close-sheen-strong);
+  outline-color: rgba(255, 87, 31, 0.24);
 }
 
 .auth-styles .auth-close-link:hover::before {
@@ -214,11 +209,9 @@
   border-radius: 999px;
   background: currentColor;
   transform-origin: center;
-  box-shadow: 0 0 14px var(--auth-close-line-glow);
   transition:
     width var(--duration-fast) var(--ease-default),
-    transform var(--duration-fast) var(--ease-default),
-    box-shadow var(--duration-fast) var(--ease-default);
+    transform var(--duration-fast) var(--ease-default);
 }
 
 .auth-styles .auth-close-line:first-child {
@@ -231,7 +224,6 @@
 
 .auth-styles .auth-close-link:hover .auth-close-line {
   width: 15px;
-  box-shadow: 0 0 16px var(--accent-subtle);
 }
 
 .auth-styles .auth-close-link:hover .auth-close-line:first-child {
@@ -257,7 +249,6 @@
   opacity: 0;
   pointer-events: none;
   transform: translateY(-50%) translateX(-10px);
-  box-shadow: var(--shadow-md);
   transition:
     opacity var(--duration-fast) var(--ease-default),
     transform var(--duration-fast) var(--ease-default),
@@ -275,10 +266,17 @@
 .auth-styles .auth-close-link:focus-visible {
   outline: none;
   border-color: var(--auth-close-border-hover);
-  box-shadow:
-    0 0 0 4px var(--auth-close-focus-ring),
-    var(--shadow-lg),
-    inset 0 1px 0 var(--auth-close-sheen);
+  background:
+    radial-gradient(
+      circle at 30% 30%,
+      var(--accent-subtle) 0%,
+      transparent 38%
+    ),
+    linear-gradient(
+      145deg,
+      var(--auth-close-surface-start),
+      var(--auth-close-surface-hover-end)
+    );
 }
 
 @media (max-width: 900px) {
@@ -362,7 +360,6 @@
   justify-content: center;
   gap: var(--space-2);
   margin-bottom: var(--space-6);
-  text-shadow: 0 0 28px rgba(255, 87, 31, 0.4);
 }
 
 .auth-styles .logo img {
@@ -409,8 +406,7 @@
   font-family: var(--font-sans);
   transition:
     background var(--duration-fast) var(--ease-default),
-    border-color var(--duration-fast) var(--ease-default),
-    box-shadow var(--duration-fast) var(--ease-default);
+    border-color var(--duration-fast) var(--ease-default);
 }
 
 .auth-styles input::placeholder {
@@ -422,7 +418,6 @@
   outline: none;
   background: var(--input-bg-focus);
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
 .auth-styles .is-error {
@@ -457,6 +452,7 @@
   width: 48px;
   height: 100%;
   background: transparent;
+  border: 0;
   color: var(--text-secondary);
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
   display: flex;
@@ -490,6 +486,7 @@
   width: 100%;
   padding: 13px var(--space-4);
   background: var(--accent);
+  border: 1px solid rgba(255, 87, 31, 0.42);
   border-radius: var(--radius-md);
   color: var(--text-on-accent);
   font-size: var(--text-base);
@@ -499,11 +496,14 @@
   margin-top: var(--space-4);
   position: relative;
   overflow: hidden;
-  transition: background var(--duration-fast) var(--ease-default);
+  transition:
+    background var(--duration-fast) var(--ease-default),
+    border-color var(--duration-fast) var(--ease-default);
 }
 
 .auth-styles .btn:hover {
   background: var(--accent-hover);
+  border-color: rgba(255, 87, 31, 0.58);
   color: var(--text-color);
 }
 

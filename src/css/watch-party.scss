@@ -25,7 +25,6 @@
 .watch-party__section {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
 }
 
 .watch-party__status {
@@ -129,8 +128,7 @@
     transform var(--duration-fast) var(--ease-default),
     border-color var(--duration-fast) var(--ease-default),
     background-color var(--duration-fast) var(--ease-default),
-    color var(--duration-fast) var(--ease-default),
-    box-shadow var(--duration-fast) var(--ease-default);
+    color var(--duration-fast) var(--ease-default);
 }
 
 .watch-party__button:hover,
@@ -142,12 +140,13 @@
 .watch-party__button--accent {
   background: var(--accent);
   color: var(--text-on-accent);
-  box-shadow: var(--shadow-accent);
+  border-color: rgba(255, 87, 31, 0.42);
 }
 
 .watch-party__button--accent:hover,
 .watch-party__button--accent:focus-visible {
   background: var(--accent-hover);
+  border-color: rgba(255, 87, 31, 0.58);
 }
 
 .watch-party__button--ghost {
@@ -189,7 +188,7 @@
 
 .watch-party__poster-card {
   min-height: 190px;
-  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(230, 204, 171, 0.12);
 }
 
 .watch-party__poster-card img,
@@ -224,7 +223,7 @@
   height: 3rem;
   border-radius: 50%;
   background: rgba(255, 87, 31, 0.82);
-  box-shadow: var(--shadow-accent);
+  border: 1px solid rgba(255, 87, 31, 0.42);
 }
 
 .watch-party__poster-play::before {
@@ -389,7 +388,7 @@
   transition:
     background-color var(--duration-fast) var(--ease-default),
     border-color var(--duration-fast) var(--ease-default),
-    box-shadow var(--duration-fast) var(--ease-default);
+    color var(--duration-fast) var(--ease-default);
 }
 
 .watch-party__input::placeholder {
@@ -400,7 +399,6 @@
   outline: none;
   border-color: var(--border-focus);
   background: var(--input-bg-focus);
-  box-shadow: 0 0 0 3px rgba(255, 87, 31, 0.12);
 }
 
 .watch-party__input--select {
@@ -542,7 +540,8 @@
     rgba(12, 6, 3, 0.98),
     rgba(6, 3, 1, 0.98)
   );
-  box-shadow: var(--shadow-lg);
+  outline: 1px solid rgba(255, 255, 255, 0.04);
+  outline-offset: -1px;
   padding: clamp(2rem, 5vw, 4rem);
   text-align: center;
 }
@@ -564,6 +563,7 @@
   padding: 0.85rem 1.2rem;
   border-radius: calc(var(--radius-md) + 2px);
   background: var(--accent);
+  border: 1px solid rgba(255, 87, 31, 0.42);
   color: var(--text-on-accent);
 }
 
@@ -872,7 +872,7 @@
   height: 4.25rem;
   border-radius: 50%;
   background: rgba(255, 87, 31, 0.88);
-  box-shadow: var(--shadow-accent);
+  border: 1px solid rgba(255, 87, 31, 0.42);
 }
 
 .watch-room-player__big-play::before {
@@ -1100,7 +1100,6 @@
   border-left: 1px solid rgba(230, 204, 171, 0.12);
   background:
     linear-gradient(180deg, rgba(13, 6, 3, 0.88), rgba(6, 3, 1, 0.88));
-  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.4);
   transform: translateX(100%);
   visibility: hidden;
   pointer-events: none;
@@ -1483,7 +1482,6 @@
 .watch-room-chat__input:focus {
   outline: none;
   border-color: rgba(255, 87, 31, 0.28);
-  box-shadow: 0 0 0 3px rgba(255, 87, 31, 0.12);
 }
 
 .watch-room-chat__composer-remove {
@@ -1573,7 +1571,14 @@
   padding-inline: 1rem;
   background: var(--accent);
   color: var(--text-on-accent);
-  box-shadow: var(--shadow-accent);
+  border: 1px solid rgba(255, 87, 31, 0.42);
+}
+
+.watch-room-chat__attach_accent:hover,
+.watch-room-chat__attach_accent:focus-visible,
+.watch-room-chat__send:hover,
+.watch-room-chat__send:focus-visible {
+  border-color: rgba(255, 87, 31, 0.58);
 }
 
 @media (max-width: 1200px) {

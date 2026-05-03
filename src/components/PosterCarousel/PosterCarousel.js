@@ -297,6 +297,7 @@ function buildCarouselContext(context = {}) {
 
   return {
     ...context,
+    showTitle: !centeredHero && Boolean(context.title),
     showArrows: context.showArrows !== false,
     centeredHero,
     posterItems: movies.map((movie, index) => ({

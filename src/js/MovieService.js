@@ -138,6 +138,23 @@ export class MovieService {
 
     return this.api.get(`/actor/${encodeURIComponent(normalizedActorId)}`);
   }
+
+  async searchMovies(query) {
+    const normalizedQuery = String(query ?? "").trim();
+
+    if (!normalizedQuery) {
+      return {
+        ok: false,
+        status: 0,
+        resp: null,
+        error: "MovieService: не передан поисковый запрос",
+      };
+    }
+
+    return this.api.get("/search", {
+      query: { query: normalizedQuery },
+    });
+  }
 }
 
 /**

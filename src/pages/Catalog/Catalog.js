@@ -6,6 +6,7 @@ import HeaderComponent from "@/components/Header/Header.js";
 import MoviePosterComponent from "@/components/MoviePoster/MoviePoster.js";
 import PaginationComponent from "@/components/Pagination/Pagination.js";
 import { movieService } from "@/js/MovieService.js";
+import { getCacheFallbackNotice } from "@/utils/apiMeta.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
 
 const DEFAULT_PAGE_SIZE = 12;
@@ -25,6 +26,12 @@ const CATALOG_CONFIGS = {
   },
   history: {
     title: "Недавно просмотренные",
+    requestSelectionTitles: [],
+    selectionTitles: [],
+    contentTypes: [],
+  },
+  search: {
+    title: "Поиск",
     requestSelectionTitles: [],
     selectionTitles: [],
     contentTypes: [],
@@ -97,9 +104,15 @@ export default class CatalogPage extends BasePage {
   }
 
   async loadContext() {
-    const { ok, status, resp, error } = await movieService.getSelectionsByTitles(
+    if (normalizeString(this.context.catalogKey).toLowerCase() === "search") {
+      await this._loadSearchContext();
+      return;
+    }
+
+    const selectionsResult = await movieService.getSelectionsByTitles(
       resolveRequestedSelectionTitles(this.context),
     );
+    const { ok, status, resp, error } = selectionsResult;
 
     if (!ok) {
       this.refresh(
@@ -170,7 +183,11 @@ export default class CatalogPage extends BasePage {
 
   onHide() {}
 
-  onRefresh() {}
+  onRefresh() {
+    if (!this._hasProvidedItems && this.context.isLoading) {
+      this.loadContext();
+    }
+  }
 
   _setupPosterGrid() {
     if (this.context.isLoading || this.context.hasError) {
@@ -230,13 +247,76 @@ export default class CatalogPage extends BasePage {
       }),
     );
   };
+
+  async _loadSearchContext() {
+    const searchQuery = normalizeString(this.context.searchQuery);
+
+    if (!searchQuery) {
+      this.refresh(
+        buildCatalogContext({
+          ...this.context,
+          isLoading: false,
+          hasError: false,
+          errorMessage: "",
+          cacheMessage: "",
+          items: [],
+          totalPages: 1,
+        }),
+      );
+      applyCatalogDocumentTitle(this.context.catalogKey, this.context.title);
+      return;
+    }
+
+    const result = await movieService.searchMovies(searchQuery);
+
+    if (!result.ok) {
+      this.refresh(
+        buildCatalogContext({
+          ...this.context,
+          isLoading: false,
+          hasError: true,
+          errorMessage: mapCatalogLoadError(result.status, result.error),
+          cacheMessage: "",
+          items: [],
+          totalPages: 1,
+        }),
+      );
+      applyCatalogDocumentTitle(this.context.catalogKey, this.context.title);
+      return;
+    }
+
+    const rawItems = Array.isArray(result.resp?.movies) ? result.resp.movies : [];
+    const paginationState = paginateItems(
+      normalizeCatalogItems(rawItems),
+      this.context.currentPage,
+      this.context.pageSize,
+    );
+
+    this.refresh(
+      buildCatalogContext({
+        ...this.context,
+        isLoading: false,
+        hasError: false,
+        errorMessage: "",
+        cacheMessage: "",
+        items: paginationState.items,
+        currentPage: paginationState.currentPage,
+        totalPages: paginationState.totalPages,
+      }),
+    );
+    applyCatalogDocumentTitle(this.context.catalogKey, this.context.title);
+  }
 }
 
 function buildCatalogContext(context = {}) {
   const catalogConfig = resolveCatalogConfig(context.catalogKey);
   const selectionTitle = resolveSelectionTitle(context);
+  const searchQuery = resolveSearchQuery(context);
   const title =
-    normalizeString(context.title) || selectionTitle || catalogConfig.title;
+    normalizeString(context.title) ||
+    (searchQuery ? `Поиск: ${searchQuery}` : "") ||
+    selectionTitle ||
+    catalogConfig.title;
   const currentPage = normalizePositiveInteger(
     context.currentPage,
     readCurrentPageFromLocation(),
@@ -258,6 +338,7 @@ function buildCatalogContext(context = {}) {
     ...context,
     title,
     selectionTitle,
+    searchQuery,
     pageSize,
     currentPage,
     totalPages,
@@ -646,6 +727,10 @@ function mapCatalogLoadError(status, errorMessage = "") {
     return "Каталог не найден";
   }
 
+  if (status === 400) {
+    return errorMessage || "Некорректный поисковый запрос";
+  }
+
   if (status >= 500) {
     return "Сервис каталога временно недоступен";
   }
@@ -675,6 +760,25 @@ function resolveSelectionTitle(context = {}) {
   }
 
   return readSelectionTitleFromLocation();
+}
+
+function resolveSearchQuery(context = {}) {
+  const explicitQuery = normalizeString(context.searchQuery);
+
+  if (explicitQuery) {
+    return explicitQuery;
+  }
+
+  if (normalizeString(context.catalogKey).toLowerCase() !== "search") {
+    return "";
+  }
+
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  return normalizeString(params.get("query"));
 }
 
 function readSelectionTitleFromLocation() {

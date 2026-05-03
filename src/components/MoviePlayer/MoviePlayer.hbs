@@ -165,6 +165,47 @@
               </div>
 
               <div class="movie-player__control-group">
+                {{#if showEpisodeMenuButton}}
+                  <div
+                    class="movie-player__episode-menu{{#if isEpisodeMenuOpen}} is-open{{/if}}"
+                    data-role="episode-menu"
+                  >
+                    <button
+                      class="movie-player__episode-menu-trigger"
+                      type="button"
+                      data-action="toggle-episode-menu"
+                      aria-label="Открыть список эпизодов"
+                      aria-expanded="{{#if isEpisodeMenuOpen}}true{{else}}false{{/if}}"
+                    >
+                      <span class="movie-player__episode-menu-trigger-label">
+                        Серии
+                      </span>
+                    </button>
+
+                    <div class="movie-player__episode-menu-popup" data-role="episode-menu-popup">
+                      <div class="movie-player__episode-menu-head">
+                        <h3 class="movie-player__section-title">Эпизоды</h3>
+                        <span class="movie-player__episodes-meta">{{episodesCountLabel}}</span>
+                      </div>
+
+                      <div class="movie-player__episode-menu-list">
+                        {{#each episodes}}
+                          <button
+                            class="movie-player__episode-item {{#if this.isActive}}is-active{{/if}}"
+                            type="button"
+                            data-action="select-episode"
+                            data-episode-id="{{this.id}}"
+                          >
+                            <span class="movie-player__episode-index">{{this.metaLabel}}</span>
+                            <span class="movie-player__episode-title">{{this.title}}</span>
+                            <span class="movie-player__episode-duration">{{this.durationLabel}}</span>
+                          </button>
+                        {{/each}}
+                      </div>
+                    </div>
+                  </div>
+                {{/if}}
+
                 {{#if showChatControl}}
                   <button
                     class="movie-player__icon-control movie-player__icon-control--chat"
