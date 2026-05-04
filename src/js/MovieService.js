@@ -187,7 +187,7 @@ export class MovieService {
     }
 
     const result = await this.rootApi.get(
-      `/genre/${encodeURIComponent(normalizedId)}`,
+      `/movie/genre/${encodeURIComponent(normalizedId)}`,
     );
 
     if (!result.ok) {
