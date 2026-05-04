@@ -162,7 +162,7 @@ export class MovieService {
   }
 
   async getGenres() {
-    const result = await this.rootApi.get("/genres");
+    const result = await this.rootApi.get("/movie/genres");
 
     if (!result.ok) {
       return result;
