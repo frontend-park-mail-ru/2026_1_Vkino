@@ -54,6 +54,57 @@ export function extractSelections(payload) {
   return [];
 }
 
+export function extractGenres(payload) {
+  const unwrapped = unwrapPayload(payload);
+
+  if (Array.isArray(unwrapped)) {
+    return unwrapped;
+  }
+
+  if (!unwrapped || typeof unwrapped !== "object") {
+    return [];
+  }
+
+  const candidates = [
+    unwrapped.genres,
+    unwrapped.Genres,
+    unwrapped.items,
+    unwrapped.Items,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  return [];
+}
+
+export function extractGenre(payload) {
+  const unwrapped = unwrapPayload(payload);
+
+  if (!unwrapped || typeof unwrapped !== "object" || Array.isArray(unwrapped)) {
+    return null;
+  }
+
+  const candidates = [
+    unwrapped.genre,
+    unwrapped.Genre,
+    unwrapped.item,
+    unwrapped.Item,
+    unwrapped,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
 export function extractActor(payload) {
   const unwrapped = unwrapPayload(payload);
 

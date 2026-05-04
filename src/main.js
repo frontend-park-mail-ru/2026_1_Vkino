@@ -56,6 +56,10 @@ async function start() {
       (root) => new CatalogPage({ catalogKey: "genres" }, null, root),
     )
     .registerRoute(
+      "/genre/:id",
+      (root) => new CatalogPage({ catalogKey: "genre" }, null, root),
+    )
+    .registerRoute(
       "/search",
       (root) =>
         new CatalogPage(
