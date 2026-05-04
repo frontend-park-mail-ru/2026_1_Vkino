@@ -162,7 +162,7 @@ export class MovieService {
   }
 
   async getGenres() {
-    const result = await this.api.get("/genres/");
+    const result = await this.rootApi.get("/genres/");
 
     if (!result.ok) {
       return result;
@@ -186,7 +186,7 @@ export class MovieService {
       };
     }
 
-    const result = await this.api.get(
+    const result = await this.rootApi.get(
       `/genre/${encodeURIComponent(normalizedId)}`,
     );
 
