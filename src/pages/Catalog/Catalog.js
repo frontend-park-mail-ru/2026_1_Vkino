@@ -38,7 +38,13 @@ const CATALOG_CONFIGS = {
   },
   genres: {
     title: "Жанры",
-    requestSelectionTitles: ["Жанры"],
+    requestSelectionTitles: [],
+    selectionTitles: [],
+    contentTypes: [],
+  },
+  genre: {
+    title: "Жанр",
+    requestSelectionTitles: [],
     selectionTitles: [],
     contentTypes: [],
   },
@@ -104,8 +110,20 @@ export default class CatalogPage extends BasePage {
   }
 
   async loadContext() {
-    if (normalizeString(this.context.catalogKey).toLowerCase() === "search") {
+    const catalogKey = normalizeString(this.context.catalogKey).toLowerCase();
+
+    if (catalogKey === "search") {
       await this._loadSearchContext();
+      return;
+    }
+
+    if (catalogKey === "genres") {
+      await this._loadGenresContext();
+      return;
+    }
+
+    if (catalogKey === "genre") {
+      await this._loadGenreContext();
       return;
     }
 
@@ -306,6 +324,110 @@ export default class CatalogPage extends BasePage {
     );
     applyCatalogDocumentTitle(this.context.catalogKey, this.context.title);
   }
+
+  async _loadGenresContext() {
+    const result = await movieService.getGenres();
+
+    if (!result.ok) {
+      this.refresh(
+        buildCatalogContext({
+          ...this.context,
+          isLoading: false,
+          hasError: true,
+          errorMessage: mapCatalogLoadError(result.status, result.error),
+          cacheMessage: "",
+          items: [],
+          totalPages: 1,
+        }),
+      );
+      applyCatalogDocumentTitle(this.context.catalogKey, this.context.title);
+      return;
+    }
+
+    const paginationState = paginateItems(
+      normalizeGenreCatalogItems(result.resp),
+      this.context.currentPage,
+      this.context.pageSize,
+    );
+
+    this.refresh(
+      buildCatalogContext({
+        ...this.context,
+        isLoading: false,
+        hasError: false,
+        errorMessage: "",
+        cacheMessage: getCacheFallbackNotice(result),
+        items: paginationState.items,
+        currentPage: paginationState.currentPage,
+        totalPages: paginationState.totalPages,
+      }),
+    );
+    applyCatalogDocumentTitle(this.context.catalogKey, this.context.title);
+  }
+
+  async _loadGenreContext() {
+    const genreId = resolveGenreId(this.context);
+
+    if (!genreId) {
+      this.refresh(
+        buildCatalogContext({
+          ...this.context,
+          isLoading: false,
+          hasError: true,
+          errorMessage: "Не передан id жанра",
+          cacheMessage: "",
+          items: [],
+          totalPages: 1,
+        }),
+      );
+      applyCatalogDocumentTitle(this.context.catalogKey, this.context.title);
+      return;
+    }
+
+    const result = await movieService.getGenreById(genreId);
+
+    if (!result.ok || !result.resp) {
+      this.refresh(
+        buildCatalogContext({
+          ...this.context,
+          isLoading: false,
+          hasError: true,
+          errorMessage: mapCatalogLoadError(result.status, result.error),
+          cacheMessage: "",
+          items: [],
+          totalPages: 1,
+        }),
+      );
+      applyCatalogDocumentTitle(this.context.catalogKey, this.context.title);
+      return;
+    }
+
+    const genreTitle =
+      normalizeString(result.resp.title) ||
+      normalizeString(this.context.title) ||
+      CATALOG_CONFIGS.genre.title;
+    const paginationState = paginateItems(
+      normalizeCatalogItems(result.resp.movies),
+      this.context.currentPage,
+      this.context.pageSize,
+    );
+
+    this.refresh(
+      buildCatalogContext({
+        ...this.context,
+        genreId,
+        title: genreTitle,
+        isLoading: false,
+        hasError: false,
+        errorMessage: "",
+        cacheMessage: getCacheFallbackNotice(result),
+        items: paginationState.items,
+        currentPage: paginationState.currentPage,
+        totalPages: paginationState.totalPages,
+      }),
+    );
+    applyCatalogDocumentTitle(this.context.catalogKey, genreTitle);
+  }
 }
 
 function buildCatalogContext(context = {}) {
@@ -475,6 +597,16 @@ function normalizeCatalogItems(items = []) {
     .filter(Boolean);
 }
 
+function normalizeGenreCatalogItems(genres = []) {
+  if (!Array.isArray(genres)) {
+    return [];
+  }
+
+  return genres
+    .map((genre, index) => normalizeGenreCatalogItem(genre, index))
+    .filter(Boolean);
+}
+
 function normalizeCatalogItem(movie = {}, index = 0, selectionTitle = "") {
   if (!movie || typeof movie !== "object") {
     return null;
@@ -529,6 +661,32 @@ function normalizeCatalogItem(movie = {}, index = 0, selectionTitle = "") {
     contentType,
     selectionTitle,
   };
+}
+
+function normalizeGenreCatalogItem(genre = {}, index = 0) {
+  if (!genre || typeof genre !== "object") {
+    return null;
+  }
+
+  const genreId = normalizeString(genre.id || genre.genre_id || genre.genreId);
+  const genreTitle = normalizeString(genre.title || genre.name);
+
+  if (!genreId || !genreTitle) {
+    return null;
+  }
+
+  return normalizeCatalogItem(
+    {
+      ...genre,
+      id: genreId,
+      title: genreTitle,
+      href: genre.href || `/genre/${encodeURIComponent(genreId)}`,
+      description: normalizeString(genre.description),
+      actionText: "Открыть",
+      genres: [],
+    },
+    index,
+  );
 }
 
 function normalizeGenres(genres) {
@@ -781,12 +939,44 @@ function resolveSearchQuery(context = {}) {
   return normalizeString(params.get("query"));
 }
 
+function resolveGenreId(context = {}) {
+  const explicitGenreId = normalizeString(context.genreId);
+
+  if (explicitGenreId) {
+    return explicitGenreId;
+  }
+
+  if (normalizeString(context.catalogKey).toLowerCase() !== "genre") {
+    return "";
+  }
+
+  return readGenreIdFromLocation();
+}
+
 function readSelectionTitleFromLocation() {
   if (typeof window === "undefined") {
     return "";
   }
 
   const match = window.location.pathname.match(/^\/selection\/(.+)$/);
+
+  if (!match?.[1]) {
+    return "";
+  }
+
+  try {
+    return decodeURIComponent(match[1]).trim();
+  } catch {
+    return match[1].trim();
+  }
+}
+
+function readGenreIdFromLocation() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const match = window.location.pathname.match(/^\/genre\/(.+)$/);
 
   if (!match?.[1]) {
     return "";

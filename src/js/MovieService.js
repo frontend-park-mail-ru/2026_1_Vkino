@@ -1,4 +1,9 @@
 import { apiService } from "./api.js";
+import {
+  extractGenre,
+  extractGenres,
+  unwrapPayload,
+} from "@/utils/apiResponse.js";
 
 /**
  * Сервис для работы с фильмами и подборками.
@@ -155,6 +160,45 @@ export class MovieService {
       query: { query: normalizedQuery },
     });
   }
+
+  async getGenres() {
+    const result = await this.rootApi.get("/genres");
+
+    if (!result.ok) {
+      return result;
+    }
+
+    return {
+      ...result,
+      resp: normalizeGenresResponse(result.resp),
+    };
+  }
+
+  async getGenreById(id) {
+    const normalizedId = String(id ?? "").trim();
+
+    if (!normalizedId) {
+      return {
+        ok: false,
+        status: 0,
+        resp: null,
+        error: "MovieService: не передан id жанра",
+      };
+    }
+
+    const result = await this.rootApi.get(
+      `/movie/genre/${encodeURIComponent(normalizedId)}`,
+    );
+
+    if (!result.ok) {
+      return result;
+    }
+
+    return {
+      ...result,
+      resp: normalizeGenreResponse(result.resp, normalizedId),
+    };
+  }
 }
 
 /**
@@ -199,4 +243,81 @@ function normalizeSelection(selection, requestedTitle = "") {
       String(selection.name || "").trim() ||
       String(requestedTitle || "").trim(),
   };
+}
+
+function normalizeGenresResponse(resp) {
+  return extractGenres(resp)
+    .map((genre, index) => normalizeGenreSummary(genre, index))
+    .filter(Boolean);
+}
+
+function normalizeGenreResponse(resp, fallbackId = "") {
+  const unwrapped = unwrapPayload(resp);
+
+  if (Array.isArray(unwrapped)) {
+    return {
+      id: String(fallbackId || "").trim(),
+      title: "",
+      movies: unwrapped,
+    };
+  }
+
+  const genre = extractGenre(resp);
+
+  if (!genre) {
+    return null;
+  }
+
+  const normalizedId =
+    String(genre.id ?? genre.genre_id ?? genre.genreId ?? fallbackId).trim();
+  const normalizedTitle = String(genre.title ?? genre.name ?? "").trim();
+
+  return {
+    ...genre,
+    id: normalizedId,
+    title: normalizedTitle,
+    movies: extractGenreMovies(genre),
+  };
+}
+
+function normalizeGenreSummary(genre, index = 0) {
+  if (!genre || typeof genre !== "object") {
+    return null;
+  }
+
+  const normalizedId = String(
+    genre.id ?? genre.genre_id ?? genre.genreId ?? "",
+  ).trim();
+  const normalizedTitle = String(genre.title ?? genre.name ?? "").trim();
+
+  if (!normalizedId || !normalizedTitle) {
+    return null;
+  }
+
+  return {
+    ...genre,
+    id: normalizedId,
+    title: normalizedTitle,
+    href: `/genre/${encodeURIComponent(normalizedId)}`,
+    order: Number.isFinite(Number(genre.order)) ? Number(genre.order) : index,
+  };
+}
+
+function extractGenreMovies(genre = {}) {
+  const candidates = [
+    genre.movies,
+    genre.Movies,
+    genre.titles,
+    genre.Titles,
+    genre.items,
+    genre.Items,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  return [];
 }
