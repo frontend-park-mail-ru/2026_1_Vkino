@@ -298,12 +298,28 @@
   background: transparent;
 }
 
+.vk-header__avatar-wrap {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #d9d9d9;
+}
+
 .vk-header__avatar {
   width: 40px;
   height: 40px;
-  border-radius: 999px;
+  display: block;
+  max-width: none;
+  border-radius: inherit;
   border: 0;
-  background: #d9d9d9;
+  object-fit: cover;
+  object-position: center;
+  background: #261009;
 }
 
 .vk-header__profile-menu {
