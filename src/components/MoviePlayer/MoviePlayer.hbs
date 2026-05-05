@@ -147,20 +147,7 @@
                 </p>
 
                 {{#if showMuteControl}}
-                  <button
-                    class="movie-player__icon-control"
-                    type="button"
-                    data-action="toggle-mute"
-                    aria-label="Включить или выключить звук"
-                  >
-                    <img
-                      class="movie-player__icon movie-player__icon--sound"
-                      src="/icons/sound_level.svg"
-                      alt=""
-                      aria-hidden="true"
-                    />
-                    <span class="movie-player__mute-slash" aria-hidden="true"></span>
-                  </button>
+                  <div data-role="volume-control"></div>
                 {{/if}}
               </div>
 
