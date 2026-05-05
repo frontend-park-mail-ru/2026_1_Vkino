@@ -11,6 +11,7 @@ import WatchPartyPage from "./pages/WatchParty/WatchParty.js";
 import SupportCreatePage from "./pages/SupportCreate/SupportCreate.js";
 import SupportTicketsPage from "./pages/SupportTickets/SupportTickets.js";
 import FriendsPage from "./pages/Friends/Friends.js";
+import NotFoundPage from "./pages/NotFound/NotFound.js";
 
 
 import "./css/index.scss";
@@ -148,7 +149,8 @@ async function start() {
       (root) => new SupportCreatePage({}, null, root),
     )
     .registerRoute("/movie/:id", (root) => new MoviePage({}, null, root))
-    .registerRoute("/actor/:id", (root) => new ActorPage({}, null, root));
+    .registerRoute("/actor/:id", (root) => new ActorPage({}, null, root))
+    .registerRoute("/404", (root) => new NotFoundPage({}, null, root));
 
   router.init();
 }

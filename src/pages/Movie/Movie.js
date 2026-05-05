@@ -431,8 +431,8 @@ function mapMovieDtoToViewModel(dto) {
     releaseYear: mapReleaseYear(dto.release_year),
     duration: mapDurationSeconds(dto.duration_seconds),
     age: mapAgeLimit(dto.age_limit),
-    language: mapLanguage(dto.original_language_id),
-    country: mapCountry(dto.country_id),
+    language: mapLanguage(dto.original_language || dto.original_language_id),
+    country: mapCountry(dto.country || dto.country_id),
     genres: mapGenresLabel(dto.genres),
     genreLinks: mapGenreLinks(dto.genres),
     posterUrl,
@@ -612,8 +612,14 @@ function mapActors(value) {
     .filter(Boolean);
 }
 
-function mapCountry(countryId) {
-  const numericCountryId = Number(countryId);
+function mapCountry(value) {
+  const normalizedCountry = normalizeString(value);
+
+  if (normalizedCountry && !/^\d+$/.test(normalizedCountry)) {
+    return normalizedCountry;
+  }
+
+  const numericCountryId = Number(value);
 
   if (Number.isFinite(numericCountryId) && COUNTRY_BY_ID[numericCountryId]) {
     return COUNTRY_BY_ID[numericCountryId];
@@ -626,8 +632,14 @@ function mapCountry(countryId) {
   return "Не указана";
 }
 
-function mapLanguage(languageId) {
-  const numericLanguageId = Number(languageId);
+function mapLanguage(value) {
+  const normalizedLanguage = normalizeString(value);
+
+  if (normalizedLanguage && !/^\d+$/.test(normalizedLanguage)) {
+    return normalizedLanguage;
+  }
+
+  const numericLanguageId = Number(value);
 
   if (Number.isFinite(numericLanguageId) && LANGUAGE_BY_ID[numericLanguageId]) {
     return LANGUAGE_BY_ID[numericLanguageId];
