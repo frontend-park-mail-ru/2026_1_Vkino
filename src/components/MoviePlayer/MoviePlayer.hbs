@@ -64,26 +64,29 @@
               </button>
             </div>
 
-            {{#if isLoading}}
-              <div class="movie-player__state movie-player__state--loading" data-role="loading-state">
-                <span class="movie-player__spinner" aria-hidden="true"></span>
-                <span>Загружаем видео...</span>
-              </div>
-            {{/if}}
+            <div
+              class="movie-player__state movie-player__state--loading {{#unless isLoading}}is-hidden{{/unless}}"
+              data-role="loading-state"
+            >
+              <span class="movie-player__spinner" aria-hidden="true"></span>
+              <span>Загружаем видео...</span>
+            </div>
 
-            {{#if hasError}}
-              <div class="movie-player__state movie-player__state--error" data-role="error-state">
-                <p class="movie-player__state-title">Не удалось запустить видео</p>
-                <p class="movie-player__state-text">{{errorText}}</p>
-              </div>
-            {{/if}}
+            <div
+              class="movie-player__state movie-player__state--error {{#unless hasError}}is-hidden{{/unless}}"
+              data-role="error-state"
+            >
+              <p class="movie-player__state-title">Не удалось запустить видео</p>
+              <p class="movie-player__state-text" data-role="error-state-text">{{errorText}}</p>
+            </div>
 
-            {{#if isEmpty}}
-              <div class="movie-player__state movie-player__state--empty" data-role="empty-state">
-                <p class="movie-player__state-title">Видео недоступно</p>
-                <p class="movie-player__state-text">{{emptyText}}</p>
-              </div>
-            {{/if}}
+            <div
+              class="movie-player__state movie-player__state--empty {{#unless isEmpty}}is-hidden{{/unless}}"
+              data-role="empty-state"
+            >
+              <p class="movie-player__state-title">Фильм недоступен</p>
+              <p class="movie-player__state-text" data-role="empty-state-text">{{emptyText}}</p>
+            </div>
           </div>
 
           <div class="movie-player__controls" data-role="controls">

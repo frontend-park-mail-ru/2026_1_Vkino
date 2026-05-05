@@ -9,6 +9,7 @@ const CONTROLS_HIDE_DELAY_MS = 2200;
 const SEEK_STEP_SECONDS = 10;
 const PROGRESS_SAVE_THROTTLE_MS = 10_000;
 const DEFAULT_VOLUME = 1;
+const UNAVAILABLE_MOVIE_TEXT = "Пока данный фильм недоступен для просмотра :(";
 
 export default class MoviePlayerComponent extends BaseComponent {
   constructor(context = {}, parent = null, el = null) {
@@ -149,7 +150,7 @@ export default class MoviePlayerComponent extends BaseComponent {
         ...this.context,
         isLoading: false,
         isEmpty: true,
-        emptyText: "Для этого фильма пока нет доступных эпизодов.",
+        emptyText: UNAVAILABLE_MOVIE_TEXT,
       };
       this.updateUI();
       return;
@@ -280,7 +281,23 @@ export default class MoviePlayerComponent extends BaseComponent {
         ...this.context,
         isLoading: false,
         isEmpty: true,
-        emptyText: "Ссылка на видео отсутствует.",
+        emptyText: UNAVAILABLE_MOVIE_TEXT,
+      };
+      this._clearVideoSource();
+      this.updateUI();
+      return;
+    }
+
+    const playbackAvailability = await checkPlaybackAvailability(playbackUrl);
+
+    if (playbackAvailability?.status === 404) {
+      this.context = {
+        ...this.context,
+        isLoading: false,
+        hasError: false,
+        errorText: "",
+        isEmpty: true,
+        emptyText: UNAVAILABLE_MOVIE_TEXT,
       };
       this._clearVideoSource();
       this.updateUI();
@@ -578,12 +595,22 @@ export default class MoviePlayerComponent extends BaseComponent {
     const titleEl = this.el.querySelector(".movie-player__title");
     const descriptionEl = this.el.querySelector(".movie-player__description");
     const posterLayer = this.el.querySelector('[data-role="poster-layer"]');
+    const loadingState = this.el.querySelector('[data-role="loading-state"]');
+    const errorState = this.el.querySelector('[data-role="error-state"]');
+    const errorStateText = this.el.querySelector(
+      '[data-role="error-state-text"]',
+    );
+    const emptyState = this.el.querySelector('[data-role="empty-state"]');
+    const emptyStateText = this.el.querySelector(
+      '[data-role="empty-state-text"]',
+    );
 
     overlay?.classList.toggle("is-open", this.context.isOpen);
     overlay?.classList.toggle(
       "is-controls-visible",
       this.context.areControlsVisible,
     );
+    overlay?.classList.toggle("is-empty", this.context.isEmpty);
     overlay?.classList.toggle(
       "is-fullscreen-fallback",
       this.context.isFullscreenFallback,
@@ -658,6 +685,17 @@ export default class MoviePlayerComponent extends BaseComponent {
         this.context.hasError ||
         this.context.isEmpty,
     );
+    loadingState?.classList.toggle("is-hidden", !this.context.isLoading);
+    errorState?.classList.toggle("is-hidden", !this.context.hasError);
+    emptyState?.classList.toggle("is-hidden", !this.context.isEmpty);
+
+    if (errorStateText) {
+      errorStateText.textContent = this.context.errorText || "";
+    }
+
+    if (emptyStateText) {
+      emptyStateText.textContent = this.context.emptyText || "";
+    }
   }
 
   getPlaybackState() {
@@ -1256,10 +1294,13 @@ export default class MoviePlayerComponent extends BaseComponent {
   _onVideoError = () => {
     this.context = {
       ...this.context,
-      hasError: true,
       isLoading: false,
-      errorText: "Не удалось воспроизвести видео.",
+      hasError: false,
+      errorText: "",
+      isEmpty: true,
+      emptyText: UNAVAILABLE_MOVIE_TEXT,
     };
+    this._clearVideoSource();
     this.updateUI();
   };
 
@@ -1621,6 +1662,31 @@ function mapPlaybackError(status, errorText = "") {
   }
 
   return errorText || "Не удалось загрузить видео.";
+}
+
+async function checkPlaybackAvailability(playbackUrl) {
+  const normalizedPlaybackUrl = normalizeString(playbackUrl);
+
+  if (!normalizedPlaybackUrl) {
+    return {
+      ok: false,
+      status: 0,
+    };
+  }
+
+  try {
+    const response = await fetch(normalizedPlaybackUrl, {
+      method: "HEAD",
+      credentials: "include",
+    });
+
+    return {
+      ok: response.ok,
+      status: response.status,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function normalizeString(value) {

@@ -283,10 +283,66 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.movie-player__state.is-hidden {
+  display: none;
+}
+
 .movie-player__state--error,
 .movie-player__state--empty {
   align-items: flex-start;
   flex-direction: column;
+}
+
+.movie-player.is-empty .movie-player__heading,
+.movie-player.is-empty .movie-player__sidebar,
+.movie-player.is-empty .movie-player__video,
+.movie-player.is-empty .movie-player__poster-layer {
+  display: none;
+}
+
+.movie-player.is-empty .movie-player__topbar {
+  justify-content: flex-start;
+}
+
+.movie-player.is-empty .movie-player__controls {
+  left: auto;
+  right: 22px;
+  bottom: 22px;
+  width: auto;
+  padding: 0;
+  background: transparent;
+}
+
+.movie-player.is-empty .movie-player__timeline,
+.movie-player.is-empty .movie-player__control-group:first-child,
+.movie-player.is-empty .movie-player__episode-menu,
+.movie-player.is-empty .movie-player__icon-control--chat {
+  display: none;
+}
+
+.movie-player.is-empty .movie-player__control-row,
+.movie-player.is-empty .movie-player__control-group {
+  justify-content: flex-end;
+}
+
+.movie-player.is-empty .movie-player__video-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.movie-player.is-empty .movie-player__state--empty {
+  inset: auto;
+  position: relative;
+  transform: none;
+  width: min(520px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 24px 28px;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  border-radius: 24px;
+  background: rgba(11, 7, 5, 0.92);
 }
 
 .movie-player__state-title {
