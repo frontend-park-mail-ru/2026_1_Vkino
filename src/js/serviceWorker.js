@@ -9,6 +9,11 @@ export function registerServiceWorker() {
     return;
   }
 
+  if (import.meta.env.DEV) {
+    void unregisterServiceWorkers();
+    return;
+  }
+
   const buildId = String(import.meta.env.VITE_APP_BUILD_ID || "dev").trim();
   const serviceWorkerUrl = buildId
     ? `${SERVICE_WORKER_PATH}?build=${encodeURIComponent(buildId)}`
@@ -38,6 +43,25 @@ export function registerServiceWorker() {
   }
 
   window.addEventListener("load", () => void register(), { once: true });
+}
+
+async function unregisterServiceWorkers() {
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+
+    await Promise.allSettled(
+      registrations.map((registration) => registration.unregister()),
+    );
+
+    if ("caches" in window) {
+      const cacheKeys = await caches.keys();
+      await Promise.allSettled(cacheKeys.map((key) => caches.delete(key)));
+    }
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error("Не удалось отключить service worker в dev", error);
+    }
+  }
 }
 
 function setupServiceWorkerUpdates(registration) {
