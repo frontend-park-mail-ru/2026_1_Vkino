@@ -134,6 +134,8 @@ export class UserService {
 
     if (avatarFile) {
       formData.append("avatar", avatarFile);
+    } else {
+      formData.append("avatar", "null");
     }
 
     return this.api.put("/profile", formData);

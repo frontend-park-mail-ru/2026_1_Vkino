@@ -117,6 +117,23 @@
   color: var(--text-primary);
 }
 
+.movie-genre-links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.movie-genre-link {
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+.movie-genre-link:hover {
+  color: var(--accent);
+}
+
 .movie-ratings {
   display: flex;
   flex-wrap: wrap;
