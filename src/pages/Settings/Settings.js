@@ -8,6 +8,7 @@ import { userService } from "@/js/UserService.js";
 import { authStore } from "@/store/authStore.js";
 import { router } from "@/router/index.js";
 import HeaderComponent from "@/components/Header/Header.js";
+import { getApiErrorMessage } from "@/utils/apiError.js";
 import { resolveAvatarUrl } from "@/utils/avatar.js";
 import { extractProfile } from "@/utils/apiResponse.js";
 
@@ -465,8 +466,9 @@ export default class SettingsPage extends BasePage {
     );
     if (!profileResult.ok) {
       this._setProfileSaveError(
-        profileResult.error ||
-          "Не удалось сохранить профиль. Попробуйте позже.",
+        getApiErrorMessage(profileResult, {
+          fallback: "Не удалось сохранить профиль. Попробуйте позже.",
+        }),
       );
       if (saveBtn) saveBtn.disabled = false;
       return;
@@ -526,7 +528,10 @@ export default class SettingsPage extends BasePage {
       setError(
         this.el.querySelector("#oldPassword"),
         this.el.querySelector("#old-password-error"),
-        changeResult.error || "Не удалось сменить пароль",
+        getApiErrorMessage(changeResult, {
+          context: "change-password",
+          fallback: "Не удалось сменить пароль.",
+        }),
       );
       return;
     }

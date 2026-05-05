@@ -5,6 +5,7 @@ import { initPasswordToggle } from "@/js/password/eye-btn.js";
 import { initAuthValidation, setError } from "@/js/password/validation.js";
 import { router } from "@/router/index.js";
 import { authStore } from "@/store/authStore.js";
+import { getApiErrorMessage } from "@/utils/apiError.js";
 import { SupportWidgetController } from "@/utils/supportWidget.js";
 
 /**
@@ -103,10 +104,10 @@ export default class SignInPage extends BasePage {
       setError(
         password,
         passwordError,
-        result.resp?.Error ||
-          result.resp?.message ||
-          result.error ||
-          "Не удалось выполнить вход",
+        getApiErrorMessage(result, {
+          context: "sign-in",
+          fallback: "Не удалось выполнить вход.",
+        }),
       );
       return;
     }

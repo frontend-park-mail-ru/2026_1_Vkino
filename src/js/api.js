@@ -1,3 +1,8 @@
+import {
+  extractRawApiPayloadError,
+  mapApiErrorMessage,
+} from "@/utils/apiError.js";
+
 /**
  * Сервис для выполнения HTTP-запросов к API backend.
  * Управляет базовым URL, пространством имен эндпоинтов и токеном авторизации.
@@ -170,11 +175,14 @@ export class ApiService {
       }
     }
 
+    const rawError = extractRawApiPayloadError(parsedBody);
+
     return {
       ok: response.ok,
       status: response.status,
       resp: parsedBody,
-      error: extractErrorMessage(parsedBody),
+      rawError,
+      error: mapApiErrorMessage(response.status, rawError),
       aborted: false,
       meta: extractResponseMeta(response),
     };
@@ -239,16 +247,6 @@ export class ApiService {
   delete(endpoint) {
     return this.request(endpoint, { method: "DELETE" });
   }
-}
-
-/**
- * Функция, извлекающая сообщение об ошибке из ответа сервера.
- * @param {Object} resp ответ сервера
- * @returns {string} сообщение об ошибке или пустая строка
- */
-function extractErrorMessage(resp) {
-  if (!resp || typeof resp !== "object") return "";
-  return resp.Error || resp.error || resp.message || "";
 }
 
 function appendQueryParams(url, query = null) {

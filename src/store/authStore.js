@@ -1,5 +1,6 @@
 import { createStore } from "./createStore.js";
 import { userService } from "@/js/UserService.js";
+import { getApiErrorMessage } from "@/utils/apiError.js";
 import { extractProfile } from "@/utils/apiResponse.js";
 
 const initialState = {
@@ -145,7 +146,12 @@ class AuthStore {
     const signInResult = await userService.signIn(credentials);
 
     if (!signInResult.ok) {
-      this._setGuest(signInResult.resp?.Error || "Не удалось выполнить вход");
+      this._setGuest(
+        getApiErrorMessage(signInResult, {
+          context: "sign-in",
+          fallback: "Не удалось выполнить вход.",
+        }),
+      );
       return signInResult;
     }
 
@@ -181,7 +187,9 @@ class AuthStore {
 
     if (!signUpResult.ok) {
       this._setGuest(
-        signUpResult.resp?.Error || "Не удалось выполнить регистрацию",
+        getApiErrorMessage(signUpResult, {
+          fallback: "Не удалось выполнить регистрацию.",
+        }),
       );
       return signUpResult;
     }
