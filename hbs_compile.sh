@@ -2,6 +2,7 @@ handlebars ./src/components/Header/Header.hbs -f ./src/components/Header/Header.
 handlebars ./src/components/MoviePoster/MoviePoster.hbs -f ./src/components/MoviePoster/MoviePoster.precompiled.js
 handlebars ./src/components/PosterCarousel/PosterCarousel.hbs -f ./src/components/PosterCarousel/PosterCarousel.precompiled.js
 handlebars ./src/components/MoviePlayer/MoviePlayer.hbs -f ./src/components/MoviePlayer/MoviePlayer.precompiled.js
+handlebars ./src/components/MoviePlayerVolume/MoviePlayerVolume.hbs -f ./src/components/MoviePlayerVolume/MoviePlayerVolume.precompiled.js
 handlebars ./src/components/Pagination/Pagination.hbs -f ./src/components/Pagination/Pagination.precompiled.js
 handlebars ./src/components/SupportTicketsHero/SupportTicketsHero.hbs -f ./src/components/SupportTicketsHero/SupportTicketsHero.precompiled.js
 handlebars ./src/components/SupportTicketsSidebar/SupportTicketsSidebar.hbs -f ./src/components/SupportTicketsSidebar/SupportTicketsSidebar.precompiled.js

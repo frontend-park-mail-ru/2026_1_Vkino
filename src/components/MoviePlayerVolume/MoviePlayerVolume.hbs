@@ -1,0 +1,37 @@
+<div
+  class="movie-player-volume{{#if isMuted}} is-muted{{/if}}"
+  data-role="volume-root"
+  aria-label="Управление громкостью"
+>
+  <button
+    class="movie-player__icon-control movie-player-volume__toggle{{#if isMuted}} is-muted{{/if}}"
+    type="button"
+    data-action="toggle-mute"
+    aria-label="{{buttonLabel}}"
+  >
+    <img
+      class="movie-player__icon movie-player__icon--sound"
+      src="/icons/sound_level.svg"
+      alt=""
+      aria-hidden="true"
+    />
+    <span class="movie-player__mute-slash" aria-hidden="true"></span>
+  </button>
+
+  <div class="movie-player-volume__slider-shell">
+    <input
+      class="movie-player-volume__slider"
+      type="range"
+      min="0"
+      max="100"
+      step="1"
+      value="{{volumePercent}}"
+      data-role="volume-input"
+      aria-label="Изменить громкость"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="{{volumePercent}}"
+      aria-valuetext="{{volumeValueText}}"
+    />
+  </div>
+</div>

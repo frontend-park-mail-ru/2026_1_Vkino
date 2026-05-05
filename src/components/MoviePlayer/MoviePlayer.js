@@ -1,5 +1,6 @@
 import { BaseComponent } from "@/components/BaseComponent.js";
 import "./MoviePlayer.precompiled.js";
+import MoviePlayerVolumeComponent from "@/components/MoviePlayerVolume/MoviePlayerVolume.js";
 import { authStore } from "@/store/authStore.js";
 import { playerService } from "@/js/PlayerService.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
@@ -7,6 +8,7 @@ import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
 const CONTROLS_HIDE_DELAY_MS = 2200;
 const SEEK_STEP_SECONDS = 10;
 const PROGRESS_SAVE_THROTTLE_MS = 10_000;
+const DEFAULT_VOLUME = 1;
 
 export default class MoviePlayerComponent extends BaseComponent {
   constructor(context = {}, parent = null, el = null) {
@@ -44,6 +46,7 @@ export default class MoviePlayerComponent extends BaseComponent {
     this._isDestroyed = false;
     this._lastSavedSecond = -1;
     this._closeRequestedCallback = null;
+    this._lastNonZeroVolume = DEFAULT_VOLUME;
 
     this._onDocumentKeyDownBound = this._onDocumentKeyDown.bind(this);
     this._onDocumentMouseMoveBound = this._onDocumentMouseMove.bind(this);
@@ -60,6 +63,27 @@ export default class MoviePlayerComponent extends BaseComponent {
 
     this._isInitialized = true;
     return super.init();
+  }
+
+  setupChildren() {
+    const volumeRoot = this.el.querySelector('[data-role="volume-control"]');
+
+    if (!volumeRoot || !this.context.showMuteControl) {
+      return;
+    }
+
+    this.addChild(
+      "movie-player-volume",
+      new MoviePlayerVolumeComponent(
+        buildVolumeControlContext(this.context, {
+          onToggleMute: this.toggleMute.bind(this),
+          onVolumeInput: this.setVolume.bind(this),
+          onVolumeCommit: this.setVolume.bind(this),
+        }),
+        this,
+        volumeRoot,
+      ),
+    );
   }
 
   addEventListeners() {
@@ -365,11 +389,79 @@ export default class MoviePlayerComponent extends BaseComponent {
       return;
     }
 
-    this.videoEl.muted = !this.videoEl.muted;
+    const currentVolume = resolvePlayerVolume(
+      this.videoEl.volume,
+      this.context.volumePercent / 100,
+    );
+
+    if (this.videoEl.muted || currentVolume <= 0) {
+      const restoreVolume = clampVolume(
+        this._lastNonZeroVolume,
+        DEFAULT_VOLUME,
+      );
+
+      this.videoEl.volume = restoreVolume;
+      this.videoEl.muted = false;
+    } else {
+      this._lastNonZeroVolume = currentVolume;
+      this.videoEl.muted = true;
+    }
+
+    this._syncVolumeState();
+    this.updateUI();
+  }
+
+  setVolume(nextVolumePercent) {
+    if (!this.videoEl) {
+      return;
+    }
+
+    const normalizedPercent = clampPercent(
+      nextVolumePercent,
+      this.context.volumePercent,
+    );
+    const normalizedVolume = clampVolume(
+      normalizedPercent / 100,
+      this.context.volumePercent / 100,
+    );
+
+    this.videoEl.volume = normalizedVolume;
+    this.videoEl.muted = normalizedVolume <= 0;
+
+    if (normalizedVolume > 0) {
+      this._lastNonZeroVolume = normalizedVolume;
+    }
+
+    this._syncVolumeState();
+    this.updateUI();
+  }
+
+  restoreAudioState({ volumePercent = null, isMuted = null } = {}) {
+    const normalizedPercent = clampPercent(
+      volumePercent,
+      this.context.volumePercent,
+    );
+    const normalizedVolume = clampVolume(
+      normalizedPercent / 100,
+      this.context.volumePercent / 100,
+    );
+    const nextIsMuted =
+      typeof isMuted === "boolean" ? isMuted : normalizedVolume <= 0;
+
+    if (this.videoEl) {
+      this.videoEl.volume = normalizedVolume;
+      this.videoEl.muted = nextIsMuted;
+    }
+
+    if (normalizedVolume > 0) {
+      this._lastNonZeroVolume = normalizedVolume;
+    }
+
     this.context = {
       ...this.context,
-      isMuted: this.videoEl.muted,
-      muteButtonLabel: this.videoEl.muted ? "Включить звук" : "Выключить звук",
+      volumePercent: normalizedPercent,
+      isMuted: nextIsMuted,
+      muteButtonLabel: nextIsMuted ? "Включить звук" : "Выключить звук",
     };
     this.updateUI();
   }
@@ -483,7 +575,6 @@ export default class MoviePlayerComponent extends BaseComponent {
     const fullscreenButtons = this.el.querySelectorAll(
       '[data-action="toggle-fullscreen"]',
     );
-    const muteButtons = this.el.querySelectorAll('[data-action="toggle-mute"]');
     const titleEl = this.el.querySelector(".movie-player__title");
     const descriptionEl = this.el.querySelector(".movie-player__description");
     const posterLayer = this.el.querySelector('[data-role="poster-layer"]');
@@ -525,13 +616,13 @@ export default class MoviePlayerComponent extends BaseComponent {
       );
     });
 
-    muteButtons.forEach((button) => {
-      button.classList.toggle("is-muted", this.context.isMuted);
-      button.setAttribute(
-        "aria-label",
-        this.context.isMuted ? "Включить звук" : "Выключить звук",
-      );
-    });
+    this.getChild("movie-player-volume")?.sync(
+      buildVolumeControlContext(this.context, {
+        onToggleMute: this.toggleMute.bind(this),
+        onVolumeInput: this.setVolume.bind(this),
+        onVolumeCommit: this.setVolume.bind(this),
+      }),
+    );
 
     const episodeMenu = this.el.querySelector('[data-role="episode-menu"]');
     const episodeMenuTrigger = this.el.querySelector(
@@ -576,6 +667,12 @@ export default class MoviePlayerComponent extends BaseComponent {
         Number(this.videoEl?.currentTime) || Number(this.context.currentTime) || 0,
       isPlaying: Boolean(this.context.isPlaying),
       isMuted: Boolean(this.context.isMuted),
+      volumePercent: clampPercent(this.context.volumePercent, 100),
+      volume:
+        resolvePlayerVolume(
+          this.videoEl?.volume,
+          this.context.volumePercent / 100,
+        ) || 0,
     };
   }
 
@@ -585,7 +682,10 @@ export default class MoviePlayerComponent extends BaseComponent {
     }
 
     this.removeEventListeners();
+    this.destroyChildren();
     this.render();
+    this.setupChildren();
+    this.initChildren();
     this.addEventListeners();
     this._bindElements();
   }
@@ -594,7 +694,12 @@ export default class MoviePlayerComponent extends BaseComponent {
     this.videoEl = this.el.querySelector('[data-role="video"]');
 
     if (this.videoEl) {
+      this.videoEl.volume = clampVolume(
+        this.context.volumePercent / 100,
+        DEFAULT_VOLUME,
+      );
       this.videoEl.muted = this.context.isMuted;
+      this._syncVolumeState();
     }
   }
 
@@ -610,7 +715,6 @@ export default class MoviePlayerComponent extends BaseComponent {
       this._onSeekBackwardClick,
     );
     this._bindAction('[data-action="seek-forward"]', this._onSeekForwardClick);
-    this._bindAction('[data-action="toggle-mute"]', this._onToggleMuteClick);
     this._bindAction(
       '[data-action="toggle-episode-menu"]',
       this._onToggleEpisodeMenuClick,
@@ -661,7 +765,6 @@ export default class MoviePlayerComponent extends BaseComponent {
       '[data-action="seek-forward"]',
       this._onSeekForwardClick,
     );
-    this._unbindAction('[data-action="toggle-mute"]', this._onToggleMuteClick);
     this._unbindAction(
       '[data-action="toggle-episode-menu"]',
       this._onToggleEpisodeMenuClick,
@@ -902,12 +1005,6 @@ export default class MoviePlayerComponent extends BaseComponent {
     event.preventDefault();
     this.togglePlay();
   };
-
-  _onToggleMuteClick = (event) => {
-    event.preventDefault();
-    this.toggleMute();
-  };
-
   _onToggleEpisodeMenuClick = (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -1132,13 +1229,29 @@ export default class MoviePlayerComponent extends BaseComponent {
   };
 
   _onVolumeChange = () => {
-    this.context = {
-      ...this.context,
-      isMuted: Boolean(this.videoEl?.muted),
-      muteButtonLabel: this.videoEl?.muted ? "Включить звук" : "Выключить звук",
-    };
+    this._syncVolumeState();
     this.updateUI();
   };
+
+  _syncVolumeState() {
+    const normalizedVolume = resolvePlayerVolume(
+      this.videoEl?.volume,
+      this.context.volumePercent / 100,
+    );
+    const volumePercent = clampPercent(normalizedVolume * 100, 100);
+    const isMuted = Boolean(this.videoEl?.muted) || normalizedVolume <= 0;
+
+    if (normalizedVolume > 0) {
+      this._lastNonZeroVolume = normalizedVolume;
+    }
+
+    this.context = {
+      ...this.context,
+      volumePercent,
+      isMuted,
+      muteButtonLabel: isMuted ? "Включить звук" : "Выключить звук",
+    };
+  }
 
   _onVideoError = () => {
     this.context = {
@@ -1254,6 +1367,7 @@ function createInitialContext() {
     areControlsVisible: true,
     isPlaying: false,
     isMuted: false,
+    volumePercent: 100,
     isFullscreen: false,
     isFullscreenFallback: false,
     isAuthenticated: false,
@@ -1455,6 +1569,41 @@ function calculateProgressPercent(currentTime, duration) {
     0,
     Math.min((Number(currentTime) / normalizedDuration) * 100, 100),
   );
+}
+
+function buildVolumeControlContext(context = {}, callbacks = {}) {
+  return {
+    volumePercent: clampPercent(context.volumePercent, 100),
+    isMuted: Boolean(context.isMuted),
+    buttonLabel: context.muteButtonLabel || "Выключить звук",
+    onToggleMute: callbacks.onToggleMute || null,
+    onVolumeInput: callbacks.onVolumeInput || null,
+    onVolumeCommit: callbacks.onVolumeCommit || null,
+  };
+}
+
+function clampVolume(value, fallback = DEFAULT_VOLUME) {
+  const normalizedValue = Number(value);
+
+  if (!Number.isFinite(normalizedValue)) {
+    return fallback;
+  }
+
+  return Math.max(0, Math.min(normalizedValue, 1));
+}
+
+function clampPercent(value, fallback = 100) {
+  const normalizedValue = Number(value);
+
+  if (!Number.isFinite(normalizedValue)) {
+    return fallback;
+  }
+
+  return Math.max(0, Math.min(Math.round(normalizedValue), 100));
+}
+
+function resolvePlayerVolume(value, fallback = DEFAULT_VOLUME) {
+  return clampVolume(value, clampVolume(fallback, DEFAULT_VOLUME));
 }
 
 function mapPlaybackError(status, errorText = "") {
