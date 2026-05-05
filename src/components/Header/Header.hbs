@@ -151,11 +151,13 @@
           aria-label="Открыть меню профиля"
           aria-expanded="{{isProfileMenuOpen}}"
         >
-          <img
-            class="vk-header__avatar"
-            src="{{avatarUrl}}"
-            alt="Аватар пользователя"
-          />
+          <span class="vk-header__avatar-wrap">
+            <img
+              class="vk-header__avatar"
+              src="{{avatarUrl}}"
+              alt="Аватар пользователя"
+            />
+          </span>
         </button>
       {{else}}
         <a class="vk-header__auth-link" href="/sign-in" router-link>Вход</a>

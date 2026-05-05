@@ -68,7 +68,21 @@
               </div>
               <div class="movie-meta-row">
                 <dt>Жанр</dt>
-                <dd>{{movie.genres}}</dd>
+                <dd>
+                  {{#if movie.genreLinks.length}}
+                    <span class="movie-genre-links">
+                      {{#each movie.genreLinks}}
+                        <a
+                          class="movie-genre-link"
+                          href="{{this.href}}"
+                          router-link
+                        >{{this.title}}</a>
+                      {{/each}}
+                    </span>
+                  {{else}}
+                    {{movie.genres}}
+                  {{/if}}
+                </dd>
               </div>
               <div class="movie-meta-row">
                 <dt>Страна</dt>

@@ -155,8 +155,7 @@
 
 .movie-player__icon-button:hover,
 .movie-player__control-button:hover,
-.movie-player__center-play:hover,
-.movie-player__episode-item:hover {
+.movie-player__center-play:hover {
   transform: translateY(-1px);
 }
 
@@ -669,6 +668,7 @@
 .movie-player__episode-item:hover {
   background: rgba(214, 107, 43, 0.12);
   border-color: rgba(255, 146, 78, 0.28);
+  transform: none;
 }
 
 .movie-player__episode-item.is-active {

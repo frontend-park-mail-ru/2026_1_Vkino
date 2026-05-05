@@ -553,7 +553,8 @@ function resolveEmbeddedMode(context = {}) {
 
 function mapSupportCreateError(result = {}) {
   const rawError = String(
-    result.error ||
+    result.rawError ||
+      result.error ||
       result.resp?.Error ||
       result.resp?.error ||
       result.resp?.message ||

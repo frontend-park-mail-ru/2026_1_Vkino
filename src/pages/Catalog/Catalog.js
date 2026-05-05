@@ -10,6 +10,28 @@ import { getCacheFallbackNotice } from "@/utils/apiMeta.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
 
 const DEFAULT_PAGE_SIZE = 12;
+const GENRE_IMAGE_BY_SLUG = {
+  adventure: "/img/genres/adventure.png",
+  bio: "/img/genres/bio.png",
+  crime: "/img/genres/crime.png",
+  detective: "/img/genres/detective.png",
+  drama: "/img/genres/drama.png",
+  fiction: "/img/genres/fiction.png",
+  sport: "/img/genres/sport.png",
+  thriller: "/img/genres/thriller.png",
+  war: "/img/genres/war.png",
+};
+const GENRE_SLUG_BY_TITLE = {
+  приключения: "adventure",
+  биография: "bio",
+  криминал: "crime",
+  детектив: "detective",
+  драма: "drama",
+  фантастика: "fiction",
+  спорт: "sport",
+  триллер: "thriller",
+  боевик: "war",
+};
 
 const CATALOG_CONFIGS = {
   selection: {
@@ -680,6 +702,8 @@ function normalizeGenreCatalogItem(genre = {}, index = 0) {
       ...genre,
       id: genreId,
       title: genreTitle,
+      posterUrl: resolveGenreImageUrl(genre),
+      backdropUrl: resolveGenreImageUrl(genre),
       href: genre.href || `/genre/${encodeURIComponent(genreId)}`,
       description: normalizeString(genre.description),
       actionText: "Открыть",
@@ -687,6 +711,31 @@ function normalizeGenreCatalogItem(genre = {}, index = 0) {
     },
     index,
   );
+}
+
+function resolveGenreImageUrl(genre = {}) {
+  const explicitImage = normalizeString(
+    genre.posterUrl ||
+      genre.poster_url ||
+      genre.img_url ||
+      genre.backdropUrl ||
+      genre.backdrop_url,
+  );
+
+  if (explicitImage && !explicitImage.includes("/img/genres/")) {
+    const localImage = resolveLocalGenreImage(genre);
+    return localImage || explicitImage;
+  }
+
+  return explicitImage || resolveLocalGenreImage(genre) || "interstellar";
+}
+
+function resolveLocalGenreImage(genre = {}) {
+  const title = normalizeString(genre.title || genre.name).toLowerCase();
+  const id = normalizeString(genre.id || genre.genre_id || genre.genreId).toLowerCase();
+  const slug = GENRE_SLUG_BY_TITLE[title] || id;
+
+  return GENRE_IMAGE_BY_SLUG[slug] || "";
 }
 
 function normalizeGenres(genres) {

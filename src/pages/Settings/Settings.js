@@ -8,6 +8,7 @@ import { userService } from "@/js/UserService.js";
 import { authStore } from "@/store/authStore.js";
 import { router } from "@/router/index.js";
 import HeaderComponent from "@/components/Header/Header.js";
+import { getApiErrorMessage } from "@/utils/apiError.js";
 import { resolveAvatarUrl } from "@/utils/avatar.js";
 import { extractProfile } from "@/utils/apiResponse.js";
 
@@ -100,7 +101,7 @@ export default class SettingsPage extends BasePage {
 
     return {
       email: userFromStore.email || "",
-      birthDate: userFromStore.birthdate || "",
+      birthDate: normalizeDateInputValue(userFromStore.birthdate),
       avatarUrl: resolveAvatarUrl(userFromStore.avatar_url),
     };
   }
@@ -140,7 +141,7 @@ export default class SettingsPage extends BasePage {
   _validateBirthDate() {
     const birthDateInput = this.el.querySelector("#birthDate");
     const errorEl = this.el.querySelector("#birthdate-error");
-    const value = String(birthDateInput?.value || "").trim();
+    const value = normalizeDateInputValue(birthDateInput?.value);
 
     if (!birthDateInput) {
       return "";
@@ -151,12 +152,17 @@ export default class SettingsPage extends BasePage {
       return "";
     }
 
+    const parsedBirthDate = parseStrictDateInputValue(value);
     const today = new Date();
-    const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    const message =
-      value > todayString
-        ? "Дата рождения не может быть позже сегодняшнего дня"
-        : "";
+    today.setHours(0, 0, 0, 0);
+
+    let message = "";
+
+    if (!parsedBirthDate) {
+      message = "Введите корректную дату рождения";
+    } else if (parsedBirthDate > today) {
+      message = "Дата рождения не может быть позже сегодняшнего дня";
+    }
 
     setError(birthDateInput, errorEl, message);
     return message;
@@ -441,7 +447,7 @@ export default class SettingsPage extends BasePage {
 
   _getUpdatedData() {
     const birthdateInput = this.el.querySelector("#birthDate");
-    const birthdate = String(birthdateInput?.value || "").trim();
+    const birthdate = normalizeDateInputValue(birthdateInput?.value);
 
     return {
       birthdate: birthdate || null,
@@ -465,15 +471,23 @@ export default class SettingsPage extends BasePage {
     );
     if (!profileResult.ok) {
       this._setProfileSaveError(
-        profileResult.error ||
-          "Не удалось сохранить профиль. Попробуйте позже.",
+        getApiErrorMessage(profileResult, {
+          fallback: "Не удалось сохранить профиль. Попробуйте позже.",
+        }),
       );
       if (saveBtn) saveBtn.disabled = false;
       return;
     }
 
     const normalizedProfile = extractProfile(profileResult.resp) || {};
-    this._renderAvatar(normalizedProfile.avatar_url);
+    const currentUser = authStore.getState().user || {};
+    const nextProfile = {
+      ...currentUser,
+      ...normalizedProfile,
+      birthdate: updated.birthdate,
+    };
+
+    this._renderAvatar(nextProfile.avatar_url);
 
     this._pendingAvatarFile = null;
     const avatarInput = this.el.querySelector("#avatarInput");
@@ -481,15 +495,14 @@ export default class SettingsPage extends BasePage {
     this._setAvatarError("");
     this._setProfileSaveError("");
 
-    authStore.updateUserProfile(normalizedProfile);
+    authStore.updateUserProfile(nextProfile);
 
-    if (normalizedProfile.birthdate !== undefined) {
-      this._originalValues.birthdate = normalizedProfile.birthdate || "";
-    }
+    this._originalValues.birthdate = normalizeDateInputValue(nextProfile.birthdate);
+    this.context.userData.birthDate = normalizeDateInputValue(nextProfile.birthdate);
 
-    if (normalizedProfile.avatar_url !== undefined) {
+    if (nextProfile.avatar_url !== undefined) {
       this.context.userData.avatarUrl = resolveAvatarUrl(
-        normalizedProfile.avatar_url,
+        nextProfile.avatar_url,
       );
     }
 
@@ -526,7 +539,10 @@ export default class SettingsPage extends BasePage {
       setError(
         this.el.querySelector("#oldPassword"),
         this.el.querySelector("#old-password-error"),
-        changeResult.error || "Не удалось сменить пароль",
+        getApiErrorMessage(changeResult, {
+          context: "change-password",
+          fallback: "Не удалось сменить пароль.",
+        }),
       );
       return;
     }
@@ -621,4 +637,78 @@ export default class SettingsPage extends BasePage {
       ),
     );
   }
+}
+
+function normalizeDateInputValue(value) {
+  const normalized = String(value || "").trim();
+
+  if (!normalized) {
+    return "";
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return normalized;
+  }
+
+  const isoMatch = normalized.match(/^(\d{4}-\d{2}-\d{2})T/);
+  if (isoMatch?.[1]) {
+    return isoMatch[1];
+  }
+
+  const ruMatch = normalized.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if (ruMatch) {
+    const [, day, month, year] = ruMatch;
+    return `${year}-${month}-${day}`;
+  }
+
+  const parsedDate = new Date(normalized);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "";
+  }
+
+  const year = parsedDate.getFullYear();
+  if (!Number.isInteger(year) || year < 1000 || year > 9999) {
+    return "";
+  }
+  const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
+  const day = String(parsedDate.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function parseStrictDateInputValue(value) {
+  const normalized = String(value || "").trim();
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (!match) {
+    return null;
+  }
+
+  const [, yearString, monthString, dayString] = match;
+  const year = Number(yearString);
+  const month = Number(monthString);
+  const day = Number(dayString);
+
+  if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    !Number.isInteger(day) ||
+    year < 1000 ||
+    year > 9999
+  ) {
+    return null;
+  }
+
+  const date = new Date(year, month - 1, day);
+  date.setHours(0, 0, 0, 0);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
 }

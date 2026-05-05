@@ -393,6 +393,7 @@ function createEmptyMovieData(movieId = "") {
     language: "Не указан",
     country: "Не указана",
     genres: "Не указаны",
+    genreLinks: [],
     posterUrl: DEFAULT_POSTER_URL,
     trailerUrl: "",
     trailerPreviewUrl: DEFAULT_POSTER_URL,
@@ -430,9 +431,10 @@ function mapMovieDtoToViewModel(dto) {
     releaseYear: mapReleaseYear(dto.release_year),
     duration: mapDurationSeconds(dto.duration_seconds),
     age: mapAgeLimit(dto.age_limit),
-    language: mapLanguage(dto.original_language_id),
-    country: mapCountry(dto.country_id),
-    genres: mapGenres(dto.genres),
+    language: mapLanguage(dto.original_language || dto.original_language_id),
+    country: mapCountry(dto.country || dto.country_id),
+    genres: mapGenresLabel(dto.genres),
+    genreLinks: mapGenreLinks(dto.genres),
     posterUrl,
     trailerPreviewUrl,
     episodes: mapEpisodes(dto.episodes),
@@ -526,7 +528,7 @@ function mapAgeLimit(value) {
   return `${ageValue}+`;
 }
 
-function mapGenres(value) {
+function mapGenresLabel(value) {
   if (!Array.isArray(value) || value.length === 0) {
     return "Не указаны";
   }
@@ -534,6 +536,50 @@ function mapGenres(value) {
   const genres = value.map((genre) => normalizeString(genre)).filter(Boolean);
 
   return genres.length ? genres.join(", ") : "Не указаны";
+}
+
+function mapGenreLinks(value) {
+  if (!Array.isArray(value) || value.length === 0) {
+    return [];
+  }
+
+  return value
+    .map((genre, index) => {
+      if (!genre) {
+        return null;
+      }
+
+      if (typeof genre === "object") {
+        const id = normalizeString(genre.id || genre.genre_id || genre.genreId);
+        const title = normalizeString(genre.title || genre.name);
+
+        if (!id || !title) {
+          return null;
+        }
+
+        return {
+          id,
+          title,
+          href: `/genre/${encodeURIComponent(id)}`,
+        };
+      }
+
+      const title = normalizeString(genre);
+
+      if (!title) {
+        return null;
+      }
+
+      return {
+        id: title,
+        title,
+        href: `/genre/${encodeURIComponent(title)}`,
+      };
+    })
+    .filter(Boolean)
+    .filter((genre, index, list) => {
+      return list.findIndex((item) => item.id === genre.id) === index;
+    });
 }
 
 function mapActors(value) {
@@ -566,8 +612,14 @@ function mapActors(value) {
     .filter(Boolean);
 }
 
-function mapCountry(countryId) {
-  const numericCountryId = Number(countryId);
+function mapCountry(value) {
+  const normalizedCountry = normalizeString(value);
+
+  if (normalizedCountry && !/^\d+$/.test(normalizedCountry)) {
+    return normalizedCountry;
+  }
+
+  const numericCountryId = Number(value);
 
   if (Number.isFinite(numericCountryId) && COUNTRY_BY_ID[numericCountryId]) {
     return COUNTRY_BY_ID[numericCountryId];
@@ -580,8 +632,14 @@ function mapCountry(countryId) {
   return "Не указана";
 }
 
-function mapLanguage(languageId) {
-  const numericLanguageId = Number(languageId);
+function mapLanguage(value) {
+  const normalizedLanguage = normalizeString(value);
+
+  if (normalizedLanguage && !/^\d+$/.test(normalizedLanguage)) {
+    return normalizedLanguage;
+  }
+
+  const numericLanguageId = Number(value);
 
   if (Number.isFinite(numericLanguageId) && LANGUAGE_BY_ID[numericLanguageId]) {
     return LANGUAGE_BY_ID[numericLanguageId];

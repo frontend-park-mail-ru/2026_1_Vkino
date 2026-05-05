@@ -168,7 +168,7 @@ export class SupportService {
       !result.ok &&
       Object.prototype.hasOwnProperty.call(normalizedPayload, "rating") &&
       result.status === 400 &&
-      /invalid_json_body/i.test(result.error || result.resp?.Error || "")
+      /invalid_json_body/i.test(result.rawError || result.error || result.resp?.Error || "")
     ) {
       return {
         ...result,
