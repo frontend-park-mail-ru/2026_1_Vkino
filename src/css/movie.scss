@@ -42,28 +42,38 @@
   width: 40px;
   height: 40px;
   border-radius: var(--radius-full);
-  border: 1px solid var(--border-color);
-  background: transparent;
-  color: var(--text-primary);
+  border: 1px solid rgba(255, 122, 51, 0.38);
+  background: rgba(22, 10, 6, 0.72);
+  color: #ffd8c2;
+  box-shadow: 0 10px 24px rgba(6, 3, 1, 0.28);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
   transition:
+    background var(--duration-fast) var(--ease-default),
     color var(--duration-fast) var(--ease-default),
-    border-color var(--duration-fast) var(--ease-default);
+    border-color var(--duration-fast) var(--ease-default),
+    box-shadow var(--duration-fast) var(--ease-default);
 }
 
 .movie-favorite-btn:hover {
+  background: rgba(255, 122, 51, 0.18);
+  border-color: rgba(255, 122, 51, 0.62);
   color: var(--accent);
+  box-shadow: 0 12px 28px rgba(255, 90, 30, 0.24);
 }
 
 .movie-favorite-btn.is-favorite {
+  background: rgba(22, 10, 6, 0.72);
+  border-color: rgba(255, 122, 51, 0.62);
   color: var(--accent);
 }
 
 .movie-favorite-btn.is-favorite:hover {
+  background: rgba(255, 122, 51, 0.18);
   border-color: var(--accent);
-  color: var(--accent);
+  color: #fff4e6;
 }
 
 .movie-hero-content {
