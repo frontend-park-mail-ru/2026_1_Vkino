@@ -1001,14 +1001,10 @@ export default class WatchPartyPage extends BasePage {
       },
     );
 
-    if (player.videoEl) {
-      player.videoEl.muted = Boolean(snapshot?.isMuted);
-      player.context = {
-        ...player.context,
-        isMuted: Boolean(snapshot?.isMuted),
-      };
-      player.updateUI();
-    }
+    player.restoreAudioState({
+      volumePercent: snapshot?.volumePercent,
+      isMuted: snapshot?.isMuted,
+    });
   }
 }
 
