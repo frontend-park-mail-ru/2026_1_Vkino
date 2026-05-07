@@ -5,6 +5,7 @@ import { movieService } from "@/js/MovieService.js";
 import { userService } from "@/js/UserService.js";
 import PosterCarouselComponent from "@/components/PosterCarousel/PosterCarousel.js";
 import MoviePlayerComponent from "@/components/MoviePlayer/MoviePlayer.js";
+import MovieReviewsComponent from "@/components/MovieReviews/MovieReviews.js";
 import { authStore } from "@/store/authStore.js";
 import { router } from "@/router/index.js";
 import { getCacheFallbackNotice } from "@/utils/apiMeta.js";
@@ -54,12 +55,16 @@ export default class MoviePage extends BasePage {
     this._onOpenPlayerClickBound = this._onOpenPlayerClick.bind(this);
     this._onPopStateBound = this._onPopState.bind(this);
     this._onToggleFavoriteBound = this._onToggleFavorite.bind(this);
+    this._isPopStateListenerAttached = false;
   }
 
   init() {
     super.init();
 
-    window.addEventListener("popstate", this._onPopStateBound);
+    if (!this._isPopStateListenerAttached) {
+      window.addEventListener("popstate", this._onPopStateBound);
+      this._isPopStateListenerAttached = true;
+    }
 
     if (!this._contextLoaded) {
       this.loadContext();
@@ -105,7 +110,7 @@ export default class MoviePage extends BasePage {
     const moviePayload = extractMovie(resp);
 
     this._contextLoaded = true;
-    const isFavorite = Boolean(moviePayload?.is_favorite);
+    const isFavorite = resolveFavoriteFlag(moviePayload);
     this.refresh({
       ...this.context,
       loading: false,
@@ -141,6 +146,7 @@ export default class MoviePage extends BasePage {
 
     this._setupCastCarousel();
     this._setupMoviePlayer();
+    this._setupMovieReviews();
   }
 
   addEventListeners() {
@@ -169,7 +175,12 @@ export default class MoviePage extends BasePage {
   }
 
   beforeDestroy() {
+    if (!this._isPopStateListenerAttached) {
+      return;
+    }
+
     window.removeEventListener("popstate", this._onPopStateBound);
+    this._isPopStateListenerAttached = false;
   }
 
   _setupCastCarousel() {
@@ -216,6 +227,31 @@ export default class MoviePage extends BasePage {
     });
   }
 
+  _setupMovieReviews() {
+    const reviewsRoot = this.el.querySelector("#movie-reviews-root");
+
+    if (!reviewsRoot || this.context.loading || this.context.hasError) {
+      return;
+    }
+
+    const authState = authStore.getState();
+
+    this.addChild(
+      "movie-reviews",
+      new MovieReviewsComponent(
+        {
+          movieId: this.context.movie?.id,
+          reviews: this.context.movie?.reviews || [],
+          currentUser: authState.user,
+          isAuthenticated: Boolean(authState.user),
+          onMovieChanged: () => this._refreshMovieData(),
+        },
+        this,
+        reviewsRoot,
+      ),
+    );
+  }
+
   async _onOpenPlayerClick(event) {
     event.preventDefault();
 
@@ -234,7 +270,7 @@ export default class MoviePage extends BasePage {
     const episodeId =
       fromLocation.shouldOpen && fromLocation.episodeId
         ? fromLocation.episodeId
-        : (initialEpisode?.id || "");
+        : initialEpisode?.id || "";
     const startSeconds = fromLocation.shouldOpen
       ? fromLocation.startSeconds
       : 0;
@@ -249,7 +285,10 @@ export default class MoviePage extends BasePage {
       return;
     }
 
-    const startSeconds = Math.max(0, Math.floor(Number(options.startSeconds) || 0));
+    const startSeconds = Math.max(
+      0,
+      Math.floor(Number(options.startSeconds) || 0),
+    );
     const normalizedEpisodeId = normalizeString(initialEpisodeId);
 
     if (!isPlayerWatchLocation(window.location)) {
@@ -264,7 +303,9 @@ export default class MoviePage extends BasePage {
       );
     }
 
-    await player.open(this.context.movie, normalizedEpisodeId, { startSeconds });
+    await player.open(this.context.movie, normalizedEpisodeId, {
+      startSeconds,
+    });
   }
 
   _requestPlayerClose() {
@@ -311,7 +352,8 @@ export default class MoviePage extends BasePage {
       return;
     }
 
-    const movieId = event.currentTarget.dataset.movieId || this.context.movie.id;
+    const movieId =
+      event.currentTarget.dataset.movieId || this.context.movie.id;
     const wasFavorite = Boolean(this.context.movie?.isFavorite);
 
     this.refresh({
@@ -341,6 +383,45 @@ export default class MoviePage extends BasePage {
         isFavorite: wasFavorite,
       },
     });
+  }
+
+  async _refreshMovieData() {
+    const movieId = this.context.movie?.id || getMovieIdFromLocation();
+
+    if (!movieId) {
+      return {
+        ok: false,
+        error: "Не удалось определить id фильма.",
+      };
+    }
+
+    const movieResult = await movieService.getMovieById(movieId);
+    const { ok, status, resp, error } = movieResult;
+
+    if (!ok) {
+      return {
+        ok: false,
+        error: mapMovieLoadError(status, error),
+      };
+    }
+
+    const moviePayload = extractMovie(resp);
+
+    this.refresh({
+      ...this.context,
+      loading: false,
+      hasError: false,
+      errorText: "",
+      movie: {
+        ...mapMovieDtoToViewModel(moviePayload || {}),
+        isFavorite: resolveFavoriteFlag(moviePayload, this.context.movie),
+      },
+      cacheMessage: getCacheFallbackNotice(movieResult),
+    });
+
+    this._syncPlayerWithLocation();
+
+    return { ok: true };
   }
 }
 
@@ -398,6 +479,7 @@ function createEmptyMovieData(movieId = "") {
     trailerUrl: "",
     trailerPreviewUrl: DEFAULT_POSTER_URL,
     ratings: [],
+    reviews: [],
     cast: [],
     similar: [],
     isFavorite: false,
@@ -415,8 +497,8 @@ function mapMovieDtoToViewModel(dto) {
     normalizePosterImageUrl(dto.poster_url) ||
     fallbackMovie.posterUrl;
   const trailerPreviewUrl =
-      normalizePosterImageUrl(dto.poster_url) ||
-  normalizeImageUrl(dto.img_url) ||
+    normalizePosterImageUrl(dto.poster_url) ||
+    normalizeImageUrl(dto.img_url) ||
     normalizeEpisodePreviewUrl(dto.episodes) ||
     posterUrl ||
     fallbackMovie.trailerPreviewUrl;
@@ -437,9 +519,63 @@ function mapMovieDtoToViewModel(dto) {
     genreLinks: mapGenreLinks(dto.genres),
     posterUrl,
     trailerPreviewUrl,
+    ratings: mapExternalRatings(
+      dto.external_ratings || dto.externalRatings || dto.ratings,
+    ),
+    reviews: mapReviews(dto.reviews),
     episodes: mapEpisodes(dto.episodes),
     cast: mapActors(dto.actors),
   };
+}
+
+function resolveFavoriteFlag(moviePayload = {}, previousMovie = {}) {
+  if (
+    moviePayload &&
+    Object.prototype.hasOwnProperty.call(moviePayload, "is_favorite")
+  ) {
+    return Boolean(moviePayload.is_favorite);
+  }
+
+  return Boolean(previousMovie?.isFavorite);
+}
+
+function mapExternalRatings(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((ratingItem) => {
+      if (!ratingItem || typeof ratingItem !== "object") {
+        return null;
+      }
+
+      const source = normalizeString(
+        ratingItem.source || ratingItem.name || ratingItem.provider,
+      );
+      const rating = Number(
+        ratingItem.rating ?? ratingItem.value ?? ratingItem.score,
+      );
+
+      if (!source || !Number.isFinite(rating)) {
+        return null;
+      }
+
+      return {
+        source,
+        rating,
+        value: formatRatingValue(rating),
+      };
+    })
+    .filter(Boolean);
+}
+
+function mapReviews(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((review) => review && typeof review === "object");
 }
 
 function mapEpisodes(value) {
@@ -544,7 +680,7 @@ function mapGenreLinks(value) {
   }
 
   return value
-    .map((genre, index) => {
+    .map((genre) => {
       if (!genre) {
         return null;
       }
@@ -679,6 +815,18 @@ function normalizePosterImageUrl(value) {
 
 function normalizeActorImageUrl(value) {
   return resolveMediaUrl(normalizeString(value), MEDIA_BUCKETS.actors);
+}
+
+function formatRatingValue(value) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return "";
+  }
+
+  return Number.isInteger(numericValue)
+    ? String(numericValue)
+    : numericValue.toFixed(1);
 }
 
 function normalizeString(value) {

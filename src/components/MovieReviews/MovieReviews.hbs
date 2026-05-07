@@ -1,0 +1,140 @@
+<section class="movie-reviews">
+  <div class="movie-reviews__header">
+    <div>
+      <h2 class="movie-section-title">Отзывы</h2>
+      <p class="movie-reviews__count">{{reviewsCountLabel}}</p>
+    </div>
+  </div>
+
+  {{#if isAuthenticated}}
+    <form class="movie-review-form" data-action="save-review" novalidate>
+      <div class="movie-review-form__header">
+        <h3 class="movie-review-form__title">{{formTitle}}</h3>
+        {{#if hasOwnReview}}
+          <button
+            class="movie-review-form__delete"
+            type="button"
+            data-action="delete-review"
+            {{#if formControlsDisabled}}disabled{{/if}}
+          >
+            {{#if isDeleting}}Удаляем...{{else}}Удалить{{/if}}
+          </button>
+        {{/if}}
+      </div>
+
+      <div class="movie-review-form__grid">
+        <label class="movie-review-form__field movie-review-form__field_rating">
+          <span>Оценка</span>
+          <input
+            class="movie-review-form__input"
+            type="number"
+            name="rating"
+            min="0"
+            max="10"
+            step="0.5"
+            inputmode="decimal"
+            placeholder="8.5"
+            value="{{formRatingValue}}"
+            {{#if formControlsDisabled}}disabled{{/if}}
+          />
+        </label>
+
+        <label class="movie-review-form__field">
+          <span>Отзыв</span>
+          <textarea
+            class="movie-review-form__textarea"
+            name="message"
+            rows="4"
+            placeholder="Что думаете о фильме?"
+            {{#if formControlsDisabled}}disabled{{/if}}
+          >{{formMessageValue}}</textarea>
+        </label>
+      </div>
+
+      {{#if formError}}
+        <p class="movie-review-form__error" role="alert">{{formError}}</p>
+      {{/if}}
+
+      <div class="movie-review-form__actions">
+        <button
+          class="movie-btn movie-btn-primary"
+          type="submit"
+          {{#if formControlsDisabled}}disabled{{/if}}
+        >
+          {{#if isSaving}}Сохраняем...{{else}}{{formSubmitLabel}}{{/if}}
+        </button>
+      </div>
+    </form>
+  {{else}}
+    <div class="movie-reviews__auth">
+      <p>Войдите, чтобы оставить оценку или отзыв.</p>
+      <a class="movie-btn movie-btn-primary" href="{{signInHref}}" router-link>Войти</a>
+    </div>
+  {{/if}}
+
+  {{#if reactionError}}
+    <p class="movie-reviews__error" role="alert">{{reactionError}}</p>
+  {{/if}}
+
+  <div class="movie-reviews__list">
+    {{#if hasReviews}}
+      {{#each reviews}}
+        <article class="movie-review-card">
+          <header class="movie-review-card__header">
+            <div class="movie-review-card__author-group">
+              <h3 class="movie-review-card__author">{{this.author}}</h3>
+              {{#if this.isOwn}}
+                <span class="movie-review-card__own">Ваш отзыв</span>
+              {{/if}}
+            </div>
+            {{#if this.hasRating}}
+              <span class="movie-review-card__rating">{{this.ratingLabel}} / 10</span>
+            {{/if}}
+          </header>
+
+          <div class="movie-review-card__meta">
+            <span>{{this.createdAtLabel}}</span>
+            {{#if this.isEdited}}
+              <span>Обновлено {{this.updatedAtLabel}}</span>
+            {{/if}}
+          </div>
+
+          {{#if this.hasComment}}
+            <p class="movie-review-card__comment">{{this.comment}}</p>
+          {{else}}
+            <p class="movie-review-card__empty-comment">Пользователь оставил только оценку.</p>
+          {{/if}}
+
+          <footer class="movie-review-card__footer">
+            <div class="movie-review-card__reactions">
+              <button
+                class="{{this.likeButtonClass}}"
+                type="button"
+                data-action="review-reaction"
+                data-review-id="{{this.id}}"
+                data-reaction="like"
+                {{#if this.likeButtonDisabled}}disabled{{/if}}
+              >
+                Нравится
+                <span>{{this.likesCount}}</span>
+              </button>
+              <button
+                class="{{this.dislikeButtonClass}}"
+                type="button"
+                data-action="review-reaction"
+                data-review-id="{{this.id}}"
+                data-reaction="dislike"
+                {{#if this.dislikeButtonDisabled}}disabled{{/if}}
+              >
+                Не нравится
+                <span>{{this.dislikesCount}}</span>
+              </button>
+            </div>
+          </footer>
+        </article>
+      {{/each}}
+    {{else}}
+      <p class="movie-empty-text">Пока нет отзывов</p>
+    {{/if}}
+  </div>
+</section>
