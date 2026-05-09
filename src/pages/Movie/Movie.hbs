@@ -21,6 +21,12 @@
         </div>
       {{/if}}
 
+      {{#if actionStatusMessage}}
+        <div class="page-status-banner page-status-banner_{{actionStatusTone}}" role="status">
+          <span>{{actionStatusMessage}}</span>
+        </div>
+      {{/if}}
+
       <section class="movie-hero">
         <div class="movie-poster-wrap">
           <img
@@ -136,7 +142,11 @@
               <button class="movie-btn movie-btn-secondary" type="button">
                 Совместный просмотр
               </button>
-              <button class="movie-btn movie-btn-primary" type="button">
+              <button
+                class="movie-btn movie-btn-primary"
+                type="button"
+                data-action="create-watch-party-room"
+              >
                 + Создать комнату
               </button>
             </div>

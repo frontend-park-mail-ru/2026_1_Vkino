@@ -30,8 +30,7 @@ const FALLBACK_OVERVIEW = Object.freeze({
     },
   ],
   visibilityOptions: [
-    { value: "friends", label: "Только по ссылке", selected: true },
-    { value: "private", label: "Приватная", selected: false },
+    { value: "private", label: "Только по ссылке", selected: true },
     { value: "public", label: "Открытая", selected: false },
   ],
   featuredRooms: [

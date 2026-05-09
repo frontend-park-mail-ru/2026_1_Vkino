@@ -10,7 +10,13 @@ import { authStore } from "@/store/authStore.js";
 import { router } from "@/router/index.js";
 import { getCacheFallbackNotice } from "@/utils/apiMeta.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
-import { extractMovie } from "@/utils/apiResponse.js";
+import { extractMovie, extractWatchPartyRoom } from "@/utils/apiResponse.js";
+import {
+  buildWatchPartyFallbackRoom,
+  buildWatchPartyRoomPath,
+  saveLocalWatchPartyRoom,
+  watchPartyService,
+} from "@/js/WatchPartyService.js";
 
 const DEFAULT_POSTER_URL = "/img/cards/interstellar.webp";
 
@@ -42,6 +48,8 @@ export default class MoviePage extends BasePage {
         hasError: false,
         errorText: "",
         cacheMessage: "",
+        actionStatusMessage: "",
+        actionStatusTone: "warning",
         movie: createEmptyMovieData(),
         ...context,
       },
@@ -55,6 +63,8 @@ export default class MoviePage extends BasePage {
     this._onOpenPlayerClickBound = this._onOpenPlayerClick.bind(this);
     this._onPopStateBound = this._onPopState.bind(this);
     this._onToggleFavoriteBound = this._onToggleFavorite.bind(this);
+    this._onCreateWatchPartyRoomBound =
+      this._onCreateWatchPartyRoom.bind(this);
     this._isPopStateListenerAttached = false;
   }
 
@@ -86,6 +96,7 @@ export default class MoviePage extends BasePage {
         hasError: true,
         errorText: "В URL не указан id фильма",
         cacheMessage: "",
+        actionStatusMessage: "",
         movie: createEmptyMovieData(),
       });
       return;
@@ -102,6 +113,7 @@ export default class MoviePage extends BasePage {
         hasError: true,
         errorText: mapMovieLoadError(status, error),
         cacheMessage: "",
+        actionStatusMessage: "",
         movie: createEmptyMovieData(movieId),
       });
       return;
@@ -116,11 +128,13 @@ export default class MoviePage extends BasePage {
       loading: false,
       hasError: false,
       errorText: "",
+      actionStatusMessage: "",
       movie: {
         ...mapMovieDtoToViewModel(moviePayload || {}),
         isFavorite,
       },
       cacheMessage: getCacheFallbackNotice(movieResult),
+      actionStatusTone: this.context.actionStatusTone || "warning",
     });
 
     this._syncPlayerWithLocation();
@@ -156,8 +170,15 @@ export default class MoviePage extends BasePage {
     const favoriteButton = this.el.querySelector(
       '[data-action="toggle-favorite"]',
     );
+    const createRoomButton = this.el.querySelector(
+      '[data-action="create-watch-party-room"]',
+    );
     openPlayerButton?.addEventListener("click", this._onOpenPlayerClickBound);
     favoriteButton?.addEventListener("click", this._onToggleFavoriteBound);
+    createRoomButton?.addEventListener(
+      "click",
+      this._onCreateWatchPartyRoomBound,
+    );
   }
 
   removeEventListeners() {
@@ -167,11 +188,18 @@ export default class MoviePage extends BasePage {
     const favoriteButton = this.el?.querySelector(
       '[data-action="toggle-favorite"]',
     );
+    const createRoomButton = this.el?.querySelector(
+      '[data-action="create-watch-party-room"]',
+    );
     openPlayerButton?.removeEventListener(
       "click",
       this._onOpenPlayerClickBound,
     );
     favoriteButton?.removeEventListener("click", this._onToggleFavoriteBound);
+    createRoomButton?.removeEventListener(
+      "click",
+      this._onCreateWatchPartyRoomBound,
+    );
   }
 
   beforeDestroy() {
@@ -385,6 +413,143 @@ export default class MoviePage extends BasePage {
     });
   }
 
+  async _onCreateWatchPartyRoom(event) {
+    event.preventDefault();
+
+    if (!authStore.getState().user) {
+      const returnTo = encodeURIComponent(
+        window.location.pathname + window.location.search,
+      );
+      router.go(`/sign-in?return_to=${returnTo}`);
+      return;
+    }
+
+    if (this.context.loading || this.context.hasError) {
+      return;
+    }
+
+    const watchState = readWatchState(window.location, this.context.movie);
+    const initialEpisode = resolveInitialEpisode(this.context.movie);
+    const episodeId =
+      watchState.shouldOpen && watchState.episodeId
+        ? watchState.episodeId
+        : initialEpisode?.id || "";
+    const movieId = normalizeString(this.context.movie?.id);
+
+    if (!movieId) {
+      this._setActionStatus("Не удалось определить фильм для комнаты.");
+      return;
+    }
+
+    this._setActionStatus("Создаем комнату совместного просмотра...");
+
+    const result = await watchPartyService.createRoom({
+      name: buildWatchPartyRoomName(this.context.movie),
+      visibility: "private",
+      movie_id: normalizePayloadId(movieId),
+      episode_id: normalizePayloadId(episodeId),
+    });
+
+    const roomPayload = extractWatchPartyRoom(result.resp) || result.resp || {};
+    const roomId = normalizeString(
+      roomPayload?.id || roomPayload?.room_id || roomPayload?.roomId,
+    );
+    const selectedEpisode = findMovieEpisodeById(this.context.movie, episodeId);
+
+    if (roomId) {
+      const fallbackRoom = buildWatchPartyFallbackRoom(roomId);
+
+      saveLocalWatchPartyRoom({
+        ...fallbackRoom,
+        id: roomId,
+        roomName:
+          normalizeString(roomPayload?.name || roomPayload?.title) ||
+          buildWatchPartyRoomName(this.context.movie),
+        hostName:
+          normalizeString(
+            roomPayload?.host_name ||
+              roomPayload?.hostName ||
+              roomPayload?.owner_name ||
+              roomPayload?.ownerName,
+          ) || resolveCurrentUserDisplayName(),
+        liveLabel: "LIVE",
+        privacyLabel:
+          normalizeString(roomPayload?.visibility) === "public"
+            ? "Открытая"
+            : "Только по ссылке",
+        movie: {
+          ...fallbackRoom.movie,
+          title: this.context.movie.title,
+          year: this.context.movie.releaseYear,
+          subtitle: buildMovieSubtitle(this.context.movie),
+          backdropUrl:
+            this.context.movie.posterUrl ||
+            this.context.movie.trailerPreviewUrl ||
+            fallbackRoom.movie.backdropUrl,
+        },
+        selectedMovie: buildSelectedMovieForRoom(this.context.movie),
+        playerSource: {
+          ...fallbackRoom.playerSource,
+          movieId,
+          episodeId: episodeId || selectedEpisode?.id || "",
+          playbackUrl: "",
+          durationSeconds: Number(selectedEpisode?.durationSeconds) || 0,
+          positionSeconds: 0,
+          episodeTitle: selectedEpisode?.title || this.context.movie.title,
+          description:
+            selectedEpisode?.description || this.context.movie.description || "",
+          posterUrl:
+            selectedEpisode?.imgUrl ||
+            this.context.movie.posterUrl ||
+            fallbackRoom.movie.backdropUrl,
+        },
+      });
+
+      router.go(buildWatchPartyRoomPath(roomId));
+      return;
+    }
+
+    const fallbackRoomId = String(Date.now());
+    const fallbackRoom = buildWatchPartyFallbackRoom(fallbackRoomId);
+
+    saveLocalWatchPartyRoom({
+      ...fallbackRoom,
+      id: fallbackRoomId,
+      roomName: buildWatchPartyRoomName(this.context.movie),
+      hostName: resolveCurrentUserDisplayName(),
+      liveLabel: "LIVE",
+      privacyLabel: "Только по ссылке",
+      movie: {
+        ...fallbackRoom.movie,
+        title: this.context.movie.title,
+        year: this.context.movie.releaseYear,
+        subtitle: buildMovieSubtitle(this.context.movie),
+        backdropUrl:
+          this.context.movie.posterUrl ||
+          this.context.movie.trailerPreviewUrl ||
+          fallbackRoom.movie.backdropUrl,
+      },
+      selectedMovie: buildSelectedMovieForRoom(this.context.movie),
+      playerSource: {
+        ...fallbackRoom.playerSource,
+        movieId,
+        episodeId: episodeId || selectedEpisode?.id || "",
+        playbackUrl: "",
+        durationSeconds: Number(selectedEpisode?.durationSeconds) || 0,
+        positionSeconds: 0,
+        episodeTitle: selectedEpisode?.title || this.context.movie.title,
+        description:
+          selectedEpisode?.description || this.context.movie.description || "",
+        posterUrl:
+          selectedEpisode?.imgUrl ||
+          this.context.movie.posterUrl ||
+          fallbackRoom.movie.backdropUrl,
+      },
+    });
+
+    router.go(buildWatchPartyRoomPath(fallbackRoomId));
+  }
+
   async _refreshMovieData() {
     const movieId = this.context.movie?.id || getMovieIdFromLocation();
 
@@ -422,6 +587,14 @@ export default class MoviePage extends BasePage {
     this._syncPlayerWithLocation();
 
     return { ok: true };
+  }
+
+  _setActionStatus(message = "", tone = "warning") {
+    this.refresh({
+      ...this.context,
+      actionStatusMessage: message,
+      actionStatusTone: tone,
+    });
   }
 }
 
@@ -909,4 +1082,87 @@ function buildWatchUrl(movieId, episodeId = "", startSeconds = 0) {
   }
 
   return `/movie/${encodedMovieId}?${params.toString()}`;
+}
+
+function buildWatchPartyRoomName(movie = {}) {
+  return `Комната: ${normalizeString(movie.title) || "Совместный просмотр"}`;
+}
+
+function normalizePayloadId(value) {
+  const normalizedValue = normalizeString(value);
+
+  if (!normalizedValue) {
+    return "";
+  }
+
+  if (/^\d+$/.test(normalizedValue)) {
+    return Number.parseInt(normalizedValue, 10);
+  }
+
+  return normalizedValue;
+}
+
+function findMovieEpisodeById(movie = {}, episodeId = "") {
+  const normalizedEpisodeId = normalizeString(episodeId);
+  const episodes = Array.isArray(movie.episodes) ? movie.episodes : [];
+
+  if (!normalizedEpisodeId) {
+    return episodes[0] || null;
+  }
+
+  return (
+    episodes.find((episode) => normalizeString(episode.id) === normalizedEpisodeId) ||
+    episodes[0] ||
+    null
+  );
+}
+
+function buildSelectedMovieForRoom(movie = {}) {
+  const posterUrl =
+    normalizeString(movie.posterUrl) ||
+    normalizeString(movie.trailerPreviewUrl) ||
+    DEFAULT_POSTER_URL;
+
+  return {
+    id: normalizeString(movie.id),
+    title: normalizeString(movie.title),
+    subtitle: buildMovieSubtitle(movie),
+    description: normalizeString(movie.description),
+    posterUrl,
+    backdropUrl: posterUrl,
+    episodes: (Array.isArray(movie.episodes) ? movie.episodes : []).map(
+      (episode, index) => ({
+        id: normalizeString(episode.id),
+        movieId: normalizeString(episode.movieId || movie.id),
+        seasonNumber: Number(episode.seasonNumber) || 1,
+        episodeNumber: Number(episode.episodeNumber) || index + 1,
+        title: normalizeString(episode.title) || `Эпизод ${index + 1}`,
+        description: normalizeString(episode.description),
+        durationSeconds: Number(episode.durationSeconds) || 0,
+        imgUrl: normalizeString(episode.imgUrl) || posterUrl,
+        playbackUrl: normalizeString(episode.playbackUrl),
+        positionSeconds: 0,
+      }),
+    ),
+  };
+}
+
+function buildMovieSubtitle(movie = {}) {
+  return [
+    normalizeString(movie.releaseYear),
+    normalizeString(movie.director),
+    normalizeString(movie.contentType),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function resolveCurrentUserDisplayName() {
+  const authState = authStore.getState();
+
+  return (
+    normalizeString(authState.user?.name) ||
+    normalizeString(authState.user?.email) ||
+    "Вы"
+  );
 }

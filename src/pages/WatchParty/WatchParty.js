@@ -5,6 +5,8 @@ import "@/css/watch-party.scss";
 import HeaderComponent from "@/components/Header/Header.js";
 import MoviePlayerComponent from "@/components/MoviePlayer/MoviePlayer.js";
 import WatchPartyRoomChatComponent from "@/components/WatchPartyRoomChat/WatchPartyRoomChat.js";
+import { apiService } from "@/js/api.js";
+import { movieService } from "@/js/MovieService.js";
 import {
   buildWatchPartyFallbackOverview,
   buildWatchPartyFallbackRoom,
@@ -15,12 +17,15 @@ import {
   watchPartyService,
 } from "@/js/WatchPartyService.js";
 import {
+  extractMovie,
+  extractSelections,
   extractWatchPartyOverview,
   extractWatchPartyRoom,
 } from "@/utils/apiResponse.js";
 import { router } from "@/router/index.js";
 import { authStore } from "@/store/authStore.js";
 import { getDisplayNameFromEmail } from "@/utils/user.js";
+import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
 
 const HERO_COPY = {
   heroEyebrow: "Совместный просмотр",
@@ -29,6 +34,7 @@ const HERO_COPY = {
   heroDescription:
     "Создайте комнату, настройте доступ и переходите в комнату проекта без отдельного шаблона.",
 };
+const WATCH_PARTY_WS_RECONNECT_DELAY_MS = 3000;
 
 export default class WatchPartyPage extends BasePage {
   constructor(context = {}, parent = null, el = null) {
@@ -71,6 +77,10 @@ export default class WatchPartyPage extends BasePage {
     this._uiState = uiState;
     this._nextRoomIndex = listLocalWatchPartyRooms().length + 1;
     this._roomPlayerSnapshot = null;
+    this._roomSubscription = null;
+    this._roomSubscriptionUrl = "";
+    this._roomSubscriptionReconnectTimerId = 0;
+    this._shouldReconnectRoomSubscription = false;
   }
 
   init() {
@@ -95,10 +105,15 @@ export default class WatchPartyPage extends BasePage {
     this.el.addEventListener("click", this._onClick);
     this.el.addEventListener("submit", this._onSubmit);
 
+    if (this._mode === "room" && !this._uiState.loading && !this._uiState.hasError) {
+      this._connectRoomSubscription();
+    }
+
     if (
       this._mode === "room" &&
       !this._uiState.loading &&
-      !this._uiState.hasError
+      !this._uiState.hasError &&
+      hasRoomMovieSelection(this._roomData)
     ) {
       this._syncRoomPlayer();
     }
@@ -111,6 +126,11 @@ export default class WatchPartyPage extends BasePage {
 
     this.el.removeEventListener("click", this._onClick);
     this.el.removeEventListener("submit", this._onSubmit);
+    this._disconnectRoomSubscription();
+  }
+
+  beforeDestroy() {
+    this._disconnectRoomSubscription();
   }
 
   setupChildren() {
@@ -124,12 +144,10 @@ export default class WatchPartyPage extends BasePage {
 
     this.addChild("header", new HeaderComponent({}, this, header));
 
-    if (
-      this._mode === "room" &&
-      !this._uiState.loading &&
-      !this._uiState.hasError
-    ) {
-      this._setupRoomPlayer();
+    if (this._mode === "room" && !this._uiState.loading && !this._uiState.hasError) {
+      if (hasRoomMovieSelection(this._roomData)) {
+        this._setupRoomPlayer();
+      }
       this._setupRoomChat();
     }
   }
@@ -178,6 +196,18 @@ export default class WatchPartyPage extends BasePage {
       case "open-room-chat":
         event.preventDefault();
         this._setRoomPanel("chat");
+        break;
+      case "scroll-room-movie-candidates-prev":
+        event.preventDefault();
+        this._scrollRoomMovieCandidates(-1);
+        break;
+      case "scroll-room-movie-candidates-next":
+        event.preventDefault();
+        this._scrollRoomMovieCandidates(1);
+        break;
+      case "select-top-room-movie":
+        event.preventDefault();
+        await this._handleSelectTopRoomMovie(actionTarget.dataset.movieId || "");
         break;
       case "close-room-panel":
         event.preventDefault();
@@ -328,6 +358,24 @@ export default class WatchPartyPage extends BasePage {
       ),
       viewer,
     );
+    if (!hasRoomMovieSelection(this._roomData)) {
+      this._uiState = {
+        ...this._uiState,
+        topMovieCandidatesLoading: true,
+        topMovieCandidatesError: "",
+      };
+
+      const topMovieCandidates = await loadTopRoomMovieCandidates();
+
+      this._uiState = {
+        ...this._uiState,
+        topMovieCandidatesLoading: false,
+        topMovieCandidatesError: topMovieCandidates.length
+          ? ""
+          : "Не удалось загрузить топ 10 для выбора фильма.",
+        topMovieCandidates,
+      };
+    }
     saveLocalWatchPartyRoom(this._roomData);
     this._contextLoaded = true;
 
@@ -371,7 +419,7 @@ export default class WatchPartyPage extends BasePage {
 
     const result = await watchPartyService.createRoom({
       name: roomName,
-      visibility,
+      visibility: normalizeVisibilityValue(visibility),
     });
     const nextRoom = mapRoomDtoToViewModel(
       result.ok ? extractWatchPartyRoom(result.resp) || result.resp : {},
@@ -397,9 +445,14 @@ export default class WatchPartyPage extends BasePage {
     }
 
     const roomIdFromLink = extractRoomIdFromLink(inviteLink);
-    const result = await watchPartyService.joinRoom({
-      invite_link: inviteLink,
-    });
+    const joinPayload = roomIdFromLink
+      ? {
+          room_id: normalizeRoomIdPayload(roomIdFromLink),
+        }
+      : {
+          invite_link: inviteLink,
+        };
+    const result = await watchPartyService.joinRoom(joinPayload);
     const joinedRoomPayload = extractWatchPartyRoom(result.resp) || result.resp;
     const joinedRoomId = normalizeText(
       joinedRoomPayload?.id ||
@@ -530,6 +583,90 @@ export default class WatchPartyPage extends BasePage {
     if (this._mode !== "room") {
       return;
     }
+  }
+
+  _scrollRoomMovieCandidates(direction = 1) {
+    const viewport = this.el?.querySelector('[data-role="room-movie-candidates"]');
+
+    if (!viewport) {
+      return;
+    }
+
+    viewport.scrollBy({
+      left: viewport.clientWidth * 0.82 * direction,
+      behavior: "smooth",
+    });
+  }
+
+  async _handleSelectTopRoomMovie(movieId) {
+    if (this._mode !== "room") {
+      return;
+    }
+
+    const normalizedMovieId = normalizeText(movieId);
+
+    if (!normalizedMovieId) {
+      this._setRoomStatus("Не удалось определить фильм для комнаты.", "error");
+      return;
+    }
+
+    const result = await movieService.getMovieById(normalizedMovieId);
+
+    if (!result.ok) {
+      this._setRoomStatus(
+        result.error || "Не удалось загрузить выбранный фильм.",
+        "error",
+      );
+      return;
+    }
+
+    const moviePayload = extractMovie(result.resp);
+    const selectedMovie = mapMovieDtoToRoomSelection(moviePayload);
+
+    if (!selectedMovie || !selectedMovie.id || !selectedMovie.episodes.length) {
+      this._setRoomStatus(
+        "У выбранного фильма нет доступных эпизодов для воспроизведения.",
+        "warning",
+      );
+      return;
+    }
+
+    const firstEpisode = selectedMovie.episodes[0];
+
+    this._roomData = {
+      ...this._roomData,
+      movie: {
+        ...this._roomData.movie,
+        title: selectedMovie.title,
+        subtitle: selectedMovie.subtitle || selectedMovie.description,
+        backdropUrl:
+          selectedMovie.backdropUrl || this._roomData.movie.backdropUrl,
+      },
+      selectedMovie,
+      playerSource: {
+        ...(this._roomData.playerSource || {}),
+        movieId: selectedMovie.id,
+        episodeId: firstEpisode.id,
+        playbackUrl: normalizeText(firstEpisode.playbackUrl),
+        durationSeconds: firstEpisode.durationSeconds,
+        positionSeconds: 0,
+        episodeTitle: firstEpisode.title,
+        description: firstEpisode.description || selectedMovie.description,
+        posterUrl: firstEpisode.imgUrl || selectedMovie.posterUrl,
+      },
+      progressLabel: "0:00",
+      player: {
+        ...(this._roomData.player || {}),
+        isPlaying: false,
+        progressPercent: 0,
+        currentTimeLabel: "0:00",
+      },
+    };
+    saveLocalWatchPartyRoom(this._roomData);
+    this._refreshView({
+      roomStatusMessage: `Фильм ${selectedMovie.title} привязан к комнате.`,
+      roomStatusTone: "success",
+    });
   }
 
   _toggleBetComposer() {
@@ -1006,6 +1143,240 @@ export default class WatchPartyPage extends BasePage {
       isMuted: snapshot?.isMuted,
     });
   }
+
+  _connectRoomSubscription() {
+    if (this._mode !== "room" || this._uiState.loading || this._uiState.hasError) {
+      return;
+    }
+
+    const roomId = normalizeText(this._roomData?.id || this._routeState.roomId);
+
+    if (!roomId || typeof WebSocket === "undefined") {
+      return;
+    }
+
+    const nextUrl = buildRoomSubscriptionUrl(roomId);
+
+    if (!nextUrl || this._roomSubscriptionUrl === nextUrl) {
+      return;
+    }
+
+    this._shouldReconnectRoomSubscription = true;
+    this._disconnectRoomSubscription({ preserveReconnect: true });
+
+    try {
+      const socket = new WebSocket(nextUrl);
+
+      socket.addEventListener("open", this._onRoomSubscriptionOpen);
+      socket.addEventListener("message", this._onRoomSubscriptionMessage);
+      socket.addEventListener("close", this._onRoomSubscriptionClose);
+      socket.addEventListener("error", this._onRoomSubscriptionError);
+
+      this._roomSubscription = socket;
+      this._roomSubscriptionUrl = nextUrl;
+    } catch (error) {
+      console.error("WatchPartyPage: не удалось открыть room subscription", {
+        roomId,
+        error,
+      });
+    }
+  }
+
+  _disconnectRoomSubscription({ preserveReconnect = false } = {}) {
+    window.clearTimeout(this._roomSubscriptionReconnectTimerId);
+    this._roomSubscriptionReconnectTimerId = 0;
+    this._shouldReconnectRoomSubscription = preserveReconnect
+      ? this._shouldReconnectRoomSubscription
+      : false;
+
+    const socket = this._roomSubscription;
+
+    if (!socket) {
+      this._roomSubscriptionUrl = "";
+      return;
+    }
+
+    socket.removeEventListener("open", this._onRoomSubscriptionOpen);
+    socket.removeEventListener("message", this._onRoomSubscriptionMessage);
+    socket.removeEventListener("close", this._onRoomSubscriptionClose);
+    socket.removeEventListener("error", this._onRoomSubscriptionError);
+
+    if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+      socket.close();
+    }
+
+    this._roomSubscription = null;
+    this._roomSubscriptionUrl = "";
+  }
+
+  _onRoomSubscriptionOpen = () => {
+    window.clearTimeout(this._roomSubscriptionReconnectTimerId);
+    this._roomSubscriptionReconnectTimerId = 0;
+
+    this._setRoomStatus("Подключение к событиям комнаты активно.", "success");
+  };
+
+  _onRoomSubscriptionMessage = (event) => {
+    const payload = parseSubscriptionPayload(event?.data);
+
+    if (!payload) {
+      return;
+    }
+
+    this._applyRoomSubscriptionPayload(payload);
+  };
+
+  _onRoomSubscriptionClose = () => {
+    this._roomSubscription = null;
+    const nextUrl = this._roomSubscriptionUrl;
+
+    if (
+      this._shouldReconnectRoomSubscription &&
+      nextUrl &&
+      !this._roomSubscriptionReconnectTimerId
+    ) {
+      this._setRoomStatus("Переподключаемся к событиям комнаты...", "warning");
+      this._roomSubscriptionReconnectTimerId = window.setTimeout(() => {
+        this._roomSubscriptionReconnectTimerId = 0;
+
+        if (!this._shouldReconnectRoomSubscription || this._mode !== "room") {
+          return;
+        }
+
+        this._roomSubscriptionUrl = "";
+        this._connectRoomSubscription();
+      }, WATCH_PARTY_WS_RECONNECT_DELAY_MS);
+      return;
+    }
+
+    this._roomSubscriptionUrl = "";
+  };
+
+  _onRoomSubscriptionError = (error) => {
+    console.error("WatchPartyPage: ошибка room subscription", {
+      roomId: this._roomData?.id || this._routeState.roomId,
+      error,
+    });
+    this._setRoomStatus("Не удалось подключиться к событиям комнаты.", "warning");
+  };
+
+  _applyRoomSubscriptionPayload(payload) {
+    const eventType = normalizeText(payload?.type).toLowerCase();
+
+    if (!eventType || this._mode !== "room") {
+      return;
+    }
+
+    if (eventType === "member_joined") {
+      this._applyMemberJoinedEvent(payload);
+      return;
+    }
+
+    if (eventType === "member_left") {
+      this._applyMemberLeftEvent(payload);
+      return;
+    }
+
+    if (
+      eventType === "room_updated" ||
+      eventType === "playback_updated" ||
+      eventType === "playback_changed"
+    ) {
+      this._applyRoomPatchEvent(payload);
+    }
+  }
+
+  _applyMemberJoinedEvent(payload) {
+    const fallbackMembers = Array.isArray(this._roomData.members)
+      ? this._roomData.members
+      : [];
+    const nextMember = mapRoomMembers(
+      [payload.member || payload.user || payload],
+      fallbackMembers,
+      this._roomData.viewer,
+    )[0];
+
+    if (!nextMember) {
+      return;
+    }
+
+    const nextMembers = upsertRoomMember(fallbackMembers, nextMember);
+
+    this._roomData = applyViewerToRoom(
+      {
+        ...this._roomData,
+        members: nextMembers,
+      },
+      this._roomData.viewer,
+    );
+    saveLocalWatchPartyRoom(this._roomData);
+    this._refreshView({
+      roomStatusMessage: `${nextMember.name} присоединился к комнате.`,
+      roomStatusTone: "info",
+    });
+  }
+
+  _applyMemberLeftEvent(payload) {
+    const memberId = normalizeText(
+      payload?.member?.user_id ||
+        payload?.member?.userId ||
+        payload?.actor_user_id ||
+        payload?.actorUserId ||
+        payload?.user_id ||
+        payload?.userId,
+    );
+
+    if (!memberId) {
+      return;
+    }
+
+    const nextMembers = (Array.isArray(this._roomData.members)
+      ? this._roomData.members
+      : []
+    ).filter((member) => {
+      return normalizeText(member.userId || member.id) !== memberId;
+    });
+
+    this._roomData = applyViewerToRoom(
+      {
+        ...this._roomData,
+        members: nextMembers,
+      },
+      this._roomData.viewer,
+    );
+    saveLocalWatchPartyRoom(this._roomData);
+    this._refreshView({
+      roomStatusMessage: "Состав участников обновлен.",
+      roomStatusTone: "info",
+    });
+  }
+
+  _applyRoomPatchEvent(payload) {
+    const roomPatch = payload.room || payload.state || {};
+    const playbackPatch = payload.playback || roomPatch.playback;
+
+    this._roomData = applyViewerToRoom(
+      mapRoomDtoToViewModel(
+        {
+          ...roomPatch,
+          id: roomPatch.id || roomPatch.room_id || this._roomData.id,
+          playback: playbackPatch,
+          members:
+            roomPatch.members || roomPatch.participants || this._roomData.members,
+          messages: roomPatch.messages || this._roomData.messages,
+          polls: roomPatch.polls,
+        },
+        this._roomData,
+        this._roomData.viewer,
+      ),
+      this._roomData.viewer,
+    );
+    saveLocalWatchPartyRoom(this._roomData);
+    this._refreshView({
+      roomStatusMessage: "Состояние комнаты обновлено.",
+      roomStatusTone: "info",
+    });
+  }
 }
 
 function buildPageContext({ mode, overviewData, roomData, uiState }) {
@@ -1057,6 +1428,12 @@ function buildRoomContext(roomData, uiState) {
     inviteLink: absolutizeRoomLink(roomData.inviteLink),
     hostName: roomData.hostName,
     liveLabel: roomData.liveLabel,
+    hasRoomMovieSelection: hasRoomMovieSelection(roomData),
+    topMovieCandidatesLoading: Boolean(uiState.topMovieCandidatesLoading),
+    topMovieCandidatesError: uiState.topMovieCandidatesError || "",
+    topMovieCandidates: Array.isArray(uiState.topMovieCandidates)
+      ? uiState.topMovieCandidates
+      : [],
     viewer: roomData.viewer,
     movie: roomData.movie,
     roomMembersCount: roomData.members.length,
@@ -1079,6 +1456,55 @@ function buildRoomChatContext(roomData, uiState) {
 }
 
 function buildRoomPlayerMovieData(roomData = {}) {
+  const selectedMovie = roomData.selectedMovie;
+
+  if (
+    selectedMovie &&
+    Array.isArray(selectedMovie.episodes) &&
+    selectedMovie.episodes.length
+  ) {
+    const normalizedEpisodes = selectedMovie.episodes.map((episode) => ({
+      id: normalizeText(episode.id),
+      title: normalizeText(episode.title) || selectedMovie.title,
+      description:
+        normalizeText(episode.description) || selectedMovie.description || "",
+      durationSeconds: normalizeCount(episode.durationSeconds),
+      imgUrl:
+        normalizeText(episode.imgUrl) ||
+        normalizeText(selectedMovie.posterUrl) ||
+        "/img/cards/interstellar.webp",
+      playbackUrl: normalizeText(episode.playbackUrl),
+      playbackPositionSeconds: normalizeCount(episode.positionSeconds),
+      isDirectPlayback: Boolean(normalizeText(episode.playbackUrl)),
+      seasonNumber: normalizeCount(episode.seasonNumber) || 1,
+      episodeNumber: normalizeCount(episode.episodeNumber) || 1,
+    }));
+
+    return {
+      id: normalizeText(selectedMovie.id) || normalizeText(roomData.id),
+      title: normalizeText(selectedMovie.title) || "Видео",
+      description:
+        normalizeText(selectedMovie.description) ||
+        normalizeText(roomData.movie?.subtitle) ||
+        roomData.roomNote,
+      contentType: "watch-party",
+      posterUrl:
+        normalizeText(selectedMovie.posterUrl) ||
+        normalizeText(roomData.movie?.backdropUrl) ||
+        "/img/cards/interstellar.webp",
+      isDirectPlayback:
+        normalizedEpisodes.length === 1 && normalizedEpisodes[0].isDirectPlayback,
+      initialEpisodeId:
+        normalizeText(roomData.playerSource?.episodeId) ||
+        normalizeText(normalizedEpisodes[0]?.id),
+      episodes: normalizedEpisodes,
+    };
+  }
+
+  if (!hasRoomMovieSelection(roomData)) {
+    return null;
+  }
+
   const movieTitle = normalizeText(roomData.movie?.title) || "Видео";
   const playerSource = roomData.playerSource || {};
   const episodeId =
@@ -1146,6 +1572,7 @@ function mapOverviewToPageData(overview, fallbackData) {
       readArray(normalizedOverview, [
         "featuredRooms",
         "featured_rooms",
+        "active_rooms",
         "onlineRooms",
         "online_rooms",
         "rooms",
@@ -1168,6 +1595,16 @@ function mapRoomDtoToViewModel(roomDto, fallbackRoom, viewer) {
     roomDto && typeof roomDto === "object" && !Array.isArray(roomDto)
       ? roomDto
       : {};
+  const playbackDto =
+    normalizedRoomDto.playback &&
+    typeof normalizedRoomDto.playback === "object" &&
+    !Array.isArray(normalizedRoomDto.playback)
+      ? normalizedRoomDto.playback
+      : normalizedRoomDto.player &&
+          typeof normalizedRoomDto.player === "object" &&
+          !Array.isArray(normalizedRoomDto.player)
+        ? normalizedRoomDto.player
+        : {};
 
   const participantsCount = normalizeCount(
     normalizedRoomDto.participantsCount ??
@@ -1201,30 +1638,44 @@ function mapRoomDtoToViewModel(roomDto, fallbackRoom, viewer) {
     liveLabel: resolveLiveLabel(
       normalizedRoomDto.liveLabel ??
         normalizedRoomDto.live ??
-        normalizedRoomDto.status,
+        normalizedRoomDto.status ??
+        playbackDto.status,
       fallbackRoom.liveLabel,
     ),
     privacyLabel:
-      normalizeText(
+      resolveVisibilityLabelText(
         normalizedRoomDto.privacyLabel ||
           normalizedRoomDto.privacy_label ||
           normalizedRoomDto.visibilityLabel ||
-          normalizedRoomDto.visibility_label,
-      ) || fallbackRoom.privacyLabel,
+          normalizedRoomDto.visibility_label ||
+          normalizedRoomDto.visibility,
+        fallbackRoom.privacyLabel,
+      ),
     inviteLink:
-      normalizeText(
+      resolveInviteLink(
         normalizedRoomDto.inviteLink ||
           normalizedRoomDto.invite_link ||
           normalizedRoomDto.roomLink ||
           normalizedRoomDto.room_link,
-      ) || fallbackRoom.inviteLink,
+        normalizeText(
+          normalizedRoomDto.id ||
+            normalizedRoomDto.roomId ||
+            normalizedRoomDto.room_id ||
+            fallbackRoom.id,
+        ) || fallbackRoom.id,
+        fallbackRoom.inviteLink,
+      ),
     hostName:
       normalizeText(
         normalizedRoomDto.hostName ||
           normalizedRoomDto.host_name ||
           normalizedRoomDto.ownerName ||
           normalizedRoomDto.owner_name,
-      ) || fallbackRoom.hostName,
+      ) ||
+      resolveHostNameFromMembers(
+        readArray(normalizedRoomDto, ["members", "participants", "users"]),
+      ) ||
+      fallbackRoom.hostName,
     roomNote:
       normalizeText(
         normalizedRoomDto.roomNote || normalizedRoomDto.room_note,
@@ -1257,88 +1708,99 @@ function mapRoomDtoToViewModel(roomDto, fallbackRoom, viewer) {
     player: {
       ...fallbackRoom.player,
       isPlaying: Boolean(
-        normalizedRoomDto.player?.isPlaying ??
-        normalizedRoomDto.player?.playing ??
-        fallbackRoom.player.isPlaying,
+        playbackDto.isPlaying ??
+          playbackDto.playing ??
+          (normalizeText(playbackDto.status).toLowerCase() === "playing"
+            ? true
+            : undefined) ??
+          fallbackRoom.player.isPlaying,
       ),
       progressPercent: clampPercent(
-        normalizedRoomDto.player?.progressPercent ??
-          normalizedRoomDto.player?.progress_percent ??
+        playbackDto.progressPercent ??
+          playbackDto.progress_percent ??
           normalizedRoomDto.progressPercent ??
           fallbackRoom.player.progressPercent,
       ),
       currentTimeLabel:
         normalizeText(
-          normalizedRoomDto.player?.currentTimeLabel ||
-            normalizedRoomDto.player?.current_time_label ||
+          playbackDto.currentTimeLabel ||
+            playbackDto.current_time_label ||
             normalizedRoomDto.currentTimeLabel ||
             normalizedRoomDto.current_time_label,
-        ) || fallbackRoom.player.currentTimeLabel,
+        ) ||
+        formatDurationLabel(
+          playbackDto.positionSeconds ?? playbackDto.position_seconds,
+        ) ||
+        fallbackRoom.player.currentTimeLabel,
       totalTimeLabel:
         normalizeText(
-          normalizedRoomDto.player?.totalTimeLabel ||
-            normalizedRoomDto.player?.total_time_label ||
+          playbackDto.totalTimeLabel ||
+            playbackDto.total_time_label ||
             normalizedRoomDto.totalTimeLabel ||
             normalizedRoomDto.total_time_label,
-        ) || fallbackRoom.player.totalTimeLabel,
+        ) ||
+        formatDurationLabel(
+          playbackDto.durationSeconds ?? playbackDto.duration_seconds,
+        ) ||
+        fallbackRoom.player.totalTimeLabel,
       volumePercent: clampPercent(
-        normalizedRoomDto.player?.volumePercent ??
-          normalizedRoomDto.player?.volume_percent ??
+        playbackDto.volumePercent ??
+          playbackDto.volume_percent ??
           fallbackRoom.player.volumePercent,
       ),
       qualityLabel:
         normalizeText(
-          normalizedRoomDto.player?.qualityLabel ||
-            normalizedRoomDto.player?.quality_label,
+          playbackDto.qualityLabel || playbackDto.quality_label,
         ) || fallbackRoom.player.qualityLabel,
       syncLabel:
         normalizeText(
-          normalizedRoomDto.player?.syncLabel ||
-            normalizedRoomDto.player?.sync_label,
+          playbackDto.syncLabel || playbackDto.sync_label,
         ) || fallbackRoom.player.syncLabel,
     },
     playerSource: {
       ...(fallbackRoom.playerSource || {}),
       movieId:
         normalizeText(
-          normalizedRoomDto.movie?.id ||
+          playbackDto.movieId ||
+            playbackDto.movie_id ||
+            normalizedRoomDto.movie?.id ||
             normalizedRoomDto.movie_id ||
             normalizedRoomDto.movieId,
         ) || normalizeText(fallbackRoom.playerSource?.movieId),
       episodeId:
         normalizeText(
-          normalizedRoomDto.player?.episodeId ||
-            normalizedRoomDto.player?.episode_id ||
+          playbackDto.episodeId ||
+            playbackDto.episode_id ||
             normalizedRoomDto.episodeId ||
             normalizedRoomDto.episode_id,
         ) || normalizeText(fallbackRoom.playerSource?.episodeId),
       playbackUrl:
         normalizeText(
-          normalizedRoomDto.player?.playbackUrl ||
-            normalizedRoomDto.player?.playback_url ||
+          playbackDto.playbackUrl ||
+            playbackDto.playback_url ||
             normalizedRoomDto.playbackUrl ||
             normalizedRoomDto.playback_url,
         ) || normalizeText(fallbackRoom.playerSource?.playbackUrl),
       durationSeconds:
         Number(
-          normalizedRoomDto.player?.durationSeconds ??
-            normalizedRoomDto.player?.duration_seconds ??
+          playbackDto.durationSeconds ??
+            playbackDto.duration_seconds ??
             normalizedRoomDto.durationSeconds ??
             normalizedRoomDto.duration_seconds ??
             fallbackRoom.playerSource?.durationSeconds,
         ) || 0,
       positionSeconds:
         Number(
-          normalizedRoomDto.player?.positionSeconds ??
-            normalizedRoomDto.player?.position_seconds ??
+          playbackDto.positionSeconds ??
+            playbackDto.position_seconds ??
             normalizedRoomDto.positionSeconds ??
             normalizedRoomDto.position_seconds ??
             fallbackRoom.playerSource?.positionSeconds,
         ) || 0,
       episodeTitle:
         normalizeText(
-          normalizedRoomDto.player?.episodeTitle ||
-            normalizedRoomDto.player?.episode_title ||
+          playbackDto.episodeTitle ||
+            playbackDto.episode_title ||
             normalizedRoomDto.episodeTitle ||
             normalizedRoomDto.episode_title,
         ) ||
@@ -1346,15 +1808,14 @@ function mapRoomDtoToViewModel(roomDto, fallbackRoom, viewer) {
         fallbackRoom.movie.title,
       description:
         normalizeText(
-          normalizedRoomDto.player?.description ||
+          playbackDto.description ||
             normalizedRoomDto.player_description,
         ) ||
         normalizeText(fallbackRoom.playerSource?.description) ||
         fallbackRoom.movie.subtitle,
       posterUrl:
         normalizeText(
-          normalizedRoomDto.player?.posterUrl ||
-            normalizedRoomDto.player?.poster_url,
+          playbackDto.posterUrl || playbackDto.poster_url,
         ) ||
         normalizeText(fallbackRoom.playerSource?.posterUrl) ||
         fallbackRoom.movie.backdropUrl,
@@ -1365,16 +1826,17 @@ function mapRoomDtoToViewModel(roomDto, fallbackRoom, viewer) {
       fallbackRoom.members,
       viewer,
     ),
-    messages: mapRoomMessages(
-      readArray(normalizedRoomDto, [
-        "messages",
-        "chat",
-        "chatMessages",
-        "chat_messages",
-      ]),
-      fallbackRoom.messages,
-    ),
+    messages: mapRoomFeed(normalizedRoomDto, fallbackRoom.messages),
   };
+
+  if (
+    !normalizeText(mappedRoom.progressLabel) &&
+    normalizeCount(mappedRoom.playerSource.positionSeconds) > 0
+  ) {
+    mappedRoom.progressLabel = formatDurationLabel(
+      mappedRoom.playerSource.positionSeconds,
+    );
+  }
 
   return applyViewerToRoom(mappedRoom, viewer);
 }
@@ -1515,18 +1977,25 @@ function mapFeaturedRooms(items, fallbackItems) {
         fallback?.movieTitle ||
         "Фильм",
       membersCount: membersCount || fallback?.membersCount || 0,
-      privacyLabel:
-        normalizeText(item?.privacyLabel || item?.privacy_label) ||
-        fallback?.privacyLabel ||
-        "Только по ссылке",
+      privacyLabel: resolveVisibilityLabelText(
+        item?.privacyLabel ||
+          item?.privacy_label ||
+          item?.visibilityLabel ||
+          item?.visibility_label ||
+          item?.visibility,
+        fallback?.privacyLabel || "Только по ссылке",
+      ),
       progressLabel:
         normalizeText(
           item?.progressLabel || item?.progress_label || item?.currentTimeLabel,
         ) ||
+        formatDurationLabel(
+          item?.playback?.position_seconds ?? item?.playback?.positionSeconds,
+        ) ||
         fallback?.progressLabel ||
         "0:00",
       isLive: resolveLiveLabel(
-        item?.live ?? item?.status,
+        item?.live ?? item?.status ?? item?.playback?.status,
         fallback?.isLive ? "LIVE" : "",
       ),
       roomHref:
@@ -1557,14 +2026,20 @@ function mapMyRooms(items) {
       id: roomId,
       title: normalizeText(item?.title || item?.name) || `Комната ${roomId}`,
       statusLabel:
-        resolveLiveLabel(item?.status || item?.live, "") || "Ожидает",
+        resolveLiveLabel(
+          item?.status || item?.live || item?.playback?.status,
+          "",
+        ) || "Ожидает",
       statusTone:
-        resolveLiveLabel(item?.status || item?.live, "") === "LIVE"
+        resolveLiveLabel(
+          item?.status || item?.live || item?.playback?.status,
+          "",
+        ) === "LIVE"
           ? "live"
           : "waiting",
       meta:
         normalizeText(item?.meta) ||
-        `${normalizeText(item?.movieTitle || item?.movie_title) || "Фильм"} · ${participantsCount} ${pluralizeParticipants(participantsCount)}`,
+        `${normalizeText(item?.movieTitle || item?.movie_title || item?.movie?.title) || "Фильм"} · ${participantsCount} ${pluralizeParticipants(participantsCount)}`,
       roomLink:
         normalizeText(
           item?.roomLink ||
@@ -1586,21 +2061,37 @@ function mapRoomMembers(items, fallbackItems, viewer) {
     const fallback =
       fallbackItems[index % fallbackItems.length] || fallbackItems[0];
     const name =
-      normalizeText(item?.name || item?.title || item?.username) ||
+      normalizeText(
+        item?.display_name ||
+          item?.displayName ||
+          item?.name ||
+          item?.title ||
+          item?.username,
+      ) ||
       fallback?.name ||
       `Участник ${index + 1}`;
+    const userId = normalizeText(item?.user_id || item?.userId || item?.id);
+    const viewerId = normalizeText(viewer.id || viewer.userId);
 
     return {
-      id:
-        normalizeText(item?.id || item?.userId || item?.user_id) ||
-        `member-${index + 1}`,
+      id: userId || `member-${index + 1}`,
+      userId,
       name,
       initial: buildInitial(name),
       avatarTint: pickAvatarTint(name),
-      isHost: Boolean(item?.isHost ?? item?.host ?? fallback?.isHost),
+      avatarUrl: normalizeText(item?.avatar_url || item?.avatarUrl),
+      isHost: Boolean(
+        item?.isHost ??
+          item?.host ??
+          (normalizeText(item?.role).toLowerCase() === "host"
+            ? true
+            : undefined) ??
+          fallback?.isHost,
+      ),
       isYou:
+        (viewerId && userId && viewerId === userId) ||
         normalizeText(name).toLowerCase() ===
-        normalizeText(viewer.name).toLowerCase(),
+          normalizeText(viewer.name).toLowerCase(),
       statusText:
         normalizeText(
           item?.statusText || item?.status_text || item?.statusLabel,
@@ -1614,9 +2105,27 @@ function mapRoomMembers(items, fallbackItems, viewer) {
   });
 }
 
-function mapRoomMessages(items, fallbackItems) {
-  if (!Array.isArray(items) || !items.length) {
+function mapRoomFeed(roomDto, fallbackItems) {
+  const messageItems = readArray(roomDto, [
+    "messages",
+    "chat",
+    "chatMessages",
+    "chat_messages",
+  ]);
+  const pollItems = readArray(roomDto, ["polls", "pollItems", "poll_items"]);
+  const mappedMessages = mapRoomMessages(messageItems, fallbackItems);
+  const mappedPolls = mapRoomPolls(pollItems);
+
+  if (!mappedMessages.length && !mappedPolls.length) {
     return fallbackItems.map((item) => cloneValue(item));
+  }
+
+  return [...mappedMessages, ...mappedPolls].sort(compareRoomFeedItems);
+}
+
+function mapRoomMessages(items) {
+  if (!Array.isArray(items) || !items.length) {
+    return [];
   }
 
   return items.map((item, index) => {
@@ -1624,7 +2133,9 @@ function mapRoomMessages(items, fallbackItems) {
       normalizeText(
         item?.authorName ||
           item?.author_name ||
+          item?.display_name ||
           item?.author?.name ||
+          item?.author?.display_name ||
           item?.user?.name,
       ) || "Участник";
     const authorInitial = buildInitial(authorName);
@@ -1670,14 +2181,72 @@ function mapRoomMessages(items, fallbackItems) {
     return {
       id: normalizeText(item?.id) || `message-${index + 1}`,
       isBet: false,
+      createdAt: normalizeText(item?.created_at || item?.sent_at),
       authorName,
       authorInitial,
       authorTint: pickAvatarTint(authorName),
       timeLabel:
-        normalizeText(item?.timeLabel || item?.time_label) || formatTimeLabel(),
-      text: normalizeText(item?.text || item?.message) || "",
+        normalizeText(item?.timeLabel || item?.time_label) ||
+        formatEventTimeLabel(item?.created_at || item?.sent_at) ||
+        formatTimeLabel(),
+      text:
+        normalizeText(item?.text || item?.message || item?.body || item?.content) ||
+        "",
       reactionText:
         normalizeText(item?.reactionText || item?.reaction_text) || "",
+    };
+  });
+}
+
+function mapRoomPolls(items) {
+  if (!Array.isArray(items) || !items.length) {
+    return [];
+  }
+
+  return items.map((item, index) => {
+    const authorName =
+      normalizeText(
+        item?.authorName ||
+          item?.author_name ||
+          item?.display_name ||
+          item?.created_by_name ||
+          item?.user?.name,
+      ) || "Участник";
+    const optionItems = Array.isArray(item?.options) ? item.options : [];
+
+    return {
+      id:
+        normalizeText(item?.id || item?.poll_id || item?.pollId) ||
+        `poll-${index + 1}`,
+      isBet: true,
+      createdAt: normalizeText(item?.created_at || item?.sent_at),
+      authorName,
+      authorInitial: buildInitial(authorName),
+      authorTint: pickAvatarTint(authorName),
+      timeLabel:
+        formatEventTimeLabel(item?.created_at || item?.sent_at) ||
+        formatTimeLabel(),
+      question:
+        normalizeText(item?.question || item?.title || item?.name) || "Ставка",
+      metaText:
+        normalizeText(item?.metaText || item?.meta_text) ||
+        `Создал ${authorName} · ${normalizeCount(item?.vote_count || item?.voteCount)} голосов`,
+      voteCount: normalizeCount(item?.vote_count || item?.voteCount),
+      selectionText:
+        normalizeText(item?.selectionText || item?.selection_text) ||
+        "Голосование открыто",
+      options: optionItems.map((option, optionIndex) => ({
+        id:
+          normalizeText(option?.id || option?.option_id || option?.optionId) ||
+          `poll-${index + 1}-option-${optionIndex + 1}`,
+        label:
+          normalizeText(option?.label || option?.title || option?.name) ||
+          `Вариант ${optionIndex + 1}`,
+        votes: normalizeCount(
+          option?.votes ?? option?.vote_count ?? option?.count,
+        ),
+        isSelected: Boolean(option?.isSelected ?? option?.selected),
+      })),
     };
   });
 }
@@ -1764,6 +2333,9 @@ function createInitialRoomUiState() {
     roomStatusMessage: "",
     roomStatusTone: "info",
     activePanel: "",
+    topMovieCandidatesLoading: false,
+    topMovieCandidatesError: "",
+    topMovieCandidates: [],
     isBetComposerOpen: false,
     betComposerOptionCount: 2,
   };
@@ -1777,6 +2349,9 @@ function buildCurrentViewer() {
     "Вы";
 
   return {
+    id: normalizeText(
+      authState.user?.id || authState.user?.userId || authState.user?.user_id,
+    ),
     name,
     initial: buildInitial(name),
     avatarTint: pickAvatarTint(name),
@@ -1891,8 +2466,11 @@ function readWatchPartyRouteState(pathname) {
 }
 
 function resolveVisibilityLabel(value, options) {
-  const matched = options.find((option) => option.value === value);
-  return matched?.label || "Только по ссылке";
+  const normalizedValue = normalizeVisibilityValue(value);
+  const matched = options.find((option) => {
+    return normalizeVisibilityValue(option.value) === normalizedValue;
+  });
+  return matched?.label || resolveVisibilityLabelText(normalizedValue);
 }
 
 function resolveImageUrl(item, fallback) {
@@ -1954,6 +2532,378 @@ function absolutizeRoomLink(link) {
   } catch {
     return normalizedLink;
   }
+}
+
+async function loadTopRoomMovieCandidates() {
+  const result = await movieService.getSelectionsByTitles(["Популярные"]);
+
+  if (!result.ok) {
+    return [];
+  }
+
+  const selections = extractSelections(result.resp);
+  const popularSelection =
+    selections.find((selection) => {
+      return normalizeText(selection?.title || selection?.name).toLowerCase() ===
+        "популярные";
+    }) || selections[0];
+
+  return normalizeTopRoomMovieCandidates(extractSelectionMovies(popularSelection));
+}
+
+function extractSelectionMovies(selection = {}) {
+  if (Array.isArray(selection?.movies)) {
+    return selection.movies;
+  }
+
+  if (Array.isArray(selection?.Movies)) {
+    return selection.Movies;
+  }
+
+  if (Array.isArray(selection?.titles)) {
+    return selection.titles;
+  }
+
+  return [];
+}
+
+function normalizeTopRoomMovieCandidates(items = []) {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .map((item, index) => {
+      const id = normalizeText(item?.id);
+      const title = normalizeText(item?.title || item?.name);
+
+      if (!id || !title) {
+        return null;
+      }
+
+      return {
+        id,
+        title,
+        subtitle: [
+          normalizeText(item?.release_year || item?.year),
+          normalizeText(item?.country || item?.country_name),
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        imageUrl: resolveRoomMoviePosterUrl(item),
+        rank: index + 1,
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 10);
+}
+
+function mapMovieDtoToRoomSelection(dto) {
+  if (!dto || typeof dto !== "object") {
+    return null;
+  }
+
+  const id = normalizeText(dto.id);
+  const title = normalizeText(dto.title || dto.name);
+
+  if (!id || !title) {
+    return null;
+  }
+
+  const posterUrl = resolveRoomMoviePosterUrl(dto);
+  const subtitle = buildRoomMovieSubtitle(dto);
+  const description = normalizeText(dto.description) || subtitle;
+  const episodes = mapRoomMovieEpisodes(dto.episodes, posterUrl);
+
+  return {
+    id,
+    title,
+    subtitle,
+    description,
+    posterUrl,
+    backdropUrl: posterUrl,
+    episodes,
+  };
+}
+
+function mapRoomMovieEpisodes(items, fallbackPosterUrl = "") {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .map((item, index) => {
+      const id = normalizeText(item?.id);
+
+      if (!id) {
+        return null;
+      }
+
+      return {
+        id,
+        movieId: normalizeText(item?.movie_id || item?.movieId),
+        seasonNumber:
+          normalizeCount(item?.season_number || item?.seasonNumber) || 1,
+        episodeNumber:
+          normalizeCount(item?.episode_number || item?.episodeNumber) ||
+          index + 1,
+        title: normalizeText(item?.title) || `Эпизод ${index + 1}`,
+        description: normalizeText(item?.description),
+        durationSeconds: normalizeCount(
+          item?.duration_seconds || item?.durationSeconds,
+        ),
+        imgUrl: resolveRoomMoviePosterUrl(item) || fallbackPosterUrl,
+        playbackUrl: normalizeText(item?.playback_url || item?.playbackUrl),
+        positionSeconds: normalizeCount(
+          item?.position_seconds || item?.positionSeconds,
+        ),
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => {
+      if (left.seasonNumber !== right.seasonNumber) {
+        return left.seasonNumber - right.seasonNumber;
+      }
+
+      return left.episodeNumber - right.episodeNumber;
+    });
+}
+
+function resolveRoomMoviePosterUrl(item = {}) {
+  return (
+    resolveMediaUrl(
+      normalizeText(item?.poster_url || item?.posterUrl),
+      MEDIA_BUCKETS.posters,
+    ) ||
+    resolveMediaUrl(
+      normalizeText(item?.img_url || item?.imgUrl),
+      MEDIA_BUCKETS.cards,
+    ) ||
+    "/img/cards/interstellar.webp"
+  );
+}
+
+function buildRoomMovieSubtitle(dto = {}) {
+  return [
+    normalizeText(dto.release_year || dto.year),
+    normalizeText(dto.director),
+    normalizeText(dto.content_type || dto.contentType),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function hasRoomMovieSelection(roomData = {}) {
+  if (
+    roomData.selectedMovie &&
+    Array.isArray(roomData.selectedMovie.episodes) &&
+    roomData.selectedMovie.episodes.length
+  ) {
+    return true;
+  }
+
+  const playerSource = roomData.playerSource || {};
+
+  return Boolean(
+    normalizeText(playerSource.movieId || playerSource.movie_id) &&
+      normalizeText(playerSource.episodeId || playerSource.episode_id),
+  );
+}
+
+function resolveInviteLink(inviteLink, roomId, fallbackLink = "") {
+  const normalizedInviteLink = normalizeText(inviteLink);
+
+  if (!normalizedInviteLink) {
+    return buildWatchPartyRoomPath(roomId || fallbackLink || "1");
+  }
+
+  if (
+    normalizedInviteLink.startsWith("/") ||
+    /^https?:\/\//i.test(normalizedInviteLink)
+  ) {
+    return normalizedInviteLink;
+  }
+
+  return buildWatchPartyRoomPath(roomId || fallbackLink || "1");
+}
+
+function resolveVisibilityLabelText(value, fallback = "Только по ссылке") {
+  const normalizedValue = normalizeVisibilityValue(value);
+
+  if (normalizedValue === "public") {
+    return "Открытая";
+  }
+
+  if (normalizedValue === "private") {
+    return "Только по ссылке";
+  }
+
+  return normalizeText(value) || fallback;
+}
+
+function normalizeVisibilityValue(value) {
+  const normalizedValue = normalizeText(value).toLowerCase();
+
+  if (normalizedValue === "friends") {
+    return "private";
+  }
+
+  return normalizedValue || "private";
+}
+
+function normalizeRoomIdPayload(value) {
+  const normalizedValue = normalizeText(value);
+
+  if (/^\d+$/.test(normalizedValue)) {
+    return Number.parseInt(normalizedValue, 10);
+  }
+
+  return normalizedValue;
+}
+
+function resolveHostNameFromMembers(items) {
+  if (!Array.isArray(items)) {
+    return "";
+  }
+
+  const host = items.find((item) => {
+    return (
+      item?.isHost === true ||
+      item?.host === true ||
+      normalizeText(item?.role).toLowerCase() === "host"
+    );
+  });
+
+  return normalizeText(
+    host?.display_name || host?.displayName || host?.name || host?.username,
+  );
+}
+
+function formatDurationLabel(value) {
+  const totalSeconds = normalizeCount(value);
+
+  if (!totalSeconds) {
+    return "";
+  }
+
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function formatEventTimeLabel(value) {
+  const normalizedValue = normalizeText(value);
+
+  if (!normalizedValue) {
+    return "";
+  }
+
+  const date = new Date(normalizedValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return formatTimeLabel(date);
+}
+
+function compareRoomFeedItems(left, right) {
+  const leftTimestamp = Date.parse(normalizeText(left?.createdAt));
+  const rightTimestamp = Date.parse(normalizeText(right?.createdAt));
+
+  if (Number.isFinite(leftTimestamp) && Number.isFinite(rightTimestamp)) {
+    return leftTimestamp - rightTimestamp;
+  }
+
+  return 0;
+}
+
+function buildRoomSubscriptionUrl(roomId) {
+  const explicitUrl = normalizeText(import.meta.env.VITE_WATCH_PARTY_WS_URL);
+  const endpoint = `/watch-party/rooms/${encodeURIComponent(roomId)}/subscribe`;
+  const httpUrl = apiService.buildUrl(endpoint);
+  const token = normalizeText(apiService.getAccessToken());
+  const baseUrl = resolveRoomWsBaseUrl(explicitUrl, httpUrl, roomId);
+
+  if (!baseUrl) {
+    return "";
+  }
+
+  try {
+    const wsUrl = new URL(String(baseUrl).replace(/^http/i, "ws"), window.location.origin);
+
+    if (wsUrl.protocol === "https:") {
+      wsUrl.protocol = "wss:";
+    } else if (wsUrl.protocol === "http:") {
+      wsUrl.protocol = "ws:";
+    }
+
+    if (token) {
+      wsUrl.searchParams.set("access_token", token);
+    }
+
+    return wsUrl.toString();
+  } catch {
+    return "";
+  }
+}
+
+function parseSubscriptionPayload(rawPayload) {
+  if (!rawPayload) {
+    return null;
+  }
+
+  if (typeof rawPayload === "string") {
+    try {
+      return JSON.parse(rawPayload);
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+function resolveRoomWsBaseUrl(explicitUrl, fallbackUrl, roomId) {
+  if (!explicitUrl) {
+    return fallbackUrl;
+  }
+
+  if (explicitUrl.includes("{roomId}")) {
+    return explicitUrl.replaceAll("{roomId}", encodeURIComponent(roomId));
+  }
+
+  if (/\/watch-party\/rooms\/[^/]+\/subscribe/i.test(explicitUrl)) {
+    return explicitUrl;
+  }
+
+  return `${explicitUrl.replace(/\/+$/, "")}/watch-party/rooms/${encodeURIComponent(roomId)}/subscribe`;
+}
+
+function upsertRoomMember(members, nextMember) {
+  const nextMemberId = normalizeText(nextMember.userId || nextMember.id);
+
+  if (!nextMemberId) {
+    return members;
+  }
+
+  const existingIndex = members.findIndex((member) => {
+    return normalizeText(member.userId || member.id) === nextMemberId;
+  });
+
+  if (existingIndex === -1) {
+    return [...members, nextMember];
+  }
+
+  return members.map((member, index) => {
+    return index === existingIndex ? { ...member, ...nextMember } : member;
+  });
 }
 
 function readArray(source, keys) {

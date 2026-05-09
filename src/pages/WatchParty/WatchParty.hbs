@@ -28,7 +28,76 @@
             <div class="watch-room-shell__layout">
               <div class="watch-room-shell__main">
                 <section class="watch-room-player-slot">
-                  <div id="watch-party-room-player"></div>
+                  {{#if hasRoomMovieSelection}}
+                    <div id="watch-party-room-player"></div>
+                  {{else}}
+                    <section class="watch-room-selection">
+                      <div class="watch-room-selection__header">
+                        <div>
+                          <div class="watch-room-selection__kicker">Комната создана</div>
+                          <h2 class="watch-room-selection__title">Выберите фильм для этой комнаты</h2>
+                        </div>
+
+                        <div class="watch-room-selection__controls">
+                          <button
+                            class="watch-room-selection__arrow"
+                            type="button"
+                            data-action="scroll-room-movie-candidates-prev"
+                            aria-label="Прокрутить влево"
+                          >
+                            <span>&lsaquo;</span>
+                          </button>
+                          <button
+                            class="watch-room-selection__arrow"
+                            type="button"
+                            data-action="scroll-room-movie-candidates-next"
+                            aria-label="Прокрутить вправо"
+                          >
+                            <span>&rsaquo;</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {{#if topMovieCandidatesLoading}}
+                        <div class="watch-room-selection__state">Подбираем топ 10 для комнаты...</div>
+                      {{else}}
+                        {{#if topMovieCandidatesError}}
+                          <div class="watch-room-selection__state watch-room-selection__state--error">
+                            {{topMovieCandidatesError}}
+                          </div>
+                        {{/if}}
+
+                        <div class="watch-room-selection__viewport" data-role="room-movie-candidates">
+                          <div class="watch-room-selection__track">
+                            {{#each topMovieCandidates}}
+                              <article class="watch-room-selection__card">
+                                <div class="watch-room-selection__rank">Топ {{this.rank}}</div>
+                                <img
+                                  class="watch-room-selection__thumb"
+                                  src="{{this.imageUrl}}"
+                                  alt="{{this.title}}"
+                                />
+                                <div class="watch-room-selection__body">
+                                  <div class="watch-room-selection__movie">{{this.title}}</div>
+                                  {{#if this.subtitle}}
+                                    <div class="watch-room-selection__meta">{{this.subtitle}}</div>
+                                  {{/if}}
+                                </div>
+                                <button
+                                  class="watch-room-selection__choose"
+                                  type="button"
+                                  data-action="select-top-room-movie"
+                                  data-movie-id="{{this.id}}"
+                                >
+                                  Выбрать
+                                </button>
+                              </article>
+                            {{/each}}
+                          </div>
+                        </div>
+                      {{/if}}
+                    </section>
+                  {{/if}}
                 </section>
 
                 <div class="watch-room-topbar">
