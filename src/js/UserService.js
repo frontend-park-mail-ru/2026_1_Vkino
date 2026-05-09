@@ -170,6 +170,128 @@ export class UserService {
   }
 
   /**
+   * Создает или обновляет отзыв пользователя к фильму.
+   * @async
+   * @param {string|number} movieId ID фильма.
+   * @param {{rating?: number, message?: string}} payload данные отзыва.
+   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
+   */
+  async setMovieReview(movieId, payload = {}) {
+    const normalizedMovieId = normalizeUserEndpointId(movieId);
+
+    if (!normalizedMovieId) {
+      return createClientValidationError("UserService: не передан id фильма");
+    }
+
+    const normalizedPayload = {};
+    const hasRating = Object.prototype.hasOwnProperty.call(payload, "rating");
+    const hasMessage = Object.prototype.hasOwnProperty.call(payload, "message");
+
+    if (hasRating) {
+      const rating = Number(payload.rating);
+
+      if (Number.isFinite(rating)) {
+        normalizedPayload.rating = rating;
+      }
+    }
+
+    if (hasMessage) {
+      normalizedPayload.message = String(payload.message ?? "").trim();
+    }
+
+    return this.api.put(
+      `/reviews/${encodeURIComponent(normalizedMovieId)}`,
+      normalizedPayload,
+    );
+  }
+
+  /**
+   * Удаляет отзыв пользователя к фильму.
+   * @async
+   * @param {string|number} movieId ID фильма.
+   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
+   */
+  async deleteMovieReview(movieId) {
+    const normalizedMovieId = normalizeUserEndpointId(movieId);
+
+    if (!normalizedMovieId) {
+      return createClientValidationError("UserService: не передан id фильма");
+    }
+
+    return this.api.delete(`/reviews/${encodeURIComponent(normalizedMovieId)}`);
+  }
+
+  /**
+   * Ставит или меняет реакцию пользователя на чужой отзыв.
+   * @async
+   * @param {string|number} reviewId ID отзыва.
+   * @param {"like"|"dislike"} reaction реакция пользователя.
+   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
+   */
+  async setReviewReaction(reviewId, reaction) {
+    const normalizedReviewId = normalizeUserEndpointId(reviewId);
+    const normalizedReaction = String(reaction || "")
+      .trim()
+      .toLowerCase();
+
+    if (!normalizedReviewId) {
+      return createClientValidationError("UserService: не передан id отзыва");
+    }
+
+    if (!["like", "dislike"].includes(normalizedReaction)) {
+      return createClientValidationError("UserService: некорректная реакция");
+    }
+
+    return this.api.put(
+      `/review-reactions/${encodeURIComponent(normalizedReviewId)}`,
+      { reaction: normalizedReaction },
+    );
+  }
+
+  /**
+   * Удаляет реакцию пользователя на отзыв.
+   * @async
+   * @param {string|number} reviewId ID отзыва.
+   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
+   */
+  async deleteReviewReaction(reviewId) {
+    const normalizedReviewId = normalizeUserEndpointId(reviewId);
+
+    if (!normalizedReviewId) {
+      return createClientValidationError("UserService: не передан id отзыва");
+    }
+
+    return this.api.delete(
+      `/review-reactions/${encodeURIComponent(normalizedReviewId)}`,
+    );
+  }
+
+  /**
+   * Ставит отдельную пользовательскую оценку фильму без текста отзыва.
+   * @async
+   * @param {string|number} movieId ID фильма.
+   * @param {number|string} rating оценка фильма.
+   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
+   */
+  async setMovieRating(movieId, rating) {
+    const normalizedMovieId = normalizeUserEndpointId(movieId);
+    const normalizedRating = Number(rating);
+
+    if (!normalizedMovieId) {
+      return createClientValidationError("UserService: не передан id фильма");
+    }
+
+    if (!Number.isFinite(normalizedRating)) {
+      return createClientValidationError("UserService: некорректная оценка");
+    }
+
+    return this.api.put(`/ratings/${encodeURIComponent(normalizedMovieId)}`, {
+      movie_id: normalizeMovieIdForPayload(normalizedMovieId),
+      rating: normalizedRating,
+    });
+  }
+
+  /**
    * Возвращает подборку "Продолжить просмотр".
    * @async
    * @param {{limit?: number}} [options={}] параметры выборки.
@@ -277,6 +399,26 @@ export class UserService {
  * @type {UserService}
  */
 export const userService = new UserService(apiService);
+
+function normalizeUserEndpointId(value) {
+  return String(value ?? "").trim();
+}
+
+function normalizeMovieIdForPayload(value) {
+  const normalizedValue = normalizeUserEndpointId(value);
+  const numericValue = Number(normalizedValue);
+
+  return Number.isFinite(numericValue) ? numericValue : normalizedValue;
+}
+
+function createClientValidationError(error) {
+  return {
+    ok: false,
+    status: 0,
+    resp: null,
+    error,
+  };
+}
 
 function shouldClearSessionAfterRefreshFailure(status) {
   return status >= 400 && status < 500 && status !== 408 && status !== 429;
