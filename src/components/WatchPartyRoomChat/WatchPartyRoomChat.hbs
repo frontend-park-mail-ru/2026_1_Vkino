@@ -34,7 +34,12 @@
               ></span>
               <span class="watch-room-chat__bet-option-inner">
                 <span class="watch-room-chat__bet-option-label">{{this.label}}</span>
-                <span class="watch-room-chat__bet-option-percent">{{this.percentLabel}}</span>
+                <span class="watch-room-chat__bet-option-result">
+                  {{#if this.isSelected}}
+                    <span class="watch-room-chat__bet-option-picked">Выбор</span>
+                  {{/if}}
+                  <span class="watch-room-chat__bet-option-percent">{{this.percentLabel}}</span>
+                </span>
               </span>
             </button>
           {{/each}}

@@ -757,7 +757,7 @@ export default class WatchPartyPage extends BasePage {
     const result = await watchPartyService.voteRoomPoll(
       roomId,
       normalizedMessageId,
-      { option_id: normalizedOptionId },
+      { option_id: normalizeNumericIdentifier(normalizedOptionId) },
     );
 
     if (!result.ok) {
@@ -774,17 +774,17 @@ export default class WatchPartyPage extends BasePage {
       return;
     }
 
-    const nextMessages = this._roomData.messages.map((message) => {
-      if (message.id !== normalizedMessageId) {
-        return message;
-      }
-
-      return markPollSelection(pollItem, normalizedOptionId);
-    });
+    const selectedPollItem = markPollSelection(
+      {
+        ...pollItem,
+        id: normalizedMessageId,
+      },
+      normalizedOptionId,
+    );
 
     this._roomData = {
       ...this._roomData,
-      messages: nextMessages,
+      messages: upsertRoomFeedItem(this._roomData.messages, selectedPollItem),
     };
     saveLocalWatchPartyRoom(this._roomData);
     this._refreshRoomChat({
@@ -1563,7 +1563,21 @@ export default class WatchPartyPage extends BasePage {
   }
 
   _applyPollEvent(payload) {
-    const pollItem = mapRoomPolls([payload?.poll]).at(0);
+    const pollPayload =
+      payload?.poll && typeof payload.poll === "object"
+        ? {
+            ...payload.poll,
+            id:
+              payload.poll.id ||
+              payload.poll.poll_id ||
+              payload.poll.pollId ||
+              payload.poll_id ||
+              payload.pollId ||
+              payload?.vote?.poll_id ||
+              payload?.vote?.pollId,
+          }
+        : payload;
+    const pollItem = mapRoomPolls([pollPayload]).at(0);
 
     if (!pollItem) {
       return;
@@ -1571,9 +1585,22 @@ export default class WatchPartyPage extends BasePage {
 
     const selectedOptionId =
       normalizeText(payload?.vote?.option_id || payload?.vote?.optionId) || "";
-    const nextPoll = selectedOptionId
-      ? markPollSelection(pollItem, selectedOptionId)
+    const voteBelongsToViewer =
+      selectedOptionId && isPollVoteFromCurrentViewer(payload?.vote, this._roomData.viewer);
+    const pollWithVoteCounts = selectedOptionId
+      ? applyPollVoteCount(
+          pollItem,
+          selectedOptionId,
+          this._roomData.messages,
+          { incrementLocalCount: !voteBelongsToViewer },
+        )
       : pollItem;
+    const nextPoll = voteBelongsToViewer
+      ? markPollSelection(pollWithVoteCounts, selectedOptionId)
+      : applyLocalPollSelections(
+          [clearPollSelection(pollWithVoteCounts)],
+          this._roomData.messages,
+        )[0];
 
     this._roomData = {
       ...this._roomData,
@@ -2279,7 +2306,10 @@ function mapRoomDtoToViewModel(roomDto, fallbackRoom, viewer) {
       fallbackRoom.members,
       viewer,
     ),
-    messages: mapRoomFeed(normalizedRoomDto, fallbackRoom.messages),
+    messages: applyLocalPollSelections(
+      mapRoomFeed(normalizedRoomDto, fallbackRoom.messages),
+      fallbackRoom.messages,
+    ),
   };
 
   if (
@@ -2478,18 +2508,51 @@ function upsertRoomFeedItem(items, nextItem) {
   const existingIndex = normalizedItems.findIndex((item) => {
     return normalizeText(item?.id) === nextId;
   });
+  const itemsWithoutExactMatch =
+    existingIndex === -1
+      ? normalizedItems
+      : normalizedItems.filter((_, index) => index !== existingIndex);
+  const duplicateIndex = itemsWithoutExactMatch.findIndex((item) => {
+    return isSameRoomFeedItem(item, nextItem);
+  });
 
-  if (existingIndex === -1) {
-    return [...normalizedItems, nextItem].sort(compareRoomFeedItems);
+  if (duplicateIndex === -1) {
+    return [...itemsWithoutExactMatch, nextItem].sort(compareRoomFeedItems);
   }
 
-  return normalizedItems
-    .map((item, index) => (index === existingIndex ? nextItem : item))
+  return itemsWithoutExactMatch
+    .map((item, index) => (index === duplicateIndex ? nextItem : item))
     .sort(compareRoomFeedItems);
 }
 
-function markPollSelection(pollItem, optionId) {
-  const normalizedOptionId = normalizeText(optionId);
+function applyLocalPollSelections(items, fallbackItems) {
+  const normalizedItems = Array.isArray(items) ? items : [];
+  const localPolls = Array.isArray(fallbackItems)
+    ? fallbackItems.filter((item) => item?.isBet)
+    : [];
+
+  if (!localPolls.length) {
+    return normalizedItems;
+  }
+
+  return normalizedItems.map((item) => {
+    if (!item?.isBet || resolveSelectedPollOptionFromItem(item)) {
+      return item;
+    }
+
+    const localPoll = localPolls.find((candidate) => {
+      return isSameRoomFeedItem(candidate, item);
+    });
+    const selectedOptionId = resolveSelectedPollOptionFromItem(localPoll);
+
+    return selectedOptionId ? markPollSelection(item, selectedOptionId) : item;
+  });
+}
+
+function clearPollSelection(pollItem) {
+  if (!pollItem?.isBet) {
+    return pollItem;
+  }
 
   return {
     ...pollItem,
@@ -2497,9 +2560,138 @@ function markPollSelection(pollItem, optionId) {
     options: Array.isArray(pollItem.options)
       ? pollItem.options.map((option) => ({
           ...option,
-          isSelected: normalizeText(option.id) === normalizedOptionId,
+          isSelected: false,
         }))
       : [],
+  };
+}
+
+function applyPollVoteCount(
+  pollItem,
+  optionId,
+  previousItems,
+  { incrementLocalCount = true } = {},
+) {
+  const normalizedOptionId = normalizeText(optionId);
+
+  if (!pollItem?.isBet || !normalizedOptionId) {
+    return pollItem;
+  }
+
+  const previousPoll = Array.isArray(previousItems)
+    ? previousItems.find((item) => isSameRoomFeedItem(item, pollItem))
+    : null;
+  const nextOptions = Array.isArray(pollItem.options)
+    ? pollItem.options.map((option) => {
+        const isVotedOption = normalizeText(option.id) === normalizedOptionId;
+        const previousOption = findMatchingPollOption(
+          previousPoll?.options,
+          option,
+        );
+        const serverVotes = normalizeCount(option.votes);
+        const previousVotes = normalizeCount(previousOption?.votes);
+        const optimisticVotes = isVotedOption
+          ? incrementLocalCount
+            ? previousVotes + 1
+            : Math.max(previousVotes, 1)
+          : previousVotes;
+
+        return {
+          ...option,
+          votes: Math.max(serverVotes, optimisticVotes),
+        };
+      })
+    : [];
+
+  return {
+    ...pollItem,
+    voteCount: Math.max(normalizeCount(pollItem.voteCount), sumOptionVotes(nextOptions)),
+    options: nextOptions,
+  };
+}
+
+function findMatchingPollOption(options, targetOption) {
+  if (!Array.isArray(options) || !targetOption) {
+    return null;
+  }
+
+  const targetId = normalizeText(targetOption.id);
+  const targetLabel = normalizeText(targetOption.label);
+
+  return (
+    options.find((option) => normalizeText(option?.id) === targetId) ||
+    options.find((option) => normalizeText(option?.label) === targetLabel) ||
+    null
+  );
+}
+
+function resolveSelectedPollOptionFromItem(item) {
+  if (!item?.isBet || !Array.isArray(item.options)) {
+    return "";
+  }
+
+  const selectedOption = item.options.find((option) => option?.isSelected);
+  return normalizeText(selectedOption?.id);
+}
+
+function isSameRoomFeedItem(left, right) {
+  if (!left || !right) {
+    return false;
+  }
+
+  if (normalizeText(left.id) === normalizeText(right.id)) {
+    return true;
+  }
+
+  if (!left.isBet || !right.isBet) {
+    return false;
+  }
+
+  return (
+    normalizeText(left.question) === normalizeText(right.question) &&
+    buildPollOptionsSignature(left.options) ===
+      buildPollOptionsSignature(right.options)
+  );
+}
+
+function buildPollOptionsSignature(options = []) {
+  if (!Array.isArray(options)) {
+    return "";
+  }
+
+  return options
+    .map((option) => normalizeText(option?.label))
+    .filter(Boolean)
+    .join("|");
+}
+
+function markPollSelection(pollItem, optionId) {
+  const normalizedOptionId = normalizeText(optionId);
+  const options = Array.isArray(pollItem.options)
+    ? pollItem.options.map((option) => {
+        const isSelected = normalizeText(option.id) === normalizedOptionId;
+
+        return {
+          ...option,
+          votes: isSelected
+            ? Math.max(normalizeCount(option.votes), 1)
+            : normalizeCount(option.votes),
+          isSelected,
+        };
+      })
+    : [];
+  const voteCount = Math.max(
+    normalizeCount(pollItem.voteCount),
+    sumOptionVotes(options),
+    normalizedOptionId ? 1 : 0,
+  );
+
+  return {
+    ...pollItem,
+    voteCount,
+    metaText: "",
+    selectionText: "",
+    options,
   };
 }
 
@@ -2858,20 +3050,37 @@ function mapRoomMessages(items) {
     const authorInitial = buildInitial(authorName);
 
     if (Array.isArray(item?.options)) {
+      const selectedOptionId = resolveSelectedPollOptionId(item);
       const options = item.options
-        .map((option, optionIndex) => ({
-          id:
+        .map((option, optionIndex) => {
+          const optionId =
             normalizeText(
-              option?.id || option?.optionId || option?.option_id,
-            ) || `bet-${index + 1}-option-${optionIndex + 1}`,
-          label:
-            normalizeText(option?.label || option?.title || option?.name) ||
-            `Вариант ${optionIndex + 1}`,
-          votes: normalizeCount(
-            option?.votes ?? option?.count ?? option?.value,
-          ),
-          isSelected: Boolean(option?.isSelected ?? option?.selected),
-        }))
+              option?.id ||
+                option?.optionId ||
+                option?.option_id ||
+                option?.bet_variant_id ||
+                option?.betVariantId ||
+                option?.variant_id ||
+                option?.variantId,
+            ) || `bet-${index + 1}-option-${optionIndex + 1}`;
+
+          return {
+            id: optionId,
+            label:
+              normalizeText(option?.label || option?.title || option?.name) ||
+              `Вариант ${optionIndex + 1}`,
+            votes: normalizeCount(
+              option?.votes ??
+                option?.votes_count ??
+                option?.votesCount ??
+                option?.vote_count ??
+                option?.voteCount ??
+                option?.count ??
+                option?.value,
+            ),
+            isSelected: normalizeText(optionId) === selectedOptionId,
+          };
+        })
         .filter((option) => option.label);
 
       return {
@@ -2886,8 +3095,11 @@ function mapRoomMessages(items) {
         question: normalizeText(item?.question || item?.title) || "Ставка",
         metaText:
           normalizeText(item?.metaText || item?.meta_text) ||
-          `Создал ${authorName} · ${normalizeCount(item?.voteCount)} голосов`,
-        voteCount: normalizeCount(item?.voteCount),
+          `Создал ${authorName} · ${sumOptionVotes(options)} голосов`,
+        voteCount: Math.max(
+          normalizeCount(item?.vote_count || item?.voteCount),
+          sumOptionVotes(options),
+        ),
         selectionText:
           normalizeText(item?.selectionText || item?.selection_text) ||
           "Голосование открыто",
@@ -2930,6 +3142,35 @@ function mapRoomPolls(items) {
           item?.user?.name,
       ) || "Участник";
     const optionItems = Array.isArray(item?.options) ? item.options : [];
+    const selectedOptionId = resolveSelectedPollOptionId(item);
+    const options = optionItems.map((option, optionIndex) => {
+      const optionId =
+        normalizeText(
+          option?.id ||
+            option?.option_id ||
+            option?.optionId ||
+            option?.bet_variant_id ||
+            option?.betVariantId ||
+            option?.variant_id ||
+            option?.variantId,
+        ) || `poll-${index + 1}-option-${optionIndex + 1}`;
+
+      return {
+        id: optionId,
+        label:
+          normalizeText(option?.label || option?.title || option?.name) ||
+          `Вариант ${optionIndex + 1}`,
+        votes: normalizeCount(
+          option?.votes ??
+            option?.votes_count ??
+            option?.votesCount ??
+            option?.vote_count ??
+            option?.voteCount ??
+            option?.count,
+        ),
+        isSelected: normalizeText(optionId) === selectedOptionId,
+      };
+    });
 
     return {
       id:
@@ -2947,25 +3188,84 @@ function mapRoomPolls(items) {
         normalizeText(item?.question || item?.title || item?.name) || "Ставка",
       metaText:
         normalizeText(item?.metaText || item?.meta_text) ||
-        `Создал ${authorName} · ${normalizeCount(item?.vote_count || item?.voteCount)} голосов`,
-      voteCount: normalizeCount(item?.vote_count || item?.voteCount),
+        `Создал ${authorName} · ${sumOptionVotes(options)} голосов`,
+      voteCount: Math.max(
+        normalizeCount(item?.vote_count || item?.voteCount),
+        sumOptionVotes(options),
+      ),
       selectionText:
         normalizeText(item?.selectionText || item?.selection_text) ||
         "Голосование открыто",
-      options: optionItems.map((option, optionIndex) => ({
-        id:
-          normalizeText(option?.id || option?.option_id || option?.optionId) ||
-          `poll-${index + 1}-option-${optionIndex + 1}`,
-        label:
-          normalizeText(option?.label || option?.title || option?.name) ||
-          `Вариант ${optionIndex + 1}`,
-        votes: normalizeCount(
-          option?.votes ?? option?.vote_count ?? option?.count,
-        ),
-        isSelected: Boolean(option?.isSelected ?? option?.selected),
-      })),
+      options,
     };
   });
+}
+
+function isPollVoteFromCurrentViewer(vote, viewer = {}) {
+  if (!vote || typeof vote !== "object") {
+    return false;
+  }
+
+  const viewerId = normalizeText(viewer.id || viewer.userId);
+  const voteUserId = normalizeText(
+    vote.user_id ||
+      vote.userId ||
+      vote.voter_id ||
+      vote.voterId ||
+      vote.member_id ||
+      vote.memberId ||
+      vote.user?.id ||
+      vote.user?.user_id,
+  );
+
+  if (viewerId && voteUserId) {
+    return viewerId === voteUserId;
+  }
+
+  const viewerName = normalizeText(viewer.name).toLowerCase();
+  const voteUserName = normalizeText(
+    vote.user_name ||
+      vote.userName ||
+      vote.voter_name ||
+      vote.voterName ||
+      vote.user?.name ||
+      vote.user?.email,
+  ).toLowerCase();
+
+  return Boolean(viewerName && voteUserName && viewerName === voteUserName);
+}
+
+function resolveSelectedPollOptionId(item = {}) {
+  const vote =
+    item?.vote ||
+    item?.user_vote ||
+    item?.userVote ||
+    item?.current_user_vote ||
+    item?.currentUserVote ||
+    item?.my_vote ||
+    item?.myVote;
+
+  if (vote && typeof vote === "object") {
+    const voteOptionId = normalizeText(
+      vote.option_id ||
+        vote.optionId ||
+        vote.selected_option_id ||
+        vote.selectedOptionId,
+    );
+
+    if (voteOptionId) {
+      return voteOptionId;
+    }
+  }
+
+  return normalizeText(
+    item?.selected_option_id ||
+      item?.selectedOptionId ||
+      item?.voted_option_id ||
+      item?.votedOptionId ||
+      item?.user_option_id ||
+      item?.userOptionId,
+  );
 }
 
 function mergeOverviewWithLocalRooms(pageData, localRooms, fallbackData) {
@@ -3123,11 +3423,24 @@ function decorateRoomMessage(message) {
     };
   }
 
+  const hasRawSelectedOption = Array.isArray(message.options)
+    ? message.options.some((option) => option?.isSelected)
+    : false;
+  const normalizedOptions = Array.isArray(message.options)
+    ? message.options.map((option) => ({
+        ...option,
+        votes:
+          hasRawSelectedOption && option?.isSelected
+            ? Math.max(normalizeCount(option.votes), 1)
+            : normalizeCount(option.votes),
+      }))
+    : [];
   const voteCount = Math.max(
     normalizeCount(message.voteCount),
-    sumOptionVotes(message.options),
+    sumOptionVotes(normalizedOptions),
+    hasRawSelectedOption ? 1 : 0,
   );
-  const options = message.options.map((option) => {
+  const options = normalizedOptions.map((option) => {
     const votes = normalizeCount(option.votes);
     const percent = voteCount > 0 ? Math.round((votes / voteCount) * 100) : 0;
 
@@ -3145,7 +3458,7 @@ function decorateRoomMessage(message) {
     options,
     hasSelectedOption,
     metaText:
-      normalizeText(message.metaText) ||
+      resolvePollMetaText(message, voteCount) ||
       `Создал ${message.authorName} · ${voteCount} голосов`,
     votersText: formatVotersText(voteCount),
     selectionText:
@@ -3153,6 +3466,20 @@ function decorateRoomMessage(message) {
       resolveSelectedOptionLabel(message.options) ||
       "Голосование открыто",
   };
+}
+
+function resolvePollMetaText(message, voteCount) {
+  const metaText = normalizeText(message.metaText);
+
+  if (!metaText) {
+    return "";
+  }
+
+  if (voteCount > 0 && /0\s+голос/i.test(metaText)) {
+    return "";
+  }
+
+  return metaText;
 }
 
 function buildComposerOptions(count) {
