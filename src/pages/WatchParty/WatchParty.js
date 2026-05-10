@@ -36,6 +36,7 @@ const HERO_COPY = {
 };
 const WATCH_PARTY_WS_RECONNECT_DELAY_MS = 3000;
 const WATCH_PARTY_ROOM_POLL_INTERVAL_MS = 2000;
+const WATCH_PARTY_ROOM_STATUS_AUTO_HIDE_MS = 3000;
 
 export default class WatchPartyPage extends BasePage {
   constructor(context = {}, parent = null, el = null) {
@@ -86,6 +87,7 @@ export default class WatchPartyPage extends BasePage {
     this._roomStatePollTimerId = 0;
     this._roomStatePollInFlight = false;
     this._roomSubscriptionReady = false;
+    this._roomStatusAutoHideTimerId = 0;
   }
 
   init() {
@@ -133,11 +135,13 @@ export default class WatchPartyPage extends BasePage {
     this.el.removeEventListener("submit", this._onSubmit);
     this._disconnectRoomSubscription();
     this._stopRoomStatePolling();
+    this._clearRoomStatusAutoHide();
   }
 
   beforeDestroy() {
     this._disconnectRoomSubscription();
     this._stopRoomStatePolling();
+    this._clearRoomStatusAutoHide();
   }
 
   setupChildren() {
@@ -346,7 +350,8 @@ export default class WatchPartyPage extends BasePage {
 
     const fallbackRoom = buildWatchPartyFallbackRoom(roomId);
     const viewer = buildCurrentViewer();
-    const result = await watchPartyService.getRoom(roomId);
+    const joinResult = await this._joinRoomFromRoute(roomId);
+    const result = joinResult.ok ? joinResult : await watchPartyService.getRoom(roomId);
 
     if (!result.ok) {
       console.error("WatchPartyPage: не удалось загрузить комнату", {
@@ -396,6 +401,32 @@ export default class WatchPartyPage extends BasePage {
         ? ""
         : "Серверное состояние комнаты пока недоступно. Показана локальная версия страницы.",
       roomStatusTone: result.ok ? "info" : "warning",
+    });
+  }
+
+  async _joinRoomFromRoute(roomId) {
+    if (!authStore.getState().user) {
+      return {
+        ok: false,
+        status: 0,
+        resp: null,
+        error: "",
+      };
+    }
+
+    const normalizedRoomId = normalizeText(roomId);
+
+    if (!normalizedRoomId) {
+      return {
+        ok: false,
+        status: 0,
+        resp: null,
+        error: "",
+      };
+    }
+
+    return watchPartyService.joinRoom({
+      room_id: normalizeRoomIdPayload(normalizedRoomId),
     });
   }
 
@@ -921,6 +952,8 @@ export default class WatchPartyPage extends BasePage {
   }
 
   _setRoomStatus(message, tone) {
+    this._clearRoomStatusAutoHide();
+
     if (this._mode === "room") {
       this._refreshRoomChrome({
         roomStatusMessage: message,
@@ -935,9 +968,38 @@ export default class WatchPartyPage extends BasePage {
     });
   }
 
+  _setTemporaryRoomStatus(message, tone, durationMs = WATCH_PARTY_ROOM_STATUS_AUTO_HIDE_MS) {
+    this._setRoomStatus(message, tone);
+
+    if (this._mode !== "room" || !message || durationMs <= 0) {
+      return;
+    }
+
+    this._roomStatusAutoHideTimerId = window.setTimeout(() => {
+      this._roomStatusAutoHideTimerId = 0;
+
+      if (this._uiState.roomStatusMessage !== message) {
+        return;
+      }
+
+      this._refreshRoomChrome({
+        roomStatusMessage: "",
+      });
+    }, durationMs);
+  }
+
+  _clearRoomStatusAutoHide() {
+    if (!this._roomStatusAutoHideTimerId) {
+      return;
+    }
+
+    window.clearTimeout(this._roomStatusAutoHideTimerId);
+    this._roomStatusAutoHideTimerId = 0;
+  }
+
   _setCopySuccessStatus() {
     if (this._mode === "room") {
-      this._setRoomStatus("Ссылка на комнату скопирована.", "success");
+      this._setTemporaryRoomStatus("Ссылка на комнату скопирована.", "success");
       return;
     }
 
@@ -1292,7 +1354,10 @@ export default class WatchPartyPage extends BasePage {
     this._roomSubscriptionReady = true;
     this._stopRoomStatePolling();
 
-    this._setRoomStatus("Подключение к событиям комнаты активно.", "success");
+    this._setTemporaryRoomStatus(
+      "Подключение к событиям комнаты активно.",
+      "success",
+    );
   };
 
   _onRoomSubscriptionMessage = (event) => {
