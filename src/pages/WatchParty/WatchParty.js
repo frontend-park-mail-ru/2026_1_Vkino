@@ -35,6 +35,7 @@ const HERO_COPY = {
     "Создайте комнату, настройте доступ и переходите в комнату проекта без отдельного шаблона.",
 };
 const WATCH_PARTY_WS_RECONNECT_DELAY_MS = 3000;
+const WATCH_PARTY_ROOM_POLL_INTERVAL_MS = 2000;
 
 export default class WatchPartyPage extends BasePage {
   constructor(context = {}, parent = null, el = null) {
@@ -81,6 +82,10 @@ export default class WatchPartyPage extends BasePage {
     this._roomSubscriptionUrl = "";
     this._roomSubscriptionReconnectTimerId = 0;
     this._shouldReconnectRoomSubscription = false;
+    this._suppressRoomPlaybackEvents = false;
+    this._roomStatePollTimerId = 0;
+    this._roomStatePollInFlight = false;
+    this._roomSubscriptionReady = false;
   }
 
   init() {
@@ -127,10 +132,12 @@ export default class WatchPartyPage extends BasePage {
     this.el.removeEventListener("click", this._onClick);
     this.el.removeEventListener("submit", this._onSubmit);
     this._disconnectRoomSubscription();
+    this._stopRoomStatePolling();
   }
 
   beforeDestroy() {
     this._disconnectRoomSubscription();
+    this._stopRoomStatePolling();
   }
 
   setupChildren() {
@@ -235,7 +242,7 @@ export default class WatchPartyPage extends BasePage {
         break;
       case "select-bet-option":
         event.preventDefault();
-        this._selectBetOption(
+        await this._selectBetOption(
           actionTarget.dataset.messageId || "",
           actionTarget.dataset.optionId || "",
         );
@@ -263,11 +270,11 @@ export default class WatchPartyPage extends BasePage {
         break;
       case "send-chat-message":
         event.preventDefault();
-        this._handleSendChatMessage(actionTarget);
+        await this._handleSendChatMessage(actionTarget);
         break;
       case "create-bet":
         event.preventDefault();
-        this._handleCreateBet(actionTarget);
+        await this._handleCreateBet(actionTarget);
         break;
       default:
         break;
@@ -358,7 +365,8 @@ export default class WatchPartyPage extends BasePage {
       ),
       viewer,
     );
-    if (!hasRoomMovieSelection(this._roomData)) {
+    await this._hydrateRoomMovieSelection();
+    if (!hasRoomMovieBinding(this._roomData)) {
       this._uiState = {
         ...this._uiState,
         topMovieCandidatesLoading: true,
@@ -480,7 +488,7 @@ export default class WatchPartyPage extends BasePage {
     router.go(buildWatchPartyRoomPath(nextRoom.id));
   }
 
-  _handleSendChatMessage(form) {
+  async _handleSendChatMessage(form) {
     if (this._mode !== "room") {
       return;
     }
@@ -493,25 +501,29 @@ export default class WatchPartyPage extends BasePage {
       return;
     }
 
-    const viewer = this._roomData.viewer;
-    const nextMessages = [
-      ...this._roomData.messages,
-      {
-        id: `message-${Date.now()}`,
-        isBet: false,
-        authorName: viewer.name,
-        authorInitial: viewer.initial,
-        authorTint: viewer.avatarTint,
-        timeLabel: formatTimeLabel(),
-        text: messageText,
-        reactionText: "",
-      },
-    ];
+    const roomId = normalizeText(this._roomData.id);
+    const result = await watchPartyService.sendRoomMessage(roomId, {
+      content: messageText,
+    });
 
-    this._roomData = {
-      ...this._roomData,
-      messages: nextMessages,
-    };
+    if (!result.ok) {
+      this._setRoomStatus(
+        result.error || "Не удалось отправить сообщение в комнату.",
+        "error",
+      );
+      return;
+    }
+
+    const messageItem = mapRoomMessages([result.resp?.message]).at(0);
+
+    if (messageItem) {
+      this._roomData = {
+        ...this._roomData,
+        messages: upsertRoomFeedItem(this._roomData.messages, messageItem),
+      };
+      saveLocalWatchPartyRoom(this._roomData);
+    }
+
     saveLocalWatchPartyRoom(this._roomData);
     this._clearRoomChatMessageDraft();
     this._refreshRoomChat({
@@ -520,7 +532,7 @@ export default class WatchPartyPage extends BasePage {
     });
   }
 
-  _handleCreateBet(form) {
+  async _handleCreateBet(form) {
     if (this._mode !== "room") {
       return;
     }
@@ -540,34 +552,30 @@ export default class WatchPartyPage extends BasePage {
       return;
     }
 
-    const viewer = this._roomData.viewer;
-    const betId = `bet-${Date.now()}`;
-    const nextMessages = [
-      ...this._roomData.messages,
-      {
-        id: betId,
-        isBet: true,
-        authorName: viewer.name,
-        authorInitial: viewer.initial,
-        authorTint: viewer.avatarTint,
-        timeLabel: formatTimeLabel(),
-        question,
-        metaText: `Создали ${viewer.name} · 0 голосов`,
-        voteCount: 0,
-        selectionText: "Голосование открыто",
-        options: options.map((optionLabel, index) => ({
-          id: `${betId}-option-${index + 1}`,
-          label: optionLabel,
-          votes: 0,
-          isSelected: false,
-        })),
-      },
-    ];
+    const roomId = normalizeText(this._roomData.id);
+    const result = await watchPartyService.createRoomPoll(roomId, {
+      question,
+      options,
+    });
 
-    this._roomData = {
-      ...this._roomData,
-      messages: nextMessages,
-    };
+    if (!result.ok) {
+      this._setRoomStatus(
+        result.error || "Не удалось создать голосование в комнате.",
+        "error",
+      );
+      return;
+    }
+
+    const pollItem = mapRoomPolls([result.resp?.poll]).at(0);
+
+    if (pollItem) {
+      this._roomData = {
+        ...this._roomData,
+        messages: upsertRoomFeedItem(this._roomData.messages, pollItem),
+      };
+      saveLocalWatchPartyRoom(this._roomData);
+    }
+
     saveLocalWatchPartyRoom(this._roomData);
     this._clearRoomChatBetComposerDraft();
     this._refreshRoomChat({
@@ -662,6 +670,14 @@ export default class WatchPartyPage extends BasePage {
         currentTimeLabel: "0:00",
       },
     };
+    await this._persistRoomPlaybackAction("sync_state", {
+      movie_id: selectedMovie.id,
+      episode_id: firstEpisode.id,
+      playback_url: normalizeText(firstEpisode.playbackUrl),
+      duration_seconds: firstEpisode.durationSeconds,
+      position_seconds: 0,
+      status: "paused",
+    });
     saveLocalWatchPartyRoom(this._roomData);
     this._refreshView({
       roomStatusMessage: `Фильм ${selectedMovie.title} привязан к комнате.`,
@@ -725,7 +741,7 @@ export default class WatchPartyPage extends BasePage {
     };
   }
 
-  _selectBetOption(messageId, optionId) {
+  async _selectBetOption(messageId, optionId) {
     if (this._mode !== "room") {
       return;
     }
@@ -737,54 +753,34 @@ export default class WatchPartyPage extends BasePage {
       return;
     }
 
-    let didVote = false;
+    const roomId = normalizeText(this._roomData.id);
+    const result = await watchPartyService.voteRoomPoll(
+      roomId,
+      normalizedMessageId,
+      { option_id: normalizedOptionId },
+    );
 
-    const nextMessages = this._roomData.messages.map((message) => {
-      if (!message.isBet || message.id !== normalizedMessageId) {
-        return message;
-      }
-
-      const nextOptions = message.options.map((option) => ({
-        ...option,
-      }));
-      const previousSelectedOption = nextOptions.find(
-        (option) => option.isSelected,
+    if (!result.ok) {
+      this._setRoomStatus(
+        result.error || "Не удалось отправить голос.",
+        "error",
       );
-
-      if (previousSelectedOption) {
-        return message;
-      }
-
-      const nextSelectedOption = nextOptions.find((option) => {
-        return option.id === normalizedOptionId;
-      });
-
-      if (!nextSelectedOption) {
-        return message;
-      }
-
-      nextSelectedOption.votes = normalizeCount(nextSelectedOption.votes) + 1;
-      didVote = true;
-
-      nextOptions.forEach((option) => {
-        option.isSelected = option.id === normalizedOptionId;
-      });
-
-      const voteCountBase = normalizeCount(message.voteCount);
-      const optionsVoteCount = sumOptionVotes(nextOptions);
-      const nextVoteCount = Math.max(voteCountBase + 1, optionsVoteCount);
-
-      return {
-        ...message,
-        voteCount: nextVoteCount,
-        selectionText: `Ваш выбор: ${nextSelectedOption.label}`,
-        options: nextOptions,
-      };
-    });
-
-    if (!didVote) {
       return;
     }
+
+    const pollItem = mapRoomPolls([result.resp?.poll]).at(0);
+
+    if (!pollItem) {
+      return;
+    }
+
+    const nextMessages = this._roomData.messages.map((message) => {
+      if (message.id !== normalizedMessageId) {
+        return message;
+      }
+
+      return markPollSelection(pollItem, normalizedOptionId);
+    });
 
     this._roomData = {
       ...this._roomData,
@@ -1079,6 +1075,9 @@ export default class WatchPartyPage extends BasePage {
           showChatControl: true,
           fullscreenTargetSelector: ".watch-room-shell",
           onChatRequested: () => this._setRoomPanel("chat"),
+          onPlaybackEvent: (payload) => {
+            void this._handleRoomPlayerPlaybackEvent(payload);
+          },
         },
         this,
         playerRoot,
@@ -1127,16 +1126,25 @@ export default class WatchPartyPage extends BasePage {
     }
 
     const snapshot = this._roomPlayerSnapshot;
+    const roomEpisodeId =
+      normalizeText(this._roomData.playerSource?.episodeId) ||
+      playerMovie.initialEpisodeId;
+    const roomPositionSeconds = normalizeCount(
+      this._roomData.playerSource?.positionSeconds,
+    );
+    const roomIsPlaying = Boolean(this._roomData.player?.isPlaying);
 
+    this._suppressRoomPlaybackEvents = true;
     await player.open(
       playerMovie,
-      snapshot?.activeEpisodeId || playerMovie.initialEpisodeId,
+      snapshot?.activeEpisodeId || roomEpisodeId,
       {
-        autoplay: Boolean(snapshot?.isPlaying),
+        autoplay: snapshot?.isPlaying ?? roomIsPlaying,
         restoreProgress: !playerMovie.isDirectPlayback,
-        startAtSeconds: snapshot?.currentTime || 0,
+        startAtSeconds: snapshot?.currentTime ?? roomPositionSeconds,
       },
     );
+    this._suppressRoomPlaybackEvents = false;
 
     player.restoreAudioState({
       volumePercent: snapshot?.volumePercent,
@@ -1182,12 +1190,81 @@ export default class WatchPartyPage extends BasePage {
     }
   }
 
+  _startRoomStatePolling() {
+    if (
+      this._mode !== "room" ||
+      this._uiState.loading ||
+      this._uiState.hasError ||
+      this._roomStatePollTimerId
+    ) {
+      return;
+    }
+
+    if (isCurrentViewerRoomHost(this._roomData)) {
+      return;
+    }
+
+    if (this._roomSubscriptionReady) {
+      return;
+    }
+
+    this._roomStatePollTimerId = window.setInterval(() => {
+      void this._pollRoomState();
+    }, WATCH_PARTY_ROOM_POLL_INTERVAL_MS);
+  }
+
+  _stopRoomStatePolling() {
+    if (!this._roomStatePollTimerId) {
+      return;
+    }
+
+    window.clearInterval(this._roomStatePollTimerId);
+    this._roomStatePollTimerId = 0;
+    this._roomStatePollInFlight = false;
+  }
+
+  async _pollRoomState() {
+    if (
+      this._roomStatePollInFlight ||
+      this._mode !== "room" ||
+      this._roomSubscriptionReady
+    ) {
+      return;
+    }
+
+    const roomId = normalizeText(this._roomData?.id || this._routeState.roomId);
+
+    if (!roomId) {
+      return;
+    }
+
+    this._roomStatePollInFlight = true;
+
+    try {
+      const result = await watchPartyService.getRoom(roomId);
+
+      if (!result.ok) {
+        return;
+      }
+
+      const roomPayload = extractWatchPartyRoom(result.resp) || result.resp;
+      this._applyRoomPatchEvent({
+        type: "sync_state",
+        room: roomPayload,
+        playback: roomPayload?.playback,
+      });
+    } finally {
+      this._roomStatePollInFlight = false;
+    }
+  }
+
   _disconnectRoomSubscription({ preserveReconnect = false } = {}) {
     window.clearTimeout(this._roomSubscriptionReconnectTimerId);
     this._roomSubscriptionReconnectTimerId = 0;
     this._shouldReconnectRoomSubscription = preserveReconnect
       ? this._shouldReconnectRoomSubscription
       : false;
+    this._roomSubscriptionReady = false;
 
     const socket = this._roomSubscription;
 
@@ -1212,6 +1289,8 @@ export default class WatchPartyPage extends BasePage {
   _onRoomSubscriptionOpen = () => {
     window.clearTimeout(this._roomSubscriptionReconnectTimerId);
     this._roomSubscriptionReconnectTimerId = 0;
+    this._roomSubscriptionReady = true;
+    this._stopRoomStatePolling();
 
     this._setRoomStatus("Подключение к событиям комнаты активно.", "success");
   };
@@ -1228,6 +1307,7 @@ export default class WatchPartyPage extends BasePage {
 
   _onRoomSubscriptionClose = () => {
     this._roomSubscription = null;
+    this._roomSubscriptionReady = false;
     const nextUrl = this._roomSubscriptionUrl;
 
     if (
@@ -1246,10 +1326,12 @@ export default class WatchPartyPage extends BasePage {
         this._roomSubscriptionUrl = "";
         this._connectRoomSubscription();
       }, WATCH_PARTY_WS_RECONNECT_DELAY_MS);
+      this._startRoomStatePolling();
       return;
     }
 
     this._roomSubscriptionUrl = "";
+    this._startRoomStatePolling();
   };
 
   _onRoomSubscriptionError = (error) => {
@@ -1257,6 +1339,8 @@ export default class WatchPartyPage extends BasePage {
       roomId: this._roomData?.id || this._routeState.roomId,
       error,
     });
+    this._roomSubscriptionReady = false;
+    this._startRoomStatePolling();
     this._setRoomStatus("Не удалось подключиться к событиям комнаты.", "warning");
   };
 
@@ -1280,9 +1364,25 @@ export default class WatchPartyPage extends BasePage {
     if (
       eventType === "room_updated" ||
       eventType === "playback_updated" ||
-      eventType === "playback_changed"
+      eventType === "playback_changed" ||
+      eventType === "play" ||
+      eventType === "pause" ||
+      eventType === "seek" ||
+      eventType === "select_movie" ||
+      eventType === "select_episode" ||
+      eventType === "sync_state"
     ) {
       this._applyRoomPatchEvent(payload);
+      return;
+    }
+
+    if (eventType === "chat_message") {
+      this._applyChatMessageEvent(payload);
+      return;
+    }
+
+    if (eventType === "poll_created" || eventType === "poll_voted") {
+      this._applyPollEvent(payload);
     }
   }
 
@@ -1352,8 +1452,50 @@ export default class WatchPartyPage extends BasePage {
   }
 
   _applyRoomPatchEvent(payload) {
+    const eventType = normalizeText(payload?.type).toLowerCase();
+    console.debug("[watch-party][room] ws/applyRoomPatchEvent", {
+      eventType,
+      payload,
+    });
+    const hadMovieSelection = hasRoomMovieSelection(this._roomData);
+    const previousRoomData = this._roomData;
     const roomPatch = payload.room || payload.state || {};
-    const playbackPatch = payload.playback || roomPatch.playback;
+    const playbackSource = payload.playback || roomPatch.playback || {};
+    const playbackPatch = {
+      ...playbackSource,
+      movie_id:
+        playbackSource.movie_id ??
+        playbackSource.movieId ??
+        payload.movie_id ??
+        payload.movieId,
+      episode_id:
+        playbackSource.episode_id ??
+        playbackSource.episodeId ??
+        payload.episode_id ??
+        payload.episodeId,
+      position_seconds:
+        playbackSource.position_seconds ??
+        playbackSource.positionSeconds ??
+        payload.position_seconds ??
+        payload.positionSeconds,
+      duration_seconds:
+        playbackSource.duration_seconds ??
+        playbackSource.durationSeconds ??
+        payload.duration_seconds ??
+        payload.durationSeconds,
+      playback_url:
+        playbackSource.playback_url ??
+        playbackSource.playbackUrl ??
+        payload.playback_url ??
+        payload.playbackUrl,
+      status:
+        playbackSource.status ||
+        resolvePlaybackStatusFromEventType(eventType) ||
+        payload.status,
+    };
+    const shouldHydrateMovie =
+      hasPlaybackMovieSelection(playbackPatch) ||
+      hasPlaybackMovieSelection(roomPatch.playback);
 
     this._roomData = applyViewerToRoom(
       mapRoomDtoToViewModel(
@@ -1372,9 +1514,267 @@ export default class WatchPartyPage extends BasePage {
       this._roomData.viewer,
     );
     saveLocalWatchPartyRoom(this._roomData);
-    this._refreshView({
-      roomStatusMessage: "Состояние комнаты обновлено.",
-      roomStatusTone: "info",
+    const hasMovieSelectionNow = hasRoomMovieSelection(this._roomData);
+    const shouldRefreshStructure = shouldRefreshRoomStructure(
+      previousRoomData,
+      this._roomData,
+    );
+    const shouldSoftSyncPlayer =
+      isPlaybackEventType(eventType) &&
+      !shouldRefreshStructure &&
+      hadMovieSelection &&
+      hasMovieSelectionNow &&
+      Boolean(this.getChild("watch-party-room-player"));
+
+    if (shouldSoftSyncPlayer) {
+      this._syncCurrentRoomPlayerState(eventType);
+      this._refreshRoomChrome({
+        roomStatusMessage: "",
+      });
+    } else {
+      this._roomPlayerSnapshot = null;
+      this._refreshView({
+        roomStatusMessage: "Состояние комнаты обновлено.",
+        roomStatusTone: "info",
+      });
+    }
+
+    if (shouldHydrateMovie) {
+      void this._hydrateRoomMovieSelection();
+    }
+  }
+
+  _applyChatMessageEvent(payload) {
+    const messageItem = mapRoomMessages([payload?.message]).at(0);
+
+    if (!messageItem) {
+      return;
+    }
+
+    this._roomData = {
+      ...this._roomData,
+      messages: upsertRoomFeedItem(this._roomData.messages, messageItem),
+    };
+    saveLocalWatchPartyRoom(this._roomData);
+    this._refreshRoomChat({
+      activePanel: "chat",
+      roomStatusMessage: "",
+    });
+  }
+
+  _applyPollEvent(payload) {
+    const pollItem = mapRoomPolls([payload?.poll]).at(0);
+
+    if (!pollItem) {
+      return;
+    }
+
+    const selectedOptionId =
+      normalizeText(payload?.vote?.option_id || payload?.vote?.optionId) || "";
+    const nextPoll = selectedOptionId
+      ? markPollSelection(pollItem, selectedOptionId)
+      : pollItem;
+
+    this._roomData = {
+      ...this._roomData,
+      messages: upsertRoomFeedItem(this._roomData.messages, nextPoll),
+    };
+    saveLocalWatchPartyRoom(this._roomData);
+    this._refreshRoomChat({
+      activePanel: "chat",
+      roomStatusMessage: "",
+    });
+  }
+
+  async _hydrateRoomMovieSelection() {
+    const movieId = normalizeText(this._roomData.playerSource?.movieId);
+
+    if (!movieId) {
+      return;
+    }
+
+    if (normalizeText(this._roomData.selectedMovie?.id) === movieId) {
+      return;
+    }
+
+    const result = await movieService.getMovieById(movieId);
+
+    if (!result.ok) {
+      return;
+    }
+
+    const selectedMovie = mapMovieDtoToRoomSelection(extractMovie(result.resp));
+
+    if (!selectedMovie) {
+      return;
+    }
+
+    const selectedEpisodeId = normalizeText(this._roomData.playerSource?.episodeId);
+    const resolvedEpisode =
+      selectedMovie.episodes.find((episode) => {
+        return normalizeText(episode.id) === selectedEpisodeId;
+      }) || selectedMovie.episodes[0];
+
+    this._roomData = applySelectedMovieToRoom(
+      this._roomData,
+      selectedMovie,
+      resolvedEpisode,
+    );
+    saveLocalWatchPartyRoom(this._roomData);
+
+    if (this._contextLoaded) {
+      this._roomPlayerSnapshot = null;
+      this._refreshView({
+        roomStatusMessage: this._uiState.roomStatusMessage,
+        roomStatusTone: this._uiState.roomStatusTone,
+      });
+    }
+  }
+
+  async _handleRoomPlayerPlaybackEvent(payload) {
+    if (this._mode !== "room" || this._suppressRoomPlaybackEvents) {
+      return;
+    }
+
+    const eventType = normalizeText(payload?.type).toLowerCase();
+
+    if (!eventType) {
+      return;
+    }
+
+    const roomMovieId = normalizeText(this._roomData.playerSource?.movieId);
+    const nextEpisodeId = normalizeText(
+      payload?.episodeId || payload?.activeEpisodeId || this._roomData.playerSource?.episodeId,
+    );
+    const positionSeconds = Math.max(0, Number(payload?.positionSeconds) || 0);
+    const durationSeconds = Math.max(0, Number(payload?.durationSeconds) || 0);
+    const playbackUrl = normalizeText(payload?.playbackUrl);
+
+    if (eventType === "episode_loaded") {
+      const resolvedMovie = this._roomData.selectedMovie;
+      const resolvedEpisode = resolvedMovie?.episodes?.find((episode) => {
+        return normalizeText(episode.id) === nextEpisodeId;
+      });
+
+      this._roomData = applySelectedMovieToRoom(
+        this._roomData,
+        resolvedMovie,
+        resolvedEpisode,
+        {
+          playbackUrl,
+          durationSeconds,
+          positionSeconds,
+          isPlaying: false,
+        },
+      );
+      saveLocalWatchPartyRoom(this._roomData);
+      await this._persistRoomPlaybackAction("sync_state", {
+        movie_id: roomMovieId,
+        episode_id: nextEpisodeId,
+        playback_url: playbackUrl,
+        duration_seconds: durationSeconds,
+        position_seconds: positionSeconds,
+        status: "paused",
+      });
+      return;
+    }
+
+    if (eventType === "play" || eventType === "pause" || eventType === "seek") {
+      this._roomData = applyPlaybackStateToRoom(this._roomData, {
+        episode_id: nextEpisodeId,
+        position_seconds: positionSeconds,
+        duration_seconds: durationSeconds,
+        status: eventType === "seek" ? this._roomData.player?.isPlaying ? "playing" : "paused" : eventType,
+      });
+      saveLocalWatchPartyRoom(this._roomData);
+      await this._persistRoomPlaybackAction(eventType, {
+        position_seconds: positionSeconds,
+        duration_seconds: durationSeconds,
+        status:
+          eventType === "play"
+            ? "playing"
+            : eventType === "pause"
+              ? "paused"
+              : undefined,
+      });
+    }
+  }
+
+  async _persistRoomPlaybackAction(action, payload = {}) {
+    const roomId = normalizeText(this._roomData.id);
+
+    if (!roomId || !action) {
+      return;
+    }
+
+    const result = await watchPartyService.sendRoomAction(
+      roomId,
+      buildRoomActionPayload(action, payload),
+    );
+
+    if (!result.ok) {
+      this._setRoomStatus(
+        result.error || "Не удалось синхронизировать состояние комнаты.",
+        "warning",
+      );
+      return;
+    }
+
+    if (result.resp?.playback) {
+      this._roomData = applyPlaybackStateToRoom(this._roomData, result.resp.playback);
+      saveLocalWatchPartyRoom(this._roomData);
+    }
+  }
+
+  _syncCurrentRoomPlayerState(eventType = "") {
+    const player = this.getChild("watch-party-room-player");
+
+    if (!player || !hasRoomMovieSelection(this._roomData)) {
+      return;
+    }
+
+    console.debug("[watch-party][room] syncCurrentRoomPlayerState", {
+      roomId: this._roomData.id,
+      episodeId: normalizeText(this._roomData.playerSource?.episodeId),
+      positionSeconds: normalizeCount(this._roomData.playerSource?.positionSeconds),
+      status: this._roomData.player?.isPlaying ? "playing" : "paused",
+    });
+    const normalizedEventType = normalizeText(eventType).toLowerCase();
+    const positionSeconds = normalizeCount(this._roomData.playerSource?.positionSeconds);
+    const episodeId = normalizeText(this._roomData.playerSource?.episodeId);
+    const status = this._roomData.player?.isPlaying ? "playing" : "paused";
+
+    if (
+      episodeId &&
+      episodeId !== normalizeText(player.context?.activeEpisodeId)
+    ) {
+      player.applyExternalPlaybackState({
+        episodeId,
+        positionSeconds,
+        status,
+      });
+      return;
+    }
+
+    if (normalizedEventType === "seek") {
+      player.seekToExternal(positionSeconds);
+      return;
+    }
+
+    if (normalizedEventType === "pause") {
+      player.pauseExternal(positionSeconds);
+      return;
+    }
+
+    if (normalizedEventType === "play") {
+      player.playExternal(positionSeconds);
+      return;
+    }
+
+    player.applyExternalPlaybackState({
+      episodeId,
+      positionSeconds,
+      status,
     });
   }
 }
@@ -1385,6 +1785,51 @@ function buildPageContext({ mode, overviewData, roomData, uiState }) {
   }
 
   return buildLobbyContext(overviewData, uiState);
+}
+
+function buildRoomActionPayload(action, payload = {}) {
+  const normalizedAction = normalizeText(action).toLowerCase();
+  const nextPayload = {
+    action: normalizedAction,
+  };
+  const movieId = normalizeNumericIdentifier(payload.movie_id ?? payload.movieId);
+  const episodeId = normalizeNumericIdentifier(
+    payload.episode_id ?? payload.episodeId,
+  );
+  const playbackUrl = normalizeText(payload.playback_url ?? payload.playbackUrl);
+  const durationSeconds = normalizeNonNegativeInteger(
+    payload.duration_seconds ?? payload.durationSeconds,
+  );
+  const positionSeconds = normalizeNonNegativeInteger(
+    payload.position_seconds ?? payload.positionSeconds,
+  );
+  const status = normalizeText(payload.status).toLowerCase();
+
+  if (movieId !== null) {
+    nextPayload.movie_id = movieId;
+  }
+
+  if (episodeId !== null) {
+    nextPayload.episode_id = episodeId;
+  }
+
+  if (playbackUrl) {
+    nextPayload.playback_url = playbackUrl;
+  }
+
+  if (durationSeconds !== null) {
+    nextPayload.duration_seconds = durationSeconds;
+  }
+
+  if (positionSeconds !== null) {
+    nextPayload.position_seconds = positionSeconds;
+  }
+
+  if (status) {
+    nextPayload.status = status;
+  }
+
+  return nextPayload;
 }
 
 function buildLobbyContext(pageData, uiState) {
@@ -1487,7 +1932,7 @@ function buildRoomPlayerMovieData(roomData = {}) {
         normalizeText(selectedMovie.description) ||
         normalizeText(roomData.movie?.subtitle) ||
         roomData.roomNote,
-      contentType: "watch-party",
+      contentType: normalizeText(selectedMovie.contentType) || "watch-party",
       posterUrl:
         normalizeText(selectedMovie.posterUrl) ||
         normalizeText(roomData.movie?.backdropUrl) ||
@@ -1522,7 +1967,7 @@ function buildRoomPlayerMovieData(roomData = {}) {
       normalizeText(playerSource.description) ||
       normalizeText(roomData.movie?.subtitle) ||
       roomData.roomNote,
-    contentType: "watch-party",
+    contentType: normalizeText(roomData.movie?.contentType) || "watch-party",
     posterUrl,
     isDirectPlayback: !episodeId || Boolean(playbackUrl),
     initialEpisodeId:
@@ -1697,6 +2142,13 @@ function mapRoomDtoToViewModel(roomDto, fallbackRoom, viewer) {
         normalizeText(
           normalizedRoomDto.movie?.subtitle || normalizedRoomDto.movie_subtitle,
         ) || fallbackRoom.movie.subtitle,
+      contentType:
+        normalizeText(
+          normalizedRoomDto.movie?.contentType ||
+            normalizedRoomDto.movie?.content_type ||
+            normalizedRoomDto.contentType ||
+            normalizedRoomDto.content_type,
+        ) || fallbackRoom.movie.contentType,
       backdropUrl:
         normalizeText(
           normalizedRoomDto.movie?.backdropUrl ||
@@ -1820,6 +2272,7 @@ function mapRoomDtoToViewModel(roomDto, fallbackRoom, viewer) {
         normalizeText(fallbackRoom.playerSource?.posterUrl) ||
         fallbackRoom.movie.backdropUrl,
     },
+    selectedMovie: fallbackRoom.selectedMovie || null,
     viewer: fallbackRoom.viewer,
     members: mapRoomMembers(
       readArray(normalizedRoomDto, ["members", "participants", "users"]),
@@ -1885,6 +2338,264 @@ function applyViewerToRoom(room, viewer) {
   nextRoom.participantsLabel = `${nextRoom.members.length} ${pluralizeParticipants(nextRoom.members.length)}`;
 
   return nextRoom;
+}
+
+function applySelectedMovieToRoom(
+  roomData,
+  selectedMovie,
+  selectedEpisode = null,
+  playbackOverride = {},
+) {
+  if (!selectedMovie) {
+    return roomData;
+  }
+
+  const resolvedEpisode =
+    selectedEpisode ||
+    selectedMovie.episodes?.find((episode) => {
+      return (
+        normalizeText(episode.id) ===
+        normalizeText(roomData.playerSource?.episodeId)
+      );
+    }) ||
+    selectedMovie.episodes?.[0] ||
+    null;
+
+  return applyPlaybackStateToRoom(
+    {
+      ...roomData,
+      movie: {
+        ...roomData.movie,
+        title: selectedMovie.title || roomData.movie?.title,
+        contentType: selectedMovie.contentType || roomData.movie?.contentType,
+        subtitle:
+          selectedMovie.subtitle ||
+          selectedMovie.description ||
+          roomData.movie?.subtitle,
+        backdropUrl:
+          selectedMovie.backdropUrl ||
+          selectedMovie.posterUrl ||
+          roomData.movie?.backdropUrl,
+      },
+      selectedMovie,
+    },
+    {
+      movie_id: selectedMovie.id,
+      episode_id: resolvedEpisode?.id || roomData.playerSource?.episodeId,
+      playback_url:
+        playbackOverride.playbackUrl ?? resolvedEpisode?.playbackUrl ?? "",
+      duration_seconds:
+        playbackOverride.durationSeconds ?? resolvedEpisode?.durationSeconds ?? 0,
+      position_seconds: playbackOverride.positionSeconds ?? 0,
+      status: playbackOverride.isPlaying ? "playing" : "paused",
+      episode_title: resolvedEpisode?.title || "",
+      description: resolvedEpisode?.description || selectedMovie.description || "",
+      poster_url: resolvedEpisode?.imgUrl || selectedMovie.posterUrl || "",
+    },
+  );
+}
+
+function applyPlaybackStateToRoom(roomData, playbackPatch = {}) {
+  const normalizedPatch =
+    playbackPatch && typeof playbackPatch === "object" ? playbackPatch : {};
+  const nextPositionSeconds = Math.max(
+    0,
+    Number(
+      normalizedPatch.position_seconds ?? normalizedPatch.positionSeconds,
+    ) || 0,
+  );
+  const nextDurationSeconds = Math.max(
+    0,
+    Number(
+      normalizedPatch.duration_seconds ?? normalizedPatch.durationSeconds,
+    ) || 0,
+  );
+  const nextStatus = normalizeText(
+    normalizedPatch.status || normalizedPatch.action,
+  ).toLowerCase();
+  const nextEpisodeId = normalizeText(
+    normalizedPatch.episode_id || normalizedPatch.episodeId,
+  );
+  const nextMovieId = normalizeText(
+    normalizedPatch.movie_id || normalizedPatch.movieId,
+  );
+  const isPlaying = nextStatus === "playing";
+
+  return {
+    ...roomData,
+    progressLabel: formatDurationLabel(nextPositionSeconds) || roomData.progressLabel,
+    player: {
+      ...(roomData.player || {}),
+      isPlaying,
+      currentTimeLabel:
+        formatDurationLabel(nextPositionSeconds) ||
+        roomData.player?.currentTimeLabel ||
+        "0:00",
+      totalTimeLabel:
+        formatDurationLabel(nextDurationSeconds) ||
+        roomData.player?.totalTimeLabel ||
+        "0:00",
+      progressPercent:
+        nextDurationSeconds > 0
+          ? clampPercent((nextPositionSeconds / nextDurationSeconds) * 100)
+          : roomData.player?.progressPercent || 0,
+    },
+    playerSource: {
+      ...(roomData.playerSource || {}),
+      movieId: nextMovieId || roomData.playerSource?.movieId || "",
+      episodeId: nextEpisodeId || roomData.playerSource?.episodeId || "",
+      playbackUrl:
+        normalizeText(
+          normalizedPatch.playback_url || normalizedPatch.playbackUrl,
+        ) || roomData.playerSource?.playbackUrl || "",
+      durationSeconds:
+        nextDurationSeconds || roomData.playerSource?.durationSeconds || 0,
+      positionSeconds: nextPositionSeconds,
+      episodeTitle:
+        normalizeText(
+          normalizedPatch.episode_title || normalizedPatch.episodeTitle,
+        ) || roomData.playerSource?.episodeTitle || roomData.movie?.title,
+      description:
+        normalizeText(normalizedPatch.description) ||
+        roomData.playerSource?.description ||
+        roomData.movie?.subtitle,
+      posterUrl:
+        normalizeText(
+          normalizedPatch.poster_url || normalizedPatch.posterUrl,
+        ) || roomData.playerSource?.posterUrl || roomData.movie?.backdropUrl,
+    },
+  };
+}
+
+function upsertRoomFeedItem(items, nextItem) {
+  const normalizedItems = Array.isArray(items) ? items : [];
+  const nextId = normalizeText(nextItem?.id);
+
+  if (!nextId) {
+    return normalizedItems;
+  }
+
+  const existingIndex = normalizedItems.findIndex((item) => {
+    return normalizeText(item?.id) === nextId;
+  });
+
+  if (existingIndex === -1) {
+    return [...normalizedItems, nextItem].sort(compareRoomFeedItems);
+  }
+
+  return normalizedItems
+    .map((item, index) => (index === existingIndex ? nextItem : item))
+    .sort(compareRoomFeedItems);
+}
+
+function markPollSelection(pollItem, optionId) {
+  const normalizedOptionId = normalizeText(optionId);
+
+  return {
+    ...pollItem,
+    selectionText: "",
+    options: Array.isArray(pollItem.options)
+      ? pollItem.options.map((option) => ({
+          ...option,
+          isSelected: normalizeText(option.id) === normalizedOptionId,
+        }))
+      : [],
+  };
+}
+
+function hasPlaybackMovieSelection(playbackPatch) {
+  return Boolean(
+    normalizeText(playbackPatch?.movie_id || playbackPatch?.movieId),
+  );
+}
+
+function isPlaybackEventType(eventType) {
+  return [
+    "play",
+    "pause",
+    "seek",
+    "sync_state",
+    "select_movie",
+    "select_episode",
+    "playback_updated",
+    "playback_changed",
+  ].includes(normalizeText(eventType).toLowerCase());
+}
+
+function resolvePlaybackStatusFromEventType(eventType) {
+  const normalizedType = normalizeText(eventType).toLowerCase();
+
+  if (normalizedType === "play") {
+    return "playing";
+  }
+
+  if (normalizedType === "pause") {
+    return "paused";
+  }
+
+  return "";
+}
+
+function isCurrentViewerRoomHost(roomData = {}) {
+  return Boolean(
+    Array.isArray(roomData.members) &&
+      roomData.members.some((member) => member.isYou && member.isHost),
+  );
+}
+
+function shouldRefreshRoomStructure(previousRoomData = {}, nextRoomData = {}) {
+  if (hasRoomMovieSelection(previousRoomData) !== hasRoomMovieSelection(nextRoomData)) {
+    return true;
+  }
+
+  if (
+    buildRoomMembersSignature(previousRoomData) !==
+    buildRoomMembersSignature(nextRoomData)
+  ) {
+    return true;
+  }
+
+  if (buildRoomFeedSignature(previousRoomData) !== buildRoomFeedSignature(nextRoomData)) {
+    return true;
+  }
+
+  return (
+    normalizeText(previousRoomData.roomName) !== normalizeText(nextRoomData.roomName) ||
+    normalizeText(previousRoomData.hostName) !== normalizeText(nextRoomData.hostName) ||
+    normalizeText(previousRoomData.movie?.title) !== normalizeText(nextRoomData.movie?.title)
+  );
+}
+
+function buildRoomMembersSignature(roomData = {}) {
+  if (!Array.isArray(roomData.members)) {
+    return "";
+  }
+
+  return roomData.members
+    .map((member) => {
+      return [
+        normalizeText(member.id || member.userId),
+        member.isHost ? "host" : "member",
+        member.isYou ? "you" : "",
+      ].join(":");
+    })
+    .join("|");
+}
+
+function buildRoomFeedSignature(roomData = {}) {
+  if (!Array.isArray(roomData.messages)) {
+    return "";
+  }
+
+  return roomData.messages
+    .map((message) => {
+      return [
+        normalizeText(message.id),
+        message.isBet ? "bet" : "message",
+        normalizeCount(message.voteCount),
+      ].join(":");
+    })
+    .join("|");
 }
 
 function mapHeroPosters(items, fallbackItems) {
@@ -2053,8 +2764,12 @@ function mapMyRooms(items) {
 }
 
 function mapRoomMembers(items, fallbackItems, viewer) {
-  if (!Array.isArray(items) || !items.length) {
+  if (!Array.isArray(items)) {
     return fallbackItems.map((item) => ({ ...item }));
+  }
+
+  if (!items.length) {
+    return [];
   }
 
   return items.map((item, index) => {
@@ -2115,8 +2830,10 @@ function mapRoomFeed(roomDto, fallbackItems) {
   const pollItems = readArray(roomDto, ["polls", "pollItems", "poll_items"]);
   const mappedMessages = mapRoomMessages(messageItems, fallbackItems);
   const mappedPolls = mapRoomPolls(pollItems);
+  const hasExplicitFeedArrays =
+    Array.isArray(messageItems) || Array.isArray(pollItems);
 
-  if (!mappedMessages.length && !mappedPolls.length) {
+  if (!mappedMessages.length && !mappedPolls.length && !hasExplicitFeedArrays) {
     return fallbackItems.map((item) => cloneValue(item));
   }
 
@@ -2618,6 +3335,7 @@ function mapMovieDtoToRoomSelection(dto) {
   return {
     id,
     title,
+    contentType: normalizeText(dto.content_type || dto.contentType),
     subtitle,
     description,
     posterUrl,
@@ -2710,6 +3428,15 @@ function hasRoomMovieSelection(roomData = {}) {
   );
 }
 
+function hasRoomMovieBinding(roomData = {}) {
+  if (hasRoomMovieSelection(roomData)) {
+    return true;
+  }
+
+  const playerSource = roomData.playerSource || {};
+  return Boolean(normalizeText(playerSource.movieId || playerSource.movie_id));
+}
+
 function resolveInviteLink(inviteLink, roomId, fallbackLink = "") {
   const normalizedInviteLink = normalizeText(inviteLink);
 
@@ -2749,6 +3476,30 @@ function normalizeVisibilityValue(value) {
   }
 
   return normalizedValue || "private";
+}
+
+function normalizeNumericIdentifier(value) {
+  const normalizedValue = normalizeText(value);
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  if (/^\d+$/.test(normalizedValue)) {
+    return Number.parseInt(normalizedValue, 10);
+  }
+
+  return normalizedValue;
+}
+
+function normalizeNonNegativeInteger(value) {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+
+  return Math.max(0, Math.floor(parsed));
 }
 
 function normalizeRoomIdPayload(value) {

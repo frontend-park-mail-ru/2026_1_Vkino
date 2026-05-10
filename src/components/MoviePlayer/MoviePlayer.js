@@ -9,6 +9,7 @@ const CONTROLS_HIDE_DELAY_MS = 2200;
 const SEEK_STEP_SECONDS = 10;
 const PROGRESS_SAVE_THROTTLE_MS = 10_000;
 const DEFAULT_VOLUME = 1;
+const EXTERNAL_PLAYBACK_SYNC_SUPPRESS_MS = 600;
 const UNAVAILABLE_MOVIE_TEXT = "Пока данный фильм недоступен для просмотра :(";
 
 export default class MoviePlayerComponent extends BaseComponent {
@@ -48,6 +49,8 @@ export default class MoviePlayerComponent extends BaseComponent {
     this._lastSavedSecond = -1;
     this._closeRequestedCallback = null;
     this._lastNonZeroVolume = DEFAULT_VOLUME;
+    this._suppressPlaybackEvents = false;
+    this._suppressPlaybackEventsUntil = 0;
 
     this._onDocumentKeyDownBound = this._onDocumentKeyDown.bind(this);
     this._onDocumentMouseMoveBound = this._onDocumentMouseMove.bind(this);
@@ -194,6 +197,164 @@ export default class MoviePlayerComponent extends BaseComponent {
   setOnCloseRequested(callback) {
     this._closeRequestedCallback =
       typeof callback === "function" ? callback : null;
+  }
+
+  seekToExternal(positionSeconds = 0) {
+    this._suppressPlaybackEvents = true;
+    this._suppressPlaybackEventsUntil =
+      Date.now() + EXTERNAL_PLAYBACK_SYNC_SUPPRESS_MS;
+    this._seekTo(Math.max(0, Number(positionSeconds) || 0), {
+      emitEvent: false,
+    });
+    window.setTimeout(() => {
+      this._suppressPlaybackEvents = false;
+    }, 0);
+  }
+
+  pauseExternal(positionSeconds = null) {
+    this._suppressPlaybackEvents = true;
+    this._suppressPlaybackEventsUntil =
+      Date.now() + EXTERNAL_PLAYBACK_SYNC_SUPPRESS_MS;
+    this._pendingAutoplay = false;
+
+    if (positionSeconds !== null) {
+      this._seekTo(Math.max(0, Number(positionSeconds) || 0), {
+        emitEvent: false,
+      });
+    }
+
+    this.pause();
+    window.requestAnimationFrame(() => {
+      this.pause();
+      this._suppressPlaybackEvents = false;
+    });
+  }
+
+  playExternal(positionSeconds = null) {
+    this._suppressPlaybackEvents = true;
+    this._suppressPlaybackEventsUntil =
+      Date.now() + EXTERNAL_PLAYBACK_SYNC_SUPPRESS_MS;
+    this._pendingAutoplay = true;
+
+    if (positionSeconds !== null) {
+      this._seekTo(Math.max(0, Number(positionSeconds) || 0), {
+        emitEvent: false,
+      });
+    }
+
+    this.play();
+    window.setTimeout(() => {
+      this._suppressPlaybackEvents = false;
+    }, 0);
+  }
+
+  applyExternalPlaybackState({
+    episodeId = "",
+    positionSeconds = null,
+    status = "",
+  } = {}) {
+    const normalizedEpisodeId = normalizeString(episodeId);
+    const normalizedStatus = normalizeString(status).toLowerCase();
+    const nextPositionSeconds =
+      positionSeconds === null ? null : Math.max(0, Number(positionSeconds) || 0);
+
+    if (
+      normalizedEpisodeId &&
+      normalizedEpisodeId !== normalizeString(this.context.activeEpisodeId)
+    ) {
+      this.syncPlaybackState({
+        episodeId: normalizedEpisodeId,
+        positionSeconds: nextPositionSeconds,
+        status: normalizedStatus,
+        autoplay: normalizedStatus === "playing",
+      });
+      return;
+    }
+
+    this._suppressPlaybackEvents = true;
+    this._suppressPlaybackEventsUntil =
+      Date.now() + EXTERNAL_PLAYBACK_SYNC_SUPPRESS_MS;
+
+    if (nextPositionSeconds !== null) {
+      this._seekTo(nextPositionSeconds, { emitEvent: false });
+    }
+
+    this._pendingAutoplay = normalizedStatus === "playing";
+
+    if (normalizedStatus === "paused") {
+      this._pendingAutoplay = false;
+      this.pause();
+      window.requestAnimationFrame(() => {
+        this.pause();
+      });
+    } else if (normalizedStatus === "playing") {
+      this.play();
+    }
+
+    window.setTimeout(() => {
+      this._suppressPlaybackEvents = false;
+    }, 0);
+  }
+
+  syncPlaybackState({
+    episodeId = "",
+    positionSeconds = null,
+    status = "",
+    autoplay = null,
+  } = {}) {
+    const normalizedEpisodeId = normalizeString(episodeId);
+    const normalizedStatus = normalizeString(status).toLowerCase();
+    const nextPositionSeconds =
+      positionSeconds === null ? null : Math.max(0, Number(positionSeconds) || 0);
+    const shouldPlay =
+      typeof autoplay === "boolean"
+        ? autoplay
+        : normalizedStatus === "playing";
+
+    this._suppressPlaybackEvents = true;
+    this._suppressPlaybackEventsUntil =
+      Date.now() + EXTERNAL_PLAYBACK_SYNC_SUPPRESS_MS;
+    this._pendingAutoplay = shouldPlay;
+
+    console.debug("[watch-party][player] syncPlaybackState", {
+      episodeId: normalizedEpisodeId,
+      positionSeconds: nextPositionSeconds,
+      status: normalizedStatus,
+      shouldPlay,
+      currentEpisodeId: normalizeString(this.context.activeEpisodeId),
+      currentTime: Number(this.videoEl?.currentTime) || this.context.currentTime || 0,
+      paused: this.videoEl?.paused,
+      readyState: this.videoEl?.readyState,
+    });
+
+    if (
+      normalizedEpisodeId &&
+      normalizedEpisodeId !== normalizeString(this.context.activeEpisodeId)
+    ) {
+      void this.loadEpisode(normalizedEpisodeId, {
+        autoplay: shouldPlay,
+        restoreProgress: false,
+        startAtSeconds: nextPositionSeconds || 0,
+      }).finally(() => {
+        this._suppressPlaybackEvents = false;
+      });
+      return;
+    }
+
+    if (nextPositionSeconds !== null) {
+      this._seekTo(nextPositionSeconds, { emitEvent: false });
+    }
+
+    if (shouldPlay) {
+      this.play();
+    } else if (normalizedStatus === "paused") {
+      this._pendingAutoplay = false;
+      this.pause();
+    }
+
+    window.setTimeout(() => {
+      this._suppressPlaybackEvents = false;
+    }, 0);
   }
 
   async loadEpisode(
@@ -352,6 +513,13 @@ export default class MoviePlayerComponent extends BaseComponent {
 
     this._setVideoSource(playbackUrl);
     this.updateUI();
+    this._emitPlaybackEvent("episode_loaded", {
+      episodeId: normalizeString(resp?.episode_id) || normalizedEpisodeId,
+      playbackUrl,
+      durationSeconds: Number(resp?.duration_seconds) || 0,
+      positionSeconds: seekSeconds,
+      title: normalizeString(resp?.title) || this.context.episodeTitle,
+    });
 
     if (this.context.isOpen && !this.context.isEmbedded) {
       this._enterFullscreen().catch(() => {
@@ -1007,7 +1175,7 @@ export default class MoviePlayerComponent extends BaseComponent {
     return episodes[0];
   }
 
-  _seekTo(nextTime) {
+  _seekTo(nextTime, { emitEvent = true } = {}) {
     if (!this.videoEl) {
       return;
     }
@@ -1027,6 +1195,13 @@ export default class MoviePlayerComponent extends BaseComponent {
       progressPercent: calculateProgressPercent(boundedTime, duration),
     };
     this.updateUI();
+
+    if (emitEvent) {
+      this._emitPlaybackEvent("seek", {
+        positionSeconds: boundedTime,
+        durationSeconds: duration,
+      });
+    }
   }
 
   _onCloseClick = async (event) => {
@@ -1239,6 +1414,12 @@ export default class MoviePlayerComponent extends BaseComponent {
     this.updateUI();
     this._throttledProgressSaveAt = Date.now();
     this._scheduleControlsHide();
+    this._emitPlaybackEvent("play", {
+      positionSeconds:
+        Number(this.videoEl?.currentTime) || this.context.currentTime || 0,
+      durationSeconds:
+        Number(this.videoEl?.duration) || this.context.duration || 0,
+    });
   };
 
   _onPause = () => {
@@ -1252,6 +1433,12 @@ export default class MoviePlayerComponent extends BaseComponent {
     this.updateUI();
     this._clearControlsHideTimeout();
     this._throttledProgressSaveAt = 0;
+    this._emitPlaybackEvent("pause", {
+      positionSeconds:
+        Number(this.videoEl?.currentTime) || this.context.currentTime || 0,
+      durationSeconds:
+        Number(this.videoEl?.duration) || this.context.duration || 0,
+    });
   };
 
   _onEnded = () => {
@@ -1303,6 +1490,27 @@ export default class MoviePlayerComponent extends BaseComponent {
     this._clearVideoSource();
     this.updateUI();
   };
+
+  _emitPlaybackEvent(type, detail = {}) {
+    if (
+      this._suppressPlaybackEvents ||
+      Date.now() < this._suppressPlaybackEventsUntil
+    ) {
+      return;
+    }
+
+    if (typeof this.context.onPlaybackEvent !== "function") {
+      return;
+    }
+
+    this.context.onPlaybackEvent({
+      type,
+      activeEpisodeId: normalizeString(this.context.activeEpisodeId),
+      movieId: normalizeString(this.context.movieId),
+      isPlaying: Boolean(this.context.isPlaying),
+      ...detail,
+    });
+  }
 
   _onDocumentMouseMove() {
     if (!this.context.isOpen) {
@@ -1400,6 +1608,7 @@ function createInitialContext() {
     showChatControl: false,
     fullscreenTargetSelector: "",
     onChatRequested: null,
+    onPlaybackEvent: null,
     isLoading: false,
     hasError: false,
     errorText: "",

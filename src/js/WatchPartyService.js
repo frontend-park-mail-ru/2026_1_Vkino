@@ -105,6 +105,79 @@ export class WatchPartyService {
 
     return this.api.delete(`/rooms/${encodeURIComponent(normalizedRoomId)}`);
   }
+
+  async sendRoomAction(roomId, payload) {
+    const normalizedRoomId = normalizeRoomId(roomId);
+
+    if (!normalizedRoomId) {
+      return {
+        ok: false,
+        status: 0,
+        resp: null,
+        error: "WatchPartyService: не передан id комнаты",
+      };
+    }
+
+    return this.api.post(
+      `/rooms/${encodeURIComponent(normalizedRoomId)}/actions`,
+      payload,
+    );
+  }
+
+  async sendRoomMessage(roomId, payload) {
+    const normalizedRoomId = normalizeRoomId(roomId);
+
+    if (!normalizedRoomId) {
+      return {
+        ok: false,
+        status: 0,
+        resp: null,
+        error: "WatchPartyService: не передан id комнаты",
+      };
+    }
+
+    return this.api.post(
+      `/rooms/${encodeURIComponent(normalizedRoomId)}/messages`,
+      payload,
+    );
+  }
+
+  async createRoomPoll(roomId, payload) {
+    const normalizedRoomId = normalizeRoomId(roomId);
+
+    if (!normalizedRoomId) {
+      return {
+        ok: false,
+        status: 0,
+        resp: null,
+        error: "WatchPartyService: не передан id комнаты",
+      };
+    }
+
+    return this.api.post(
+      `/rooms/${encodeURIComponent(normalizedRoomId)}/polls`,
+      payload,
+    );
+  }
+
+  async voteRoomPoll(roomId, pollId, payload) {
+    const normalizedRoomId = normalizeRoomId(roomId);
+    const normalizedPollId = normalizeText(pollId);
+
+    if (!normalizedRoomId || !normalizedPollId) {
+      return {
+        ok: false,
+        status: 0,
+        resp: null,
+        error: "WatchPartyService: не переданы id комнаты или poll",
+      };
+    }
+
+    return this.api.post(
+      `/rooms/${encodeURIComponent(normalizedRoomId)}/polls/${encodeURIComponent(normalizedPollId)}/votes`,
+      payload,
+    );
+  }
 }
 
 export function buildWatchPartyRoomPath(roomId) {
