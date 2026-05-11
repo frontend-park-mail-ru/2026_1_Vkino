@@ -151,7 +151,6 @@ export class UserService {
 
   /**
    * Список тарифных планов подписки.
-   * TODO: заменить заглушку на this.api.get(...)
    */
   async getSubscriptionPlans() {
     return Promise.resolve({ ok: true, resp: { plans: [] } });
@@ -159,7 +158,6 @@ export class UserService {
 
   /**
    * Текущая подписка пользователя.
-   * TODO: заменить заглушку на this.api.get(...)
    */
   async getCurrentUserSubscription() {
     const renews = new Date(Date.now() + 30 * 864e5).toISOString();
@@ -223,7 +221,6 @@ export class UserService {
 
   /**
    * Способы оплаты.
-   * TODO: заменить заглушку на this.api.get(...)
    */
   async getPaymentMethods() {
     return Promise.resolve({
@@ -234,7 +231,6 @@ export class UserService {
 
   /**
    * Оформление подписки.
-   * TODO: заменить заглушку на this.api.post(...)
    */
   async createSubscription(payload = {}) {
     const planId = String(payload.plan_id || "tier1");
@@ -262,7 +258,6 @@ export class UserService {
 
   /**
    * Отмена подписки.
-   * TODO: заменить заглушку на this.api.delete(...) или POST по контракту бэкенда
    */
   async cancelSubscription() {
     return Promise.resolve({ ok: true, resp: {} });

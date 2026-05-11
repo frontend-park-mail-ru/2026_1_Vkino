@@ -345,20 +345,21 @@ export default class SubscriptionPage extends BasePage {
   _setupModalHandlers() {
     const paymentModal = this.el.querySelector('#paymentModal');
     const cancelModal = this.el.querySelector('#cancelModal');
+    const downgradeModal = this.el.querySelector('#downgradeModal');
+    const modals = [paymentModal, cancelModal, downgradeModal];
 
     // Закрытие по кнопке ×
-    [paymentModal, cancelModal].forEach(modal => {
+    modals.forEach(modal => {
       if (!modal) return;
-      const closeBtn = modal.querySelector('[data-action="close-modal"]');
-      if (closeBtn) {
+      modal.querySelectorAll('[data-action="close-modal"]').forEach((closeBtn) => {
         const handler = () => this._closeModal(modal);
         closeBtn.addEventListener('click', handler);
         this._modalHandlers.set(closeBtn, handler);
-      }
+      });
     });
 
     // Закрытие по клику вне контента
-    [paymentModal, cancelModal].forEach(modal => {
+    modals.forEach(modal => {
       if (!modal) return;
       const handler = (e) => {
         if (e.target === modal) this._closeModal(modal);
@@ -368,7 +369,7 @@ export default class SubscriptionPage extends BasePage {
     });
 
     // Закрытие через Escape/native dialog close
-    [paymentModal, cancelModal].forEach(modal => {
+    modals.forEach(modal => {
       if (!modal) return;
       const handler = () => {
         this._selectedPlan = null;
@@ -416,7 +417,12 @@ export default class SubscriptionPage extends BasePage {
     const planId = btn.dataset.planId;
     const plan = this.context.plans.find(p => p.id === planId);
     
-    if (!plan || plan.isLowerTierThanUser) return;
+    if (!plan) return;
+
+    if (plan.isLowerTierThanUser) {
+      this._openDowngradeModal(plan);
+      return;
+    }
 
     if (plan.requiresPayment) {
       this._openPaymentModal(plan);
@@ -461,6 +467,22 @@ export default class SubscriptionPage extends BasePage {
     this._lockBodyScroll();
   }
 
+  _openDowngradeModal(plan) {
+    const modal = this.el.querySelector('#downgradeModal');
+    const sub = this.context.currentUserSubscription;
+    if (!modal || !sub) return;
+
+    modal.querySelector('[data-role="downgrade-plan-name"]').textContent = plan.name;
+    modal.querySelector('[data-role="downgrade-start-date"]').textContent = sub.renewsAt || 'конца текущего периода';
+
+    if (typeof modal.showModal === 'function') {
+      modal.showModal();
+    } else {
+      modal.setAttribute('open', 'open');
+    }
+    this._lockBodyScroll();
+  }
+
   _closeModal(modal) {
     if (!modal) return;
     if (typeof modal.close === 'function') {
@@ -490,7 +512,7 @@ export default class SubscriptionPage extends BasePage {
 
   _syncModalScrollLock() {
     const hasOpenModal = Boolean(
-      this.el?.querySelector('#paymentModal[open], #cancelModal[open]'),
+      this.el?.querySelector('#paymentModal[open], #cancelModal[open], #downgradeModal[open]'),
     );
 
     if (!hasOpenModal) {
@@ -613,7 +635,7 @@ export default class SubscriptionPage extends BasePage {
 
       if (plan.isLowerTierThanUser) {
         btn.textContent = 'Выбрать';
-        btn.disabled = true;
+        btn.disabled = false;
         btn.classList.remove('btn_accent');
         btn.classList.add('btn_outline');
         return;

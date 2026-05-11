@@ -151,7 +151,6 @@
                 data-action="select-plan"
                 data-plan-id="{{this.id}}"
                 data-plan-name="{{this.name}}"
-                disabled
               >
                 Выбрать
               </button>
@@ -266,6 +265,36 @@
       <div class="modal__footer">
         <button class="btn btn_outline" data-action="keep-subscription">Оставить</button>
         <button class="btn btn_danger" data-action="confirm-cancel">Подтвердить отмену</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="modal modal_downgrade" id="downgradeModal" data-role="downgrade-modal">
+    <div class="modal__content modal_downgrade__content">
+      <button type="button" class="subscription-modal-dismiss" data-action="close-modal" aria-label="Закрыть">
+        <span class="subscription-modal-dismiss__icon" aria-hidden="true">
+          <span class="subscription-modal-dismiss__line"></span>
+          <span class="subscription-modal-dismiss__line"></span>
+        </span>
+      </button>
+      <div class="modal_downgrade__header">
+        <span class="modal_downgrade__eyebrow">Изменение тарифа</span>
+        <h3 class="modal__title modal_downgrade__title">Смена уровня подписки</h3>
+        <p class="modal_downgrade__subtitle">Текущие возможности сохранятся до конца оплаченного периода.</p>
+      </div>
+      <div class="modal__body modal_downgrade__body">
+        <div class="modal_downgrade__plan-card">
+          <span class="modal_downgrade__label">Выбранный тариф</span>
+          <strong class="modal_downgrade__plan-name" data-role="downgrade-plan-name"></strong>
+        </div>
+        <div class="modal_downgrade__schedule">
+          <span class="modal_downgrade__label">Дата смены</span>
+          <strong class="modal_downgrade__date" data-role="downgrade-start-date"></strong>
+          <p>Новый уровень включится автоматически после окончания текущей подписки.</p>
+        </div>
+      </div>
+      <div class="modal__footer modal_downgrade__footer">
+        <button class="btn btn_accent" data-action="close-modal">Понятно</button>
       </div>
     </div>
   </dialog>
