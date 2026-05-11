@@ -15,6 +15,7 @@ handlebars ./src/pages/SignIn/SignIn.hbs -f ./src/pages/SignIn/SignIn.precompile
 handlebars ./src/pages/SignUp/SignUp.hbs -f ./src/pages/SignUp/SignUp.precompiled.js
 handlebars ./src/pages/Profile/Profile.hbs -f ./src/pages/Profile/Profile.precompiled.js
 handlebars ./src/pages/Settings/Settings.hbs -f ./src/pages/Settings/Settings.precompiled.js
+handlebars ./src/pages/Subscription/Subscription.hbs -f ./src/pages/Subscription/Subscription.precompiled.js
 handlebars ./src/pages/Actor/Actor.hbs -f ./src/pages/Actor/Actor.precompiled.js
 handlebars ./src/pages/Catalog/Catalog.hbs -f ./src/pages/Catalog/Catalog.precompiled.js
 handlebars ./src/pages/WatchParty/WatchParty.hbs -f ./src/pages/WatchParty/WatchParty.precompiled.js

@@ -244,6 +244,28 @@ class AuthStore {
       },
     });
   }
+
+  /**
+   * Обновляет нормализованную подписку в профиле клиента (без запроса на сервер).
+   * @param {Object|null} subscription — объект из normalizeSubscriptionFromApi или null при отмене
+   */
+  updateUserSubscription(subscription) {
+    const state = this.getState();
+    if (state.status !== "authenticated" || !state.user) {
+      return;
+    }
+
+    const nextUser = { ...state.user };
+    if (subscription == null) {
+      delete nextUser.subscription;
+    } else {
+      nextUser.subscription = subscription;
+    }
+
+    this._setState({
+      user: nextUser,
+    });
+  }
 }
 
 function normalizeAuthUser(user = {}, { roleFallback = "user" } = {}) {

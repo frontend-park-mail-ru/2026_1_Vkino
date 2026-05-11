@@ -150,6 +150,125 @@ export class UserService {
   }
 
   /**
+   * Список тарифных планов подписки.
+   * TODO: заменить заглушку на this.api.get(...)
+   */
+  async getSubscriptionPlans() {
+    return Promise.resolve({ ok: true, resp: { plans: [] } });
+  }
+
+  /**
+   * Текущая подписка пользователя.
+   * TODO: заменить заглушку на this.api.get(...)
+   */
+  async getCurrentUserSubscription() {
+    const renews = new Date(Date.now() + 30 * 864e5).toISOString();
+
+    /* Нет подписки (empty state на странице тарифов и в профиле)
+    return Promise.resolve({ ok: true, resp: null });*/
+    
+
+    /* Подписка I уровня */
+    return Promise.resolve({
+      ok: true,
+      resp: {
+        plan_id: "tier1",
+        tier: 1,
+        plan_name: "Подписка I уровня",
+        renews_at: renews,
+        can_cancel: true,
+        status: "active",
+      },
+    });
+    
+
+    /* Подписка II уровня 
+    return Promise.resolve({
+      ok: true,
+      resp: {
+        plan_id: "tier2",
+        tier: 2,
+        plan_name: "Подписка II уровня",
+        renews_at: renews,
+        can_cancel: true,
+        status: "active",
+      },
+    });
+    */
+
+    /* Подписка III уровня (максимум — без кнопки «Улучшить») */
+    return Promise.resolve({
+      ok: true,
+      resp: {
+        plan_id: "tier3",
+        tier: 3,
+        plan_name: "Подписка III уровня",
+        renews_at: renews,
+        can_cancel: true,
+        status: "active",
+      },
+    });
+    
+
+    const stub = {
+      plan_id: "free",
+      tier: 0,
+      plan_name: "Нет подписки",
+      renews_at: null,
+      can_cancel: false,
+      status: "active",
+    };
+    return Promise.resolve({ ok: true, resp: stub });
+  }
+
+  /**
+   * Способы оплаты.
+   * TODO: заменить заглушку на this.api.get(...)
+   */
+  async getPaymentMethods() {
+    return Promise.resolve({
+      ok: true,
+      resp: { cards: [], yoomoney: false },
+    });
+  }
+
+  /**
+   * Оформление подписки.
+   * TODO: заменить заглушку на this.api.post(...)
+   */
+  async createSubscription(payload = {}) {
+    const planId = String(payload.plan_id || "tier1");
+    const meta = {
+      free: { tier: 0, plan_name: "Нет подписки" },
+      tier1: { tier: 1, plan_name: "Подписка I уровня" },
+      tier2: { tier: 2, plan_name: "Подписка II уровня" },
+      tier3: { tier: 3, plan_name: "Подписка III уровня" },
+    };
+    const m = meta[planId] || meta.tier1;
+    return Promise.resolve({
+      ok: true,
+      resp: {
+        subscription: {
+          plan_id: planId,
+          tier: m.tier,
+          plan_name: m.plan_name,
+          renews_at: new Date(Date.now() + 30 * 864e5).toISOString(),
+          can_cancel: planId !== "free",
+          status: "active",
+        },
+      },
+    });
+  }
+
+  /**
+   * Отмена подписки.
+   * TODO: заменить заглушку на this.api.delete(...) или POST по контракту бэкенда
+   */
+  async cancelSubscription() {
+    return Promise.resolve({ ok: true, resp: {} });
+  }
+
+  /**
    * Переключает фильм в любимый / нелюбимый
    * @async
    * @param {string|number} movieId ID фильма.

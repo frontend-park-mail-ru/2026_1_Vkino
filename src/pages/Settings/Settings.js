@@ -1,6 +1,7 @@
 import BasePage from "../BasePage.js";
 import "./Settings.precompiled.js";
 import "@/css/settings.scss";
+import "@/css/subscription.scss";
 
 import { initPasswordToggle } from "@/js/password/eye-btn.js";
 import { setError, validatePassword } from "@/js/password/validation.js";
@@ -11,6 +12,11 @@ import HeaderComponent from "@/components/Header/Header.js";
 import { getApiErrorMessage } from "@/utils/apiError.js";
 import { resolveAvatarUrl } from "@/utils/avatar.js";
 import { extractProfile } from "@/utils/apiResponse.js";
+import {
+  normalizeSubscriptionFromApi,
+  markPlansForPreview,
+  getDefaultSubscriptionPlansPreview,
+} from "@/utils/subscriptionDisplay.js";
 
 export default class SettingsPage extends BasePage {
   constructor(context = {}, parent = null, el = null) {
@@ -39,6 +45,11 @@ export default class SettingsPage extends BasePage {
       emptyCoinsTitle: "Пока здесь пусто",
       emptyCoinsDescription:
         "Смотрите фильмы и участвуйте в активностях VKino, чтобы начать зарабатывать Vkino coins.",
+      currentSubscription: null,
+      subscriptionPlans: markPlansForPreview(
+        getDefaultSubscriptionPlansPreview(),
+        null,
+      ),
       ...context,
     };
 
@@ -59,6 +70,8 @@ export default class SettingsPage extends BasePage {
     this._avatarInputHandler = null;
     this._pendingAvatarFile = null;
     this._authUnsubscribe = null;
+    /** Чтобы refresh → init не запускали _loadSubscriptionSection снова (бесконечный цикл). */
+    this._settingsSubscriptionHydrated = false;
 
     this.context.userData = this._buildUserDataFromStore(authStore.getState());
   }
@@ -78,6 +91,7 @@ export default class SettingsPage extends BasePage {
         this._authUnsubscribe?.();
         this._authUnsubscribe = null;
 
+        this._settingsSubscriptionHydrated = false;
         this.refresh({
           ...this.context,
           userData: this._buildUserDataFromStore(newState),
@@ -93,7 +107,12 @@ export default class SettingsPage extends BasePage {
     }
 
     this.context.userData = this._buildUserDataFromStore(state);
-    return super.init();
+    super.init();
+    if (!this._settingsSubscriptionHydrated) {
+      void this._loadSubscriptionSection();
+    }
+    this._scrollSubscriptionIntoViewIfNeeded();
+    return this;
   }
 
   _buildUserDataFromStore(state) {
@@ -104,6 +123,64 @@ export default class SettingsPage extends BasePage {
       birthDate: normalizeDateInputValue(userFromStore.birthdate),
       avatarUrl: resolveAvatarUrl(userFromStore.avatar_url),
     };
+  }
+
+  async _loadSubscriptionSection() {
+    const [plansRes, subRes] = await Promise.all([
+      userService.getSubscriptionPlans(),
+      userService.getCurrentUserSubscription(),
+    ]);
+
+    let previewPlans = getDefaultSubscriptionPlansPreview();
+    if (
+      plansRes.ok &&
+      Array.isArray(plansRes.resp?.plans) &&
+      plansRes.resp.plans.length > 0
+    ) {
+      previewPlans = plansRes.resp.plans.map((p) => {
+        const tier = Number(p.tier) || 0;
+        const priceNum = Number(p.price);
+        let priceSummary = "Бесплатно";
+        if (tier > 0 && Number.isFinite(priceNum) && priceNum > 0) {
+          priceSummary = `${priceNum} ₽ / мес`;
+        } else if (tier > 0 && p.price != null && String(p.price).trim()) {
+          priceSummary = String(p.price).includes("₽")
+            ? String(p.price)
+            : `${p.price} ₽ / мес`;
+        }
+        return {
+          id: p.id,
+          name: p.name,
+          tier,
+          priceSummary,
+        };
+      });
+    }
+
+    const current = subRes.ok
+      ? normalizeSubscriptionFromApi(subRes.resp)
+      : null;
+    const subscriptionPlans = markPlansForPreview(previewPlans, current);
+
+    this._settingsSubscriptionHydrated = true;
+    this.refresh({
+      ...this.context,
+      currentSubscription: current,
+      subscriptionPlans,
+    });
+
+    this._scrollSubscriptionIntoViewIfNeeded();
+  }
+
+  _scrollSubscriptionIntoViewIfNeeded() {
+    if (window.location.hash !== "#subscription") {
+      return;
+    }
+    requestAnimationFrame(() => {
+      document
+        .getElementById("subscription")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   addEventListeners() {
