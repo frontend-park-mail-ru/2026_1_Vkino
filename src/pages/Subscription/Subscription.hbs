@@ -1,0 +1,301 @@
+<div class="page page_subscription">
+  <header id="header"></header>
+
+  <main class="main-content subscription-page">
+    <section class="subscription-hero">
+      <div class="subscription-hero__content">
+        <h1 class="subscription-hero__title">Выберите свой план</h1>
+        <p class="subscription-hero__subtitle">
+          Получайте больше возможностей с подпиской VKino 
+        </p>
+        {{#if currentUserSubscription}}
+          {{#if currentUserSubscription.isHighestTier}}
+            <div class="subscription-hero__current subscription-hero__current_wrap">
+              <span class="subscription-hero__current-label">Ваш текущий план:</span>
+              <span class="subscription-hero__current-tier subscription-tier--{{currentUserSubscription.tier}}">
+                {{currentUserSubscription.label}}
+              </span>
+              {{#if currentUserSubscription.renewsAt}}
+                <span class="subscription-hero__renew">Обновление: {{currentUserSubscription.renewsAt}}</span>
+              {{/if}}
+            </div>
+            <p class="subscription-hero__message subscription-hero__message_best">
+              У вас подключён лучший тариф подписки — доступны все возможности платформы.
+            </p>
+          {{else}}
+            <div class="subscription-hero__current subscription-hero__current_wrap">
+              <span class="subscription-hero__current-label">Ваш текущий план:</span>
+              <span class="subscription-hero__current-tier subscription-tier--{{currentUserSubscription.tier}}">
+                {{currentUserSubscription.label}}
+              </span>
+              {{#if currentUserSubscription.renewsAt}}
+                <span class="subscription-hero__renew">Обновление: {{currentUserSubscription.renewsAt}}</span>
+              {{/if}}
+            </div>
+            <p class="subscription-hero__message subscription-hero__message_compact">
+              Доступные тарифы и переход на более высокий уровень — в блоке планов ниже.
+            </p>
+          {{/if}}
+        {{else}}
+          <p class="subscription-hero__empty">
+            Подключите подписку и попробуйте все возможности VKino.
+          </p>
+        {{/if}}
+      </div>
+    </section>
+
+    {{#if errorMessage}}
+      <div class="subscription-banner subscription-banner_error" role="alert">
+        <span>{{errorMessage}}</span>
+        <button type="button" class="subscription-banner__close" data-action="dismiss-error">×</button>
+      </div>
+    {{/if}}
+
+    {{#if successMessage}}
+      <div class="subscription-banner subscription-banner_success" role="status">
+        <span>{{successMessage}}</span>
+        <button type="button" class="subscription-banner__close" data-action="dismiss-success">×</button>
+      </div>
+    {{/if}}
+
+  <!--
+    {{#unless currentUserSubscription}}
+      <p class="subscription-plans-hint" role="status">
+        Выберите подписку в планах ниже.
+      </p>
+    {{else}}
+      {{#unless currentUserSubscription.isHighestTier}}
+        <p class="subscription-plans-hint" role="status">
+          Чтобы улучшить подписку, выберите более высокий план в таблице ниже.
+        </p>
+      {{/unless}}
+    {{/unless}}
+  -->
+    <section class="subscription-plans-grid" id="subscription-plans">
+      {{#each plans}}
+        <article
+          class="subscription-plan-card{{#if this.isPopular}} subscription-plan-card_popular{{/if}}{{#if this.isCurrent}} subscription-plan-card_current{{/if}}"
+          data-plan-id="{{this.id}}"
+          data-plan-tier="{{this.tier}}"
+        >
+          {{#if this.isPopular}}
+          {{#if this.isCurrent}}
+          <div class="subscription-plan-card__badges">
+            <div class="subscription-plan-card__badge">Популярная</div>
+            <div class="subscription-plan-card__current-badge">Текущий</div>
+          </div>
+          {{else}}
+          <div class="subscription-plan-card__badges">
+            <div class="subscription-plan-card__badge">Популярная</div>
+          </div>
+          {{/if}}
+          {{else}}
+          {{#if this.isCurrent}}
+          <div class="subscription-plan-card__badges">
+            <div class="subscription-plan-card__current-badge">Текущий</div>
+          </div>
+          {{/if}}
+          {{/if}}
+
+          <div class="subscription-plan-card__header">
+            {{#if this.price}}
+              <div class="subscription-plan-card__name-row">
+                <h3 class="subscription-plan-card__name">{{this.name}}</h3>
+              </div>
+              <div class="subscription-plan-card__price">
+                <span class="subscription-plan-card__amount">{{this.price}}</span>
+                <span class="subscription-plan-card__period">/мес</span>
+              </div>
+            {{else}}
+              <div class="subscription-plan-card__name-row subscription-plan-card__name-row_free">
+                <h3 class="subscription-plan-card__name">{{this.name}}</h3>
+                <p class="subscription-plan-card__subtitle">Бесплатно</p>
+              </div>
+              <div class="subscription-plan-card__price subscription-plan-card__price_spacer" aria-hidden="true"></div>
+            {{/if}}
+          </div>
+
+          <div class="subscription-plan-card__coins">
+            <span class="coins-icon" aria-hidden="true">🪙</span>
+            <span class="coins-amount">{{this.dailyCoins}}</span>
+            <span class="coins-label">VKino coins в день</span>
+          </div>
+
+          <ul class="subscription-plan-card__features">
+            {{#each this.features}}
+              <li class="subscription-plan-card__feature {{#if this.highlight}}feature_highlight{{/if}} {{#unless this.included}}feature_excluded{{/unless}}">
+                {{#if this.included}}
+                  <svg class="feature-check" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                {{else}}
+                  <svg class="feature-cross" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                {{/if}}
+                <span class="feature-text">{{this.text}}</span>
+              </li>
+            {{/each}}
+          </ul>
+
+          <div class="subscription-plan-card__footer">
+            {{#if this.isCurrent}}
+              <button type="button" class="btn btn_outline subscription-plan-card__btn" disabled>
+                Ваш план
+              </button>
+            {{else}}
+              {{#if this.isLowerTierThanUser}}
+              <button
+                type="button"
+                class="btn btn_outline subscription-plan-card__btn"
+                data-action="select-plan"
+                data-plan-id="{{this.id}}"
+                data-plan-name="{{this.name}}"
+              >
+                Выбрать
+              </button>
+              {{else}}
+              <button
+                type="button"
+                class="btn {{#if this.requiresPayment}}btn_accent{{else}}btn_outline{{/if}} subscription-plan-card__btn"
+                data-action="select-plan"
+                data-plan-id="{{this.id}}"
+                data-plan-name="{{this.name}}"
+                {{#if this.requiresPayment}}data-requires-payment="true"{{/if}}
+              >
+                {{#if this.requiresPayment}}
+                  {{#if ../currentUserSubscription}}
+                    Улучшить
+                  {{else}}
+                    Подключить
+                  {{/if}}
+                {{else}}
+                  Выбрать
+                {{/if}}
+              </button>
+              {{/if}}
+            {{/if}}
+          </div>
+        </article>
+      {{/each}}
+    </section>
+
+    <section class="subscription-faq">
+      <h2 class="subscription-section-title">Частые вопросы</h2>
+      <div class="subscription-faq__grid">
+        {{#each subscriptionFaq}}
+          <details class="subscription-faq__item">
+            <summary class="subscription-faq__question">{{this.question}}</summary>
+            <div class="subscription-faq__answer">
+              <p>{{this.answer}}</p>
+            </div>
+          </details>
+        {{/each}}
+      </div>
+    </section>
+  </main>
+
+  <dialog class="modal modal_payment" id="paymentModal" data-role="payment-modal">
+    <div class="modal__content modal_payment__content">
+      <button type="button" class="subscription-modal-dismiss" data-action="close-modal" aria-label="Закрыть">
+        <span class="subscription-modal-dismiss__icon" aria-hidden="true">
+          <span class="subscription-modal-dismiss__line"></span>
+          <span class="subscription-modal-dismiss__line"></span>
+        </span>
+      </button>
+      <div class="modal_payment__header">
+        <h3 class="modal_payment__title">Оформление подписки</h3>
+        <p class="modal_payment__subtitle">Выберите способ оплаты и подтвердите подключение тарифа.</p>
+      </div>
+      <div class="modal_payment__plan-card">
+        <span class="modal_payment__plan-label">Выбранный план</span>
+        <p class="modal_payment__plan-name" data-role="modal-plan-name"></p>
+        <p class="modal_payment__plan-price" data-role="modal-plan-price"></p>
+      </div>
+      <div class="modal__body modal_payment__body">
+        <p class="modal_payment__methods-title">Способ оплаты</p>
+        <div class="modal__payment-methods">
+          <label class="payment-method">
+            <input type="radio" name="paymentMethod" value="card" checked />
+            <span class="payment-method__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 10h20" stroke="currentColor" stroke-width="1.5"/></svg>
+            </span>
+            <span class="payment-method__label">Банковская карта</span>
+          </label>
+          {{#if hasYooMoney}}
+          <label class="payment-method">
+            <input type="radio" name="paymentMethod" value="yoomoney" />
+            <span class="payment-method__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </span>
+            <span class="payment-method__label">ЮMoney</span>
+          </label>
+          {{/if}}
+        </div>
+
+        {{#if currentUserCard}}
+          <div class="modal__saved-card modal_payment__saved-card">
+            <span class="modal__card-label">Сохранённая карта</span>
+            <span class="modal__card-number">•••• {{currentUserCard.last4}}</span>
+          </div>
+        {{/if}}
+      </div>
+      <div class="modal__footer modal_payment__footer">
+        <button type="button" class="btn btn_outline" data-action="cancel-payment">Отмена</button>
+        <button type="button" class="btn btn_accent" data-action="confirm-payment" id="confirmPaymentBtn">
+          Оплатить и подключить
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="modal modal_cancel" id="cancelModal" data-role="cancel-modal">
+    <div class="modal__content">
+      <button type="button" class="subscription-modal-dismiss" data-action="close-modal" aria-label="Закрыть">
+        <span class="subscription-modal-dismiss__icon" aria-hidden="true">
+          <span class="subscription-modal-dismiss__line"></span>
+          <span class="subscription-modal-dismiss__line"></span>
+        </span>
+      </button>
+      <h3 class="modal__title">Отмена подписки</h3>
+      <div class="modal__body">
+        <p>Вы уверены, что хотите отменить подписку «<span data-role="cancel-plan-name"></span>»?</p>
+        <p class="modal__warning">Доступ к премиум-функциям сохранится до <strong data-role="cancel-end-date"></strong>.</p>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn_outline" data-action="keep-subscription">Оставить</button>
+        <button class="btn btn_danger" data-action="confirm-cancel">Подтвердить отмену</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="modal modal_downgrade" id="downgradeModal" data-role="downgrade-modal">
+    <div class="modal__content modal_downgrade__content">
+      <button type="button" class="subscription-modal-dismiss" data-action="close-modal" aria-label="Закрыть">
+        <span class="subscription-modal-dismiss__icon" aria-hidden="true">
+          <span class="subscription-modal-dismiss__line"></span>
+          <span class="subscription-modal-dismiss__line"></span>
+        </span>
+      </button>
+      <div class="modal_downgrade__header">
+        <span class="modal_downgrade__eyebrow">Изменение тарифа</span>
+        <h3 class="modal__title modal_downgrade__title">Смена уровня подписки</h3>
+        <p class="modal_downgrade__subtitle">Текущие возможности сохранятся до конца оплаченного периода.</p>
+      </div>
+      <div class="modal__body modal_downgrade__body">
+        <div class="modal_downgrade__plan-card">
+          <span class="modal_downgrade__label">Выбранный тариф</span>
+          <strong class="modal_downgrade__plan-name" data-role="downgrade-plan-name"></strong>
+        </div>
+        <div class="modal_downgrade__schedule">
+          <span class="modal_downgrade__label">Дата смены</span>
+          <strong class="modal_downgrade__date" data-role="downgrade-start-date"></strong>
+          <p>Новый уровень включится автоматически после окончания текущей подписки.</p>
+        </div>
+      </div>
+      <div class="modal__footer modal_downgrade__footer">
+        <button class="btn btn_accent" data-action="close-modal">Понятно</button>
+      </div>
+    </div>
+  </dialog>
+</div>

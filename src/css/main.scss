@@ -33,6 +33,12 @@
   --accent-hover: var(--accent-color);
   --accent-subtle: rgba(255, 87, 31, 0.12); /* лёгкая подсветка */
 
+  /* Подписки — фоны уровней (бейджи тарифов) */
+  --subscription-free-bg: rgba(230, 204, 171, 0.14);
+  --subscription-tier1-bg: rgba(255, 87, 31, 0.2);
+  --subscription-tier2-bg: rgba(255, 87, 31, 0.32);
+  --subscription-tier3-bg: rgba(214, 69, 24, 0.88);
+
   /* Границы и разделители */
 
   --border-color: rgba(230, 204, 171, 0.18);

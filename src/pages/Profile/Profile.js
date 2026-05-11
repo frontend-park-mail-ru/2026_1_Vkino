@@ -1,6 +1,7 @@
 import BasePage from "../BasePage.js";
 import "./Profile.precompiled.js";
 import "@/css/profile.scss";
+import "@/css/subscription.scss";
 
 import HeaderComponent from "@/components/Header/Header.js";
 import PosterCarouselComponent from "@/components/PosterCarousel/PosterCarousel.js";
@@ -12,6 +13,7 @@ import { MEDIA_BUCKETS, resolveAvatarUrl, resolveMediaUrl } from "@/utils/media.
 import { normalizeTimeFields } from "@/utils/time.js";
 import { formatBirthdate, getDisplayNameFromEmail } from "@/utils/user.js";
 import { extractProfile } from "@/utils/apiResponse.js";
+import { normalizeSubscriptionFromApi } from "@/utils/subscriptionDisplay.js";
 
 /**
  * Страница профиля текущего пользователя.
@@ -52,6 +54,8 @@ export default class ProfilePage extends BasePage {
         isFavoritesEmpty: true,
         isFriendsEmpty: true,
         shouldGroupEmptyStates: false,
+        subscriptionTier: 0,
+        subscriptionLabel: "Нет подписки",
         ...context,
       },
       Handlebars.templates["Profile.hbs"],
@@ -121,13 +125,20 @@ export default class ProfilePage extends BasePage {
    */
   async loadContext() {
     const fallbackProfile = authStore.getState().user || {};
-    const [profileResult, continueResult, historyResult, favoritesResult, friendsResult] =
-      await Promise.all([
+    const [
+      profileResult,
+      continueResult,
+      historyResult,
+      favoritesResult,
+      friendsResult,
+      subscriptionResult,
+    ] = await Promise.all([
       userService.me(),
       userService.getContinueWatching({ limit: 5 }),
       userService.getWatchRecent({ limit: 10 }),
       userService.getFavorites({ limit: 10 }),
       userService.getFriendsList({ limit: 12, offset: 0 }),
+      userService.getCurrentUserSubscription(),
     ]);
 
     if (profileResult.status === 401) {
@@ -163,6 +174,13 @@ export default class ProfilePage extends BasePage {
     const isFavoritesEmpty = favorites.length === 0;
     const isFriendsEmpty = friendsPreview.length === 0;
 
+    const subscriptionNormalized = subscriptionResult.ok
+      ? normalizeSubscriptionFromApi(subscriptionResult.resp)
+      : null;
+    const subscriptionTier = subscriptionNormalized?.tier ?? 0;
+    const subscriptionLabel =
+      subscriptionNormalized?.label ?? "Нет подписки";
+
     this.refresh({
       ...this.context,
       ...buildProfileIdentity(profile),
@@ -185,6 +203,8 @@ export default class ProfilePage extends BasePage {
       isFavoritesEmpty,
       isFriendsEmpty,
       shouldGroupEmptyStates: isFavoritesEmpty && isFriendsEmpty,
+      subscriptionTier,
+      subscriptionLabel,
       isLoading: false,
       errorMessage: profileResult.ok
         ? ""

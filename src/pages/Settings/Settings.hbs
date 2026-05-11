@@ -94,8 +94,48 @@
           <button class="settings__btn settings__btn_change-password btn btn_outline" data-action="change-password">Изменить пароль</button>
           <div class="settings__success" id="password-success"></div>
         </div>
-      </div>
 
+        <div class="settings__section settings__section_subscription" id="subscription">
+          <h2 class="settings__title">Управление подписками</h2>
+
+          {{#if currentSubscription}}
+            <div class="subscription-current">
+              <div class="subscription-current__header">
+                <span class="subscription-current__tier subscription-tier--{{currentSubscription.tier}}">
+                  {{currentSubscription.label}}
+                </span>
+                {{#if currentSubscription.renewsAt}}
+                  <span class="subscription-current__renew">Обновление: {{currentSubscription.renewsAt}}</span>
+                {{/if}}
+              </div>
+              <div class="subscription-current__actions">
+                <a href="/subscription" class="btn btn_outline" router-link>Управление подпиской</a>
+              </div>
+            </div>
+          {{else}}
+            <div class="settings-subscription-empty">
+              <p class="settings-subscription-empty__text">
+                У вас нет подписки, но вы можете её приобрести и открыть больше возможностей VKino.
+              </p>
+              <a href="/subscription" class="btn btn_accent" router-link>Оформить подписку</a>
+            </div>
+          {{/if}}
+
+          <div class="subscription-plans-preview">
+            {{#each subscriptionPlans}}
+              <div class="subscription-plan-preview {{#if this.isCurrent}}subscription-plan-preview_current{{/if}}">
+                <div class="subscription-plan-preview__name">{{this.name}}</div>
+                <div class="subscription-plan-preview__price">{{this.priceSummary}}</div>
+                {{#if this.isCurrent}}
+                  <span class="subscription-plan-preview__current">Текущий</span>
+                {{else}}
+                  <a href="/subscription#subscription-plans" class="subscription-plan-preview__link" router-link>Подробнее →</a>
+                {{/if}}
+              </div>
+            {{/each}}
+          </div>
+        </div>
+      </div>
       <div class="settings__coins-history">
         <h3 class="settings__coins-history-title">История начисления VKino coins</h3>
         <div class="settings__coins-history-list">

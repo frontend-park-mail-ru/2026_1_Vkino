@@ -12,6 +12,7 @@ import SupportCreatePage from "./pages/SupportCreate/SupportCreate.js";
 import SupportTicketsPage from "./pages/SupportTickets/SupportTickets.js";
 import FriendsPage from "./pages/Friends/Friends.js";
 import NotFoundPage from "./pages/NotFound/NotFound.js";
+import SubscriptionPage from "./pages/Subscription/Subscription.js";
 
 
 import "./css/index.scss";
@@ -52,6 +53,10 @@ async function start() {
     )
     .registerRoute("/profile", (root) => new ProfilePage({}, null, root))
     .registerRoute("/settings", (root) => new SettingsPage({}, null, root))
+    .registerRoute(
+      "/subscription",
+      (root) => new SubscriptionPage({}, null, root),
+    )
     .registerRoute(
       "/genres",
       (root) => new CatalogPage({ catalogKey: "genres" }, null, root),
