@@ -74,19 +74,19 @@
     <section class="subscription-plans-grid" id="subscription-plans">
       {{#each plans}}
         <article
-          class="subscription-plan-card{{#if this.isCurrent}} subscription-plan-card_current{{/if}}"
+          class="subscription-plan-card{{#if this.isPopular}} subscription-plan-card_popular{{/if}}{{#if this.isCurrent}} subscription-plan-card_current{{/if}}"
           data-plan-id="{{this.id}}"
           data-plan-tier="{{this.tier}}"
         >
           {{#if this.isPopular}}
           {{#if this.isCurrent}}
           <div class="subscription-plan-card__badges">
-            <div class="subscription-plan-card__badge">Популярный</div>
+            <div class="subscription-plan-card__badge">Популярная</div>
             <div class="subscription-plan-card__current-badge">Текущий</div>
           </div>
           {{else}}
           <div class="subscription-plan-card__badges">
-            <div class="subscription-plan-card__badge">Популярный</div>
+            <div class="subscription-plan-card__badge">Популярная</div>
           </div>
           {{/if}}
           {{else}}

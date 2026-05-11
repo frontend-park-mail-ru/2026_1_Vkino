@@ -1,7 +1,8 @@
 /* subscription.scss — страница и блоки подписки (переменные — из main.scss / :root) */
 
 .subscription-page {
-  padding: var(--space-6) var(--space-4);
+  // padding: var(--space-6) var(--space-4);
+  padding-bottom: 0;
   max-width: var(--container-max);
   margin: 0 auto;
   color: var(--text-primary);
@@ -153,9 +154,57 @@
     box-shadow var(--duration-fast);
 }
 
+.subscription-plan-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
 .subscription-plan-card:hover {
   border-color: rgba(217, 104, 45, 0.45);
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.42);
+}
+
+.subscription-plan-card_popular {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 87, 31, 0.24), transparent 34%),
+    linear-gradient(
+      165deg,
+      rgba(52, 25, 12, 0.98) 0%,
+      rgba(22, 10, 5, 0.99) 100%
+    );
+  // border-color: rgba(255, 87, 31, 0.72);
+  transform: translateY(-6px);
+  box-shadow:
+    0 0 0 1px rgba(255, 87, 31, 0.28),
+    0 22px 58px rgba(0, 0, 0, 0.55),
+    0 0 34px rgba(255, 87, 31, 0.18);
+}
+
+.subscription-plan-card_popular::before {
+  // border: 1px solid rgba(255, 213, 128, 0.24);
+  box-shadow: inset 0 1px 0 rgba(255, 232, 196, 0.18);
+}
+
+.subscription-plan-card_popular::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--space-5);
+  right: var(--space-5);
+  height: 3px;
+  border-radius: 0 0 var(--radius-full) var(--radius-full);
+  background: linear-gradient(90deg, #ff571f, #ffd580, #ff571f);
+}
+
+.subscription-plan-card_popular:hover {
+  border-color: rgba(255, 87, 31, 0.9);
+  box-shadow:
+    0 0 0 1px rgba(255, 87, 31, 0.42),
+    0 26px 64px rgba(0, 0, 0, 0.58),
+    0 0 42px rgba(255, 87, 31, 0.25);
 }
 
 .subscription-plan-card_current {
@@ -203,15 +252,21 @@
 }
 
 .subscription-plan-card__badge {
-  background: rgba(230, 204, 171, 0.1);
-  color: var(--text-secondary);
-  border: 1px solid rgba(230, 204, 171, 0.22);
+  background: linear-gradient(135deg, #ff571f, #ffd580);
+  color: #120603;
+  border: 1px solid rgba(255, 213, 128, 0.75);
+  box-shadow: 0 8px 20px rgba(255, 87, 31, 0.25);
 }
 
 .subscription-plan-card__current-badge {
-  background: var(--accent-subtle);
-  color: var(--accent);
-  border: 1px solid rgba(255, 87, 31, 0.35);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 87, 31, 0.95),
+    rgba(214, 69, 24, 0.95)
+  );
+  color: var(--text-color);
+  border: 1px solid rgba(255, 213, 128, 0.46);
+  box-shadow: 0 8px 20px rgba(255, 87, 31, 0.24);
 }
 
 .subscription-plan-card__header {
@@ -220,6 +275,7 @@
   justify-content: flex-start;
   min-height: 6.5rem;
   border-bottom: 1px solid rgba(217, 104, 45, 0.12);
+  margin-top: 1rem;
   padding-bottom: var(--space-4);
 }
 
@@ -462,9 +518,7 @@
 }
 
 .subscription-faq {
-  margin-bottom: var(--space-10);
   padding: var(--space-8) var(--space-4);
-  border-radius: var(--radius-lg);
   background: linear-gradient(
     165deg,
     rgba(39, 20, 11, 0.55) 0%,
@@ -1247,6 +1301,10 @@
 @media (max-width: 768px) {
   .subscription-plans-grid {
     grid-template-columns: 1fr;
+  }
+
+  .subscription-plan-card_popular {
+    transform: none;
   }
   
   .subscription-hero__title {

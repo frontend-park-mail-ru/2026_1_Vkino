@@ -41,6 +41,8 @@ export default class SubscriptionPage extends BasePage {
     this._authUnsubscribe = null;
     this._buttonHandlers = new Map();
     this._modalHandlers = new Map();
+    this._modalCloseHandlers = new Map();
+    this._bodyLockSnapshot = null;
   }
 
   init() {
@@ -156,7 +158,7 @@ export default class SubscriptionPage extends BasePage {
         id: "free",
         name: "Нет подписки",
         tier: 0,
-        price: null,
+        price: "0₽",
         dailyCoins: c.free,
         isPopular: false,
         requiresPayment: false,
@@ -184,7 +186,7 @@ export default class SubscriptionPage extends BasePage {
         id: "tier1",
         name: "Подписка I уровня",
         tier: 1,
-        price: 199,
+        price: "199₽",
         dailyCoins: c.t1,
         isPopular: false,
         requiresPayment: true,
@@ -221,7 +223,7 @@ export default class SubscriptionPage extends BasePage {
         id: "tier2",
         name: "Подписка II уровня",
         tier: 2,
-        price: 399,
+        price: "399₽",
         dailyCoins: c.t2,
         isPopular: true,
         requiresPayment: true,
@@ -269,7 +271,7 @@ export default class SubscriptionPage extends BasePage {
         id: "tier3",
         name: "Подписка III уровня",
         tier: 3,
-        price: 799,
+        price: "799₽",
         dailyCoins: c.t3,
         isPopular: false,
         requiresPayment: true,
@@ -365,6 +367,17 @@ export default class SubscriptionPage extends BasePage {
       this._modalHandlers.set(modal, handler);
     });
 
+    // Закрытие через Escape/native dialog close
+    [paymentModal, cancelModal].forEach(modal => {
+      if (!modal) return;
+      const handler = () => {
+        this._selectedPlan = null;
+        this._syncModalScrollLock();
+      };
+      modal.addEventListener('close', handler);
+      this._modalCloseHandlers.set(modal, handler);
+    });
+
     // Кнопки модалки оплаты
     const cancelPaymentBtn = paymentModal?.querySelector('[data-action="cancel-payment"]');
     if (cancelPaymentBtn) {
@@ -429,6 +442,7 @@ export default class SubscriptionPage extends BasePage {
     } else {
       modal.setAttribute('open', 'open');
     }
+    this._lockBodyScroll();
   }
 
   _openCancelModal() {
@@ -444,6 +458,7 @@ export default class SubscriptionPage extends BasePage {
     } else {
       modal.setAttribute('open', 'open');
     }
+    this._lockBodyScroll();
   }
 
   _closeModal(modal) {
@@ -454,10 +469,38 @@ export default class SubscriptionPage extends BasePage {
       modal.removeAttribute('open');
     }
     this._selectedPlan = null;
+    this._syncModalScrollLock();
+  }
+
+  _lockBodyScroll() {
+    if (this._bodyLockSnapshot) return;
+
+    this._bodyLockSnapshot = {
+      overflow: document.body.style.overflow,
+    };
+    document.body.style.overflow = 'hidden';
+  }
+
+  _restoreBodyScroll() {
+    if (!this._bodyLockSnapshot) return;
+
+    document.body.style.overflow = this._bodyLockSnapshot.overflow;
+    this._bodyLockSnapshot = null;
+  }
+
+  _syncModalScrollLock() {
+    const hasOpenModal = Boolean(
+      this.el?.querySelector('#paymentModal[open], #cancelModal[open]'),
+    );
+
+    if (!hasOpenModal) {
+      this._restoreBodyScroll();
+    }
   }
 
   async _confirmPayment() {
     if (!this._selectedPlan) return;
+    const selectedPlan = this._selectedPlan;
 
     const btn = this.el.querySelector('#confirmPaymentBtn');
     if (btn) {
@@ -468,7 +511,7 @@ export default class SubscriptionPage extends BasePage {
     const paymentMethod = this.el.querySelector('input[name="paymentMethod"]:checked')?.value || 'card';
 
     const result = await userService.createSubscription({
-      plan_id: this._selectedPlan.id,
+      plan_id: selectedPlan.id,
       payment_method: paymentMethod,
       card_id: this.context.currentUserCard?.id,
     });
@@ -492,7 +535,7 @@ export default class SubscriptionPage extends BasePage {
         ...this.context,
         currentUserSubscription: newSubscription,
         subscriptionTier: newSubscription?.tier ?? 0,
-        successMessage: `Подписка «${this._selectedPlan.name}» успешно подключена.`,
+        successMessage: `Подписка «${selectedPlan.name}» успешно подключена.`,
         errorMessage: '',
       });
 
@@ -604,6 +647,13 @@ export default class SubscriptionPage extends BasePage {
       el.removeEventListener('click', handler);
     }
     this._modalHandlers.clear();
+
+    for (const [el, handler] of this._modalCloseHandlers) {
+      el.removeEventListener('close', handler);
+    }
+    this._modalCloseHandlers.clear();
+
+    this._restoreBodyScroll();
   }
 
   setupChildren() {
