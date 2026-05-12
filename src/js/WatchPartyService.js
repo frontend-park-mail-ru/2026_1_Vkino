@@ -1,7 +1,5 @@
 import { apiService } from "./api.js";
 
-const STORAGE_KEY = "vkino_watch_party_rooms";
-
 const FALLBACK_OVERVIEW = Object.freeze({
   heroPosters: [
     {
@@ -186,61 +184,35 @@ export function buildWatchPartyRoomPath(roomId) {
 }
 
 export function buildWatchPartyFallbackOverview() {
-  const localRooms = listLocalWatchPartyRooms();
-  const featuredFromLocal = localRooms.slice(0, 3).map((room) => {
-    return mapLocalRoomToFeaturedRoom(room);
-  });
-
   return {
     heroPosters: FALLBACK_OVERVIEW.heroPosters.map((item) => ({ ...item })),
     visibilityOptions: FALLBACK_OVERVIEW.visibilityOptions.map((item) => ({
       ...item,
     })),
-    featuredRooms: featuredFromLocal.length
-      ? featuredFromLocal
-      : FALLBACK_OVERVIEW.featuredRooms.map((item) => ({ ...item })),
-    myRooms: localRooms.map((room) => mapLocalRoomToMyRoom(room)),
+    featuredRooms: [],
+    myRooms: [],
   };
 }
 
 export function buildWatchPartyFallbackRoom(roomId = "") {
-  const normalizedRoomId = normalizeRoomId(roomId) || "31";
-  const localRoom = getLocalWatchPartyRoom(normalizedRoomId);
-
-  if (localRoom) {
-    return localRoom;
-  }
-
-  const roomNumber = Number.parseInt(normalizedRoomId, 10);
-  const suffix = Number.isFinite(roomNumber) ? roomNumber : 31;
-  const hostName = suffix % 2 === 0 ? "Мария В." : "Алексей К.";
-  const movieTitle = suffix % 2 === 0 ? "Джокер" : "Интерстеллар";
-  const movieYear = suffix % 2 === 0 ? "2019" : "2014";
-  const movieSubtitle =
-    suffix % 2 === 0
-      ? "Todd Phillips · Crime · 2h 2m"
-      : "Christopher Nolan · Sci-Fi · 2h 49m";
-  const backdropUrl =
-    suffix % 2 === 0 ? "/img/joker.jpeg" : "/img/cards/interstellar.webp";
-  const roomName = suffix % 2 === 0 ? "Киноклуб пятницы" : "Комната Алексея";
-
+  const normalizedRoomId = normalizeRoomId(roomId);
   return {
     id: normalizedRoomId,
-    roomName,
-    participantsCount: 5,
-    participantsLabel: "5 участников",
-    progressLabel: suffix % 2 === 0 ? "1:12:08" : "45:12",
-    liveLabel: "LIVE",
-    privacyLabel: suffix % 2 === 0 ? "Открытая" : "Только по ссылке",
-    inviteLink: buildWatchPartyRoomPath(normalizedRoomId),
-    hostName,
-    roomNote:
-      "Ставки теперь живут в чате. Нажмите на плюс возле поля ввода, чтобы создать новую.",
+    roomName: "",
+    participantsCount: 0,
+    participantsLabel: "0 участников",
+    progressLabel: "",
+    liveLabel: "",
+    privacyLabel: "",
+    inviteLink: normalizedRoomId ? buildWatchPartyRoomPath(normalizedRoomId) : "",
+    hostName: "",
+    roomNote: "",
     movie: {
-      title: movieTitle,
-      year: movieYear,
-      subtitle: movieSubtitle,
-      backdropUrl,
+      title: "",
+      year: "",
+      subtitle: "",
+      contentType: "",
+      backdropUrl: "",
     },
     playerSource: {
       movieId: "",
@@ -248,125 +220,31 @@ export function buildWatchPartyFallbackRoom(roomId = "") {
       playbackUrl: "",
       durationSeconds: 0,
       positionSeconds: 0,
-      episodeTitle: movieTitle,
-      description: movieSubtitle,
-      posterUrl: backdropUrl,
+      episodeTitle: "",
+      description: "",
+      posterUrl: "",
     },
     player: {
       isPlaying: false,
-      progressPercent: suffix % 2 === 0 ? 58 : 27,
-      currentTimeLabel: suffix % 2 === 0 ? "1:12:08" : "45:12",
-      totalTimeLabel: suffix % 2 === 0 ? "2:02:00" : "2:49:00",
-      volumePercent: 65,
-      qualityLabel: "1080p",
-      syncLabel: "Синхронизировать",
+      progressPercent: 0,
+      currentTimeLabel: "",
+      totalTimeLabel: "",
+      volumePercent: 100,
+      qualityLabel: "",
+      syncLabel: "",
     },
     viewer: {
       name: "Вы",
       initial: "В",
       avatarTint: pickAvatarTint("viewer"),
     },
-    members: [
-      {
-        id: "host",
-        name: hostName,
-        initial: hostName.charAt(0).toUpperCase(),
-        avatarTint: pickAvatarTint(hostName),
-        isHost: true,
-        isYou: false,
-        statusText: "",
-        statusColor: "#2b9c5a",
-      },
-      {
-        id: "viewer",
-        name: "Вы",
-        initial: "В",
-        avatarTint: pickAvatarTint("viewer"),
-        isHost: false,
-        isYou: true,
-        statusText: "",
-        statusColor: "#2b9c5a",
-      },
-      {
-        id: "guest-1",
-        name: "Дмитрий",
-        initial: "Д",
-        avatarTint: pickAvatarTint("Дмитрий"),
-        isHost: false,
-        isYou: false,
-        statusText: "",
-        statusColor: "#2b9c5a",
-      },
-      {
-        id: "guest-2",
-        name: "Светлана",
-        initial: "С",
-        avatarTint: pickAvatarTint("Светлана"),
-        isHost: false,
-        isYou: false,
-        statusText: "отошла",
-        statusColor: "#888888",
-      },
-      {
-        id: "guest-3",
-        name: "Игорь Т.",
-        initial: "И",
-        avatarTint: pickAvatarTint("Игорь Т."),
-        isHost: false,
-        isYou: false,
-        statusText: "",
-        statusColor: "#2b9c5a",
-      },
-    ],
-    messages: [
-      {
-        id: "message-1",
-        isBet: false,
-        authorName: hostName,
-        authorInitial: hostName.charAt(0).toUpperCase(),
-        authorTint: pickAvatarTint(hostName),
-        timeLabel: "20:14",
-        text: "Я открыл комнату. Если захотите ставку, создавайте через плюсик в чате.",
-        reactionText: "🔥 4",
-      },
-      {
-        id: "bet-1",
-        isBet: true,
-        authorName: hostName,
-        authorInitial: hostName.charAt(0).toUpperCase(),
-        authorTint: pickAvatarTint(hostName),
-        timeLabel: "20:18",
-        question: "Выживет ли Купер после прохождения через червоточину?",
-        metaText: `Создал ${hostName} · 18 голосов`,
-        voteCount: 18,
-        selectionText: "Ваш выбор: Да, выживет",
-        options: [
-          { id: "bet-1-option-1", label: "Да, выживет и вернётся", votes: 11, isSelected: true },
-          { id: "bet-1-option-2", label: "Нет, погибнет", votes: 5, isSelected: false },
-          {
-            id: "bet-1-option-3",
-            label: "Застрянет в другом измерении",
-            votes: 2,
-            isSelected: false,
-          },
-        ],
-      },
-      {
-        id: "message-2",
-        isBet: false,
-        authorName: "Дмитрий",
-        authorInitial: "Д",
-        authorTint: pickAvatarTint("Дмитрий"),
-        timeLabel: "20:21",
-        text: "Список участников и чат сейчас скрыты, но открываются кнопками в шапке.",
-        reactionText: "",
-      },
-    ],
+    members: [],
+    messages: [],
   };
 }
 
 export function listLocalWatchPartyRooms() {
-  return readLocalRooms();
+  return [];
 }
 
 export function getLocalWatchPartyRoom(roomId) {
@@ -376,65 +254,18 @@ export function getLocalWatchPartyRoom(roomId) {
     return null;
   }
 
-  const room = readLocalRooms().find((item) => item.id === normalizedRoomId);
-  return room ? cloneValue(room) : null;
+  return null;
 }
 
 export function saveLocalWatchPartyRoom(room) {
-  const normalizedRoom = sanitizeRoom(room);
-
-  if (!normalizedRoom) {
-    return null;
-  }
-
-  const rooms = readLocalRooms().filter((item) => item.id !== normalizedRoom.id);
-  rooms.unshift(normalizedRoom);
-  writeLocalRooms(rooms.slice(0, 20));
-  return cloneValue(normalizedRoom);
+  return room ? cloneValue(room) : null;
 }
 
 export function deleteLocalWatchPartyRoom(roomId) {
-  const normalizedRoomId = normalizeRoomId(roomId);
-
-  if (!normalizedRoomId) {
-    return;
-  }
-
-  const nextRooms = readLocalRooms().filter((item) => item.id !== normalizedRoomId);
-  writeLocalRooms(nextRooms);
+  return roomId;
 }
 
 export const watchPartyService = new WatchPartyService(apiService);
-
-function mapLocalRoomToFeaturedRoom(room) {
-  const participantsCount = normalizeCount(room.participantsCount);
-
-  return {
-    id: room.id,
-    title: room.roomName || "Комната",
-    hostName: room.hostName || "Хозяин комнаты",
-    movieTitle: room.movie?.title || "Фильм",
-    membersCount: participantsCount,
-    privacyLabel: room.privacyLabel || "Только по ссылке",
-    progressLabel: room.player?.currentTimeLabel || room.progressLabel || "0:00",
-    isLive: Boolean(room.liveLabel),
-    roomHref: buildWatchPartyRoomPath(room.id),
-  };
-}
-
-function mapLocalRoomToMyRoom(room) {
-  const participantsCount = normalizeCount(room.participantsCount);
-
-  return {
-    id: room.id,
-    title: room.roomName || "Комната",
-    statusLabel: room.liveLabel || "Ожидает",
-    statusTone: room.liveLabel ? "live" : "waiting",
-    meta: `${room.movie?.title || "Фильм"} · ${participantsCount} ${pluralizeParticipants(participantsCount)}`,
-    roomLink: buildWatchPartyRoomPath(room.id),
-    imageUrl: room.movie?.backdropUrl || "/img/65.jpg",
-  };
-}
 
 function sanitizeRoom(room) {
   if (!room || typeof room !== "object" || Array.isArray(room)) {
@@ -452,45 +283,6 @@ function sanitizeRoom(room) {
     id: normalizedId,
     inviteLink: normalizeText(room.inviteLink) || buildWatchPartyRoomPath(normalizedId),
   };
-}
-
-function readLocalRooms() {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  try {
-    const rawValue = window.localStorage.getItem(STORAGE_KEY);
-
-    if (!rawValue) {
-      return [];
-    }
-
-    const parsed = JSON.parse(rawValue);
-
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed
-      .map((item) => sanitizeRoom(item))
-      .filter(Boolean)
-      .map((item) => cloneValue(item));
-  } catch {
-    return [];
-  }
-}
-
-function writeLocalRooms(rooms) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms));
-  } catch {
-    return;
-  }
 }
 
 function normalizeRoomId(roomId) {

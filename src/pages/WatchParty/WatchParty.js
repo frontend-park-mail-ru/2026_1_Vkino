@@ -11,8 +11,6 @@ import {
   buildWatchPartyFallbackOverview,
   buildWatchPartyFallbackRoom,
   buildWatchPartyRoomPath,
-  deleteLocalWatchPartyRoom,
-  listLocalWatchPartyRooms,
   saveLocalWatchPartyRoom,
   watchPartyService,
 } from "@/js/WatchPartyService.js";
@@ -77,7 +75,7 @@ export default class WatchPartyPage extends BasePage {
     this._overviewData = overviewData;
     this._roomData = roomData;
     this._uiState = uiState;
-    this._nextRoomIndex = listLocalWatchPartyRooms().length + 1;
+    this._nextRoomIndex = 1;
     this._roomPlayerSnapshot = null;
     this._roomSubscription = null;
     this._roomSubscriptionUrl = "";
@@ -304,24 +302,17 @@ export default class WatchPartyPage extends BasePage {
       });
     }
 
-    const localRooms = listLocalWatchPartyRooms();
-
-    this._overviewData = mergeOverviewWithLocalRooms(
-      mapOverviewToPageData(
-        ok ? extractWatchPartyOverview(resp) : {},
-        fallbackData,
-      ),
-      localRooms,
+    this._overviewData = mapOverviewToPageData(
+      ok ? extractWatchPartyOverview(resp) : {},
       fallbackData,
     );
     this._contextLoaded = true;
-    this._syncNextRoomIndex();
 
     this._refreshView({
       isLoading: false,
       errorMessage: ok
         ? ""
-        : "Не удалось загрузить данные с сервера. Показаны локальные комнаты и fallback-сценарий.",
+        : "Не удалось загрузить данные с сервера.",
     });
   }
 
@@ -348,7 +339,6 @@ export default class WatchPartyPage extends BasePage {
       });
     }
 
-    const fallbackRoom = buildWatchPartyFallbackRoom(roomId);
     const viewer = buildCurrentViewer();
     const joinResult = await this._joinRoomFromRoute(roomId);
     const result = joinResult.ok ? joinResult : await watchPartyService.getRoom(roomId);
@@ -360,12 +350,25 @@ export default class WatchPartyPage extends BasePage {
         error: result.error,
         resp: result.resp,
       });
+
+      this._contextLoaded = true;
+      this._refreshView({
+        loading: false,
+        hasError: true,
+        errorTitle: "Данных нет",
+        errorText: "Не удалось получить данные комнаты с сервера.",
+        roomStatusMessage: "",
+        roomStatusTone: "info",
+      });
+      return;
     }
+
+    const roomPayload = extractWatchPartyRoom(result.resp) || result.resp;
 
     this._roomData = applyViewerToRoom(
       mapRoomDtoToViewModel(
-        result.ok ? extractWatchPartyRoom(result.resp) || result.resp : {},
-        fallbackRoom,
+        roomPayload,
+        buildWatchPartyFallbackRoom(roomId),
         viewer,
       ),
       viewer,
@@ -389,7 +392,6 @@ export default class WatchPartyPage extends BasePage {
         topMovieCandidates,
       };
     }
-    saveLocalWatchPartyRoom(this._roomData);
     this._contextLoaded = true;
 
     this._refreshView({
@@ -397,10 +399,8 @@ export default class WatchPartyPage extends BasePage {
       hasError: false,
       errorTitle: "",
       errorText: "",
-      roomStatusMessage: result.ok
-        ? ""
-        : "Серверное состояние комнаты пока недоступно. Показана локальная версия страницы.",
-      roomStatusTone: result.ok ? "info" : "warning",
+      roomStatusMessage: "",
+      roomStatusTone: "info",
     });
   }
 
@@ -443,32 +443,35 @@ export default class WatchPartyPage extends BasePage {
       return;
     }
 
-    const visibilityLabel = resolveVisibilityLabel(
-      visibility,
-      this._overviewData.visibilityOptions,
-    );
-    const viewer = buildCurrentViewer();
-    const localRoomId = String(this._nextRoomIndex);
-    const fallbackRoom = createLocalRoomDraft({
-      roomId: localRoomId,
-      roomName,
-      visibilityLabel,
-      viewer,
-    });
-
     const result = await watchPartyService.createRoom({
       name: roomName,
       visibility: normalizeVisibilityValue(visibility),
     });
-    const nextRoom = mapRoomDtoToViewModel(
-      result.ok ? extractWatchPartyRoom(result.resp) || result.resp : {},
-      fallbackRoom,
-      viewer,
+
+    if (!result.ok) {
+      this._setLobbyStatus(
+        result.error || "Не удалось создать комнату.",
+        "error",
+      );
+      return;
+    }
+
+    const createdRoomPayload = extractWatchPartyRoom(result.resp) || result.resp;
+    const createdRoomId = normalizeText(
+      createdRoomPayload?.id ||
+        createdRoomPayload?.roomId ||
+        createdRoomPayload?.room_id,
     );
 
-    saveLocalWatchPartyRoom(nextRoom);
-    this._syncNextRoomIndex();
-    router.go(buildWatchPartyRoomPath(nextRoom.id));
+    if (!createdRoomId) {
+      this._setLobbyStatus(
+        "Сервер не вернул идентификатор созданной комнаты.",
+        "error",
+      );
+      return;
+    }
+
+    router.go(buildWatchPartyRoomPath(createdRoomId));
   }
 
   async _handleJoinRoom(form) {
@@ -492,6 +495,15 @@ export default class WatchPartyPage extends BasePage {
           invite_link: inviteLink,
         };
     const result = await watchPartyService.joinRoom(joinPayload);
+
+    if (!result.ok) {
+      this._setLobbyStatus(
+        result.error || "Не удалось войти в комнату по ссылке.",
+        "error",
+      );
+      return;
+    }
+
     const joinedRoomPayload = extractWatchPartyRoom(result.resp) || result.resp;
     const joinedRoomId = normalizeText(
       joinedRoomPayload?.id ||
@@ -508,15 +520,7 @@ export default class WatchPartyPage extends BasePage {
       return;
     }
 
-    const viewer = buildCurrentViewer();
-    const nextRoom = mapRoomDtoToViewModel(
-      joinedRoomPayload,
-      buildWatchPartyFallbackRoom(joinedRoomId),
-      viewer,
-    );
-
-    saveLocalWatchPartyRoom(nextRoom);
-    router.go(buildWatchPartyRoomPath(nextRoom.id));
+    router.go(buildWatchPartyRoomPath(joinedRoomId));
   }
 
   async _handleSendChatMessage(form) {
@@ -552,10 +556,7 @@ export default class WatchPartyPage extends BasePage {
         ...this._roomData,
         messages: upsertRoomFeedItem(this._roomData.messages, messageItem),
       };
-      saveLocalWatchPartyRoom(this._roomData);
     }
-
-    saveLocalWatchPartyRoom(this._roomData);
     this._clearRoomChatMessageDraft();
     this._refreshRoomChat({
       activePanel: "chat",
@@ -604,10 +605,7 @@ export default class WatchPartyPage extends BasePage {
         ...this._roomData,
         messages: upsertRoomFeedItem(this._roomData.messages, pollItem),
       };
-      saveLocalWatchPartyRoom(this._roomData);
     }
-
-    saveLocalWatchPartyRoom(this._roomData);
     this._clearRoomChatBetComposerDraft();
     this._refreshRoomChat({
       activePanel: "chat",
@@ -709,7 +707,6 @@ export default class WatchPartyPage extends BasePage {
       position_seconds: 0,
       status: "paused",
     });
-    saveLocalWatchPartyRoom(this._roomData);
     this._refreshView({
       roomStatusMessage: `Фильм ${selectedMovie.title} привязан к комнате.`,
       roomStatusTone: "success",
@@ -865,19 +862,19 @@ export default class WatchPartyPage extends BasePage {
     }
 
     const result = await watchPartyService.deleteRoom(normalizedRoomId);
-    deleteLocalWatchPartyRoom(normalizedRoomId);
 
-    this._overviewData = mergeOverviewWithLocalRooms(
-      removeRoomFromOverview(this._overviewData, normalizedRoomId),
-      listLocalWatchPartyRooms(),
-      buildWatchPartyFallbackOverview(),
-    );
-    this._syncNextRoomIndex();
+    if (!result.ok) {
+      this._setLobbyStatus(
+        result.error || "Не удалось удалить комнату.",
+        "error",
+      );
+      return;
+    }
+
+    this._overviewData = removeRoomFromOverview(this._overviewData, normalizedRoomId);
     this._refreshView({
-      statusMessage: result.ok
-        ? `Комната «${roomTitle}» удалена.`
-        : "Комната удалена локально. Серверная ручка ещё не подтверждена.",
-      statusTone: result.ok ? "success" : "info",
+      statusMessage: `Комната «${roomTitle}» удалена.`,
+      statusTone: "success",
     });
   }
 
@@ -1100,21 +1097,6 @@ export default class WatchPartyPage extends BasePage {
     statusNode.textContent = message;
     statusNode.hidden = !message;
     statusNode.className = `watch-room-shell__status watch-room-shell__status_${tone}`;
-  }
-
-  _syncNextRoomIndex() {
-    const rooms = listLocalWatchPartyRooms();
-    const maxId = rooms.reduce((accumulator, room) => {
-      const numericId = Number.parseInt(normalizeText(room.id), 10);
-
-      if (!Number.isFinite(numericId)) {
-        return accumulator;
-      }
-
-      return Math.max(accumulator, numericId);
-    }, 0);
-
-    this._nextRoomIndex = maxId + 1;
   }
 
   _setupRoomPlayer() {
@@ -1562,20 +1544,28 @@ export default class WatchPartyPage extends BasePage {
       hasPlaybackMovieSelection(playbackPatch) ||
       hasPlaybackMovieSelection(roomPatch.playback);
 
+    const nextMappedRoom = mapRoomDtoToViewModel(
+      {
+        ...roomPatch,
+        id: roomPatch.id || roomPatch.room_id || this._roomData.id,
+        playback: playbackPatch,
+        members:
+          roomPatch.members || roomPatch.participants || this._roomData.members,
+        messages: roomPatch.messages || this._roomData.messages,
+        polls: roomPatch.polls,
+      },
+      this._roomData,
+      this._roomData.viewer,
+    );
+
     this._roomData = applyViewerToRoom(
-      mapRoomDtoToViewModel(
-        {
-          ...roomPatch,
-          id: roomPatch.id || roomPatch.room_id || this._roomData.id,
-          playback: playbackPatch,
-          members:
-            roomPatch.members || roomPatch.participants || this._roomData.members,
-          messages: roomPatch.messages || this._roomData.messages,
-          polls: roomPatch.polls,
-        },
-        this._roomData,
-        this._roomData.viewer,
-      ),
+      {
+        ...nextMappedRoom,
+        messages: mergeRoomFeedItems(
+          nextMappedRoom.messages,
+          this._roomData.messages,
+        ),
+      },
       this._roomData.viewer,
     );
     saveLocalWatchPartyRoom(this._roomData);
@@ -1933,8 +1923,7 @@ function buildLobbyContext(pageData, uiState) {
     statusMessage: uiState.statusMessage || "",
     statusTone: uiState.statusTone || "info",
     featuredRoomsOnlineLabel: `${pageData.featuredRooms.length} ${pluralizeRooms(pageData.featuredRooms.length)} онлайн`,
-    featuredRoomsUnavailableText:
-      "Невозможно получить данные о комнатах прямо сейчас.",
+    featuredRoomsUnavailableText: "Список комнат пуст.",
     myRoomsCountLabel: `${pageData.myRooms.length} ${pluralizeRooms(pageData.myRooms.length)}`,
     heroPosters: pageData.heroPosters,
     visibilityOptions: pageData.visibilityOptions,
@@ -1981,12 +1970,14 @@ function buildRoomContext(roomData, uiState) {
 }
 
 function buildRoomChatContext(roomData, uiState) {
+  const roomMessages = prependWatchPartyGreeting(roomData.messages);
+
   return {
     isBetComposerOpen: Boolean(uiState.isBetComposerOpen),
     roomBetComposerOptions: buildComposerOptions(
       uiState.betComposerOptionCount,
     ),
-    roomMessages: roomData.messages.map((message) => {
+    roomMessages: roomMessages.map((message) => {
       return decorateRoomMessage(message);
     }),
   };
@@ -2397,7 +2388,28 @@ function applyViewerToRoom(room, viewer) {
     },
   };
   const members = Array.isArray(nextRoom.members) ? nextRoom.members : [];
-  const youIndex = members.findIndex((member) => member.isYou);
+  const viewerId = normalizeText(viewer.id || viewer.userId);
+  const viewerEmail = normalizeText(viewer.email).toLowerCase();
+  const viewerName = normalizeText(viewer.name).toLowerCase();
+  const youIndex = members.findIndex((member) => {
+    const memberId = normalizeText(member?.userId || member?.id);
+    const memberName = normalizeText(member?.name).toLowerCase();
+    const memberEmail = normalizeText(member?.email || member?.name).toLowerCase();
+
+    if (member.isYou) {
+      return true;
+    }
+
+    if (viewerId && memberId) {
+      return viewerId === memberId;
+    }
+
+    if (viewerEmail && memberEmail) {
+      return viewerEmail === memberEmail;
+    }
+
+    return Boolean(viewerName && memberName && viewerName === memberName);
+  });
 
   if (youIndex === -1) {
     nextRoom.members = [
@@ -2421,6 +2433,9 @@ function applyViewerToRoom(room, viewer) {
 
       return {
         ...member,
+        id: normalizeText(member.id) || viewerId || "viewer",
+        userId: normalizeText(member.userId) || viewerId || "",
+        email: normalizeText(member.email) || normalizeText(viewer.email),
         name: viewer.name,
         initial: viewer.initial,
         avatarTint: viewer.avatarTint,
@@ -2429,6 +2444,7 @@ function applyViewerToRoom(room, viewer) {
     });
   }
 
+  nextRoom.members = dedupeRoomMembers(nextRoom.members, viewer);
   nextRoom.participantsCount = nextRoom.members.length;
   nextRoom.participantsLabel = `${nextRoom.members.length} ${pluralizeParticipants(nextRoom.members.length)}`;
 
@@ -2588,6 +2604,26 @@ function upsertRoomFeedItem(items, nextItem) {
   return itemsWithoutExactMatch
     .map((item, index) => (index === duplicateIndex ? nextItem : item))
     .sort(compareRoomFeedItems);
+}
+
+function mergeRoomFeedItems(preferredItems = [], fallbackItems = []) {
+  const nextItems = Array.isArray(preferredItems) ? preferredItems : [];
+  const previousItems = Array.isArray(fallbackItems) ? fallbackItems : [];
+  let mergedItems = nextItems.slice();
+
+  previousItems.forEach((item) => {
+    if (!item) {
+      return;
+    }
+
+    if (mergedItems.some((candidate) => isSameRoomFeedItem(candidate, item))) {
+      return;
+    }
+
+    mergedItems.push(item);
+  });
+
+  return mergedItems.sort(compareRoomFeedItems);
 }
 
 function applyLocalPollSelections(items, fallbackItems) {
@@ -3048,6 +3084,12 @@ function mapRoomMembers(items, fallbackItems, viewer) {
     return {
       id: userId || `member-${index + 1}`,
       userId,
+      email: normalizeText(
+        item?.email ||
+          item?.display_name ||
+          item?.displayName ||
+          item?.user?.email,
+      ),
       name,
       initial: buildInitial(name),
       avatarTint: pickAvatarTint(name),
@@ -3086,15 +3128,26 @@ function mapRoomFeed(roomDto, fallbackItems) {
   ]);
   const pollItems = readArray(roomDto, ["polls", "pollItems", "poll_items"]);
   const mappedMessages = mapRoomMessages(messageItems, fallbackItems);
-  const mappedPolls = mapRoomPolls(pollItems);
+  const roomMembers = readArray(roomDto, ["members", "participants", "users"]);
+  const mappedPolls = mapRoomPolls(pollItems, roomMembers);
   const hasExplicitFeedArrays =
     Array.isArray(messageItems) || Array.isArray(pollItems);
+  const fallbackFeed = Array.isArray(fallbackItems) ? fallbackItems : [];
+  const fallbackMessages = fallbackFeed.filter((item) => !item?.isBet);
+  const fallbackPolls = fallbackFeed.filter((item) => item?.isBet);
 
   if (!mappedMessages.length && !mappedPolls.length && !hasExplicitFeedArrays) {
     return fallbackItems.map((item) => cloneValue(item));
   }
 
-  return [...mappedMessages, ...mappedPolls].sort(compareRoomFeedItems);
+  const nextMessages =
+    mappedMessages.length || Array.isArray(messageItems)
+      ? mappedMessages
+      : fallbackMessages;
+  const nextPolls =
+    mappedPolls.length || Array.isArray(pollItems) ? mappedPolls : fallbackPolls;
+
+  return [...nextMessages, ...nextPolls].sort(compareRoomFeedItems);
 }
 
 function mapRoomMessages(items) {
@@ -3192,12 +3245,18 @@ function mapRoomMessages(items) {
   });
 }
 
-function mapRoomPolls(items) {
+function mapRoomPolls(items, roomMembers = []) {
   if (!Array.isArray(items) || !items.length) {
     return [];
   }
 
   return items.map((item, index) => {
+    const createdByUserId = normalizeText(
+      item?.created_by_user_id ||
+        item?.createdByUserId ||
+        item?.user_id ||
+        item?.userId,
+    );
     const authorName =
       normalizeText(
         item?.authorName ||
@@ -3205,7 +3264,9 @@ function mapRoomPolls(items) {
           item?.display_name ||
           item?.created_by_name ||
           item?.user?.name,
-      ) || "Участник";
+      ) ||
+      resolveMemberNameByUserId(roomMembers, createdByUserId) ||
+      "Участник";
     const optionItems = Array.isArray(item?.options) ? item.options : [];
     const selectedOptionId = resolveSelectedPollOptionId(item);
     const options = optionItems.map((option, optionIndex) => {
@@ -3333,52 +3394,6 @@ function resolveSelectedPollOptionId(item = {}) {
   );
 }
 
-function mergeOverviewWithLocalRooms(pageData, localRooms, fallbackData) {
-  const localMyRooms = localRooms.map((room) => {
-    const participantsCount = normalizeCount(room.participantsCount);
-
-    return {
-      id: room.id,
-      title: room.roomName || `Комната ${room.id}`,
-      statusLabel: room.liveLabel || "Ожидает",
-      statusTone: room.liveLabel ? "live" : "waiting",
-      meta: `${room.movie?.title || "Фильм"} · ${participantsCount} ${pluralizeParticipants(participantsCount)}`,
-      roomLink: buildWatchPartyRoomPath(room.id),
-      imageUrl: room.movie?.backdropUrl || "/img/65.jpg",
-    };
-  });
-
-  const localFeaturedRooms = localRooms.slice(0, 3).map((room) => ({
-    id: room.id,
-    title: room.roomName || `Комната ${room.id}`,
-    hostName: room.hostName || "Хозяин комнаты",
-    movieTitle: room.movie?.title || "Фильм",
-    membersCount: normalizeCount(room.participantsCount),
-    privacyLabel: room.privacyLabel || "Только по ссылке",
-    progressLabel:
-      room.player?.currentTimeLabel || room.progressLabel || "0:00",
-    isLive: Boolean(room.liveLabel),
-    roomHref: buildWatchPartyRoomPath(room.id),
-    imageUrl: room.movie?.backdropUrl || "/img/cards/interstellar.webp",
-  }));
-
-  return {
-    ...pageData,
-    heroPosters: pageData.heroPosters.length
-      ? pageData.heroPosters
-      : fallbackData.heroPosters,
-    visibilityOptions: pageData.visibilityOptions.length
-      ? pageData.visibilityOptions
-      : fallbackData.visibilityOptions,
-    featuredRooms: localFeaturedRooms.length
-      ? localFeaturedRooms
-      : pageData.featuredRooms.length
-        ? pageData.featuredRooms
-        : fallbackData.featuredRooms,
-    myRooms: localMyRooms.length ? localMyRooms : pageData.myRooms,
-  };
-}
-
 function removeRoomFromOverview(pageData, roomId) {
   const normalizedRoomId = normalizeText(roomId);
 
@@ -3395,6 +3410,98 @@ function removeRoomFromOverview(pageData, roomId) {
       return normalizeText(room.id) !== normalizedRoomId;
     }),
   };
+}
+
+function dedupeRoomMembers(members = [], viewer = {}) {
+  if (!Array.isArray(members) || !members.length) {
+    return [];
+  }
+
+  const viewerId = normalizeText(viewer.id || viewer.userId);
+  const viewerEmail = normalizeText(viewer.email).toLowerCase();
+  const viewerName = normalizeText(viewer.name).toLowerCase();
+  const seen = new Set();
+
+  return members.reduce((accumulator, member, index) => {
+    const memberId = normalizeText(member?.userId || member?.id);
+    const memberEmail = normalizeText(member?.email || member?.name).toLowerCase();
+    const memberName = normalizeText(member?.name).toLowerCase();
+    const dedupeKey =
+      memberId ||
+      (memberEmail && memberEmail.includes("@") ? memberEmail : "") ||
+      memberName ||
+      `member-${index + 1}`;
+
+    if (seen.has(dedupeKey)) {
+      return accumulator;
+    }
+
+    seen.add(dedupeKey);
+
+    accumulator.push({
+      ...member,
+      isYou:
+        member.isYou ||
+        Boolean(
+          (viewerId && memberId && viewerId === memberId) ||
+            (viewerEmail && memberEmail && viewerEmail === memberEmail) ||
+            (viewerName && memberName && viewerName === memberName),
+        ),
+    });
+
+    return accumulator;
+  }, []);
+}
+
+function resolveMemberNameByUserId(members = [], userId = "") {
+  const normalizedUserId = normalizeText(userId);
+
+  if (!normalizedUserId || !Array.isArray(members)) {
+    return "";
+  }
+
+  const matchedMember = members.find((member) => {
+    return (
+      normalizeText(member?.user_id || member?.userId || member?.id) ===
+      normalizedUserId
+    );
+  });
+
+  return normalizeText(
+    matchedMember?.display_name ||
+      matchedMember?.displayName ||
+      matchedMember?.name ||
+      matchedMember?.title ||
+      matchedMember?.username,
+  );
+}
+
+function prependWatchPartyGreeting(messages = []) {
+  const normalizedMessages = Array.isArray(messages) ? messages : [];
+  const greetingText =
+    "Привет! Это чат в комнате совместного просмотра. Здесь можно обсудить интересный момент, сделать ставку на сюжет или просто пообщаться:)";
+
+  const hasGreeting = normalizedMessages.some((message) => {
+    return normalizeText(message?.id) === "watch-party-greeting";
+  });
+
+  if (hasGreeting) {
+    return normalizedMessages;
+  }
+
+  return [
+    {
+      id: "watch-party-greeting",
+      isBet: false,
+      authorName: "VKino",
+      authorInitial: "V",
+      authorTint: pickAvatarTint("VKino"),
+      timeLabel: formatTimeLabel(),
+      text: greetingText,
+      reactionText: "",
+    },
+    ...normalizedMessages,
+  ];
 }
 
 function createInitialLobbyUiState() {
@@ -3425,8 +3532,9 @@ function createInitialRoomUiState() {
 
 function buildCurrentViewer() {
   const authState = authStore.getState();
+  const email = normalizeText(authState.user?.email);
   const name =
-    normalizeText(getDisplayNameFromEmail(authState.user?.email)) ||
+    normalizeText(getDisplayNameFromEmail(email)) ||
     normalizeText(authState.user?.name) ||
     "Вы";
 
@@ -3434,51 +3542,11 @@ function buildCurrentViewer() {
     id: normalizeText(
       authState.user?.id || authState.user?.userId || authState.user?.user_id,
     ),
+    email,
     name,
     initial: buildInitial(name),
     avatarTint: pickAvatarTint(name),
   };
-}
-
-function createLocalRoomDraft({ roomId, roomName, visibilityLabel, viewer }) {
-  const fallbackRoom = buildWatchPartyFallbackRoom(roomId);
-
-  return applyViewerToRoom(
-    {
-      ...fallbackRoom,
-      id: normalizeText(roomId) || fallbackRoom.id,
-      roomName: roomName || fallbackRoom.roomName,
-      privacyLabel: visibilityLabel || fallbackRoom.privacyLabel,
-      inviteLink: buildWatchPartyRoomPath(roomId || fallbackRoom.id),
-      hostName: viewer.name,
-      liveLabel: "LIVE",
-      messages: [
-        {
-          id: `message-${Date.now()}`,
-          isBet: false,
-          authorName: viewer.name,
-          authorInitial: viewer.initial,
-          authorTint: viewer.avatarTint,
-          timeLabel: formatTimeLabel(),
-          text: "Комната создана. Чат и участники скрыты по умолчанию и открываются по кнопкам в шапке.",
-          reactionText: "",
-        },
-      ],
-      members: [
-        {
-          id: "viewer",
-          name: viewer.name,
-          initial: viewer.initial,
-          avatarTint: viewer.avatarTint,
-          isHost: true,
-          isYou: true,
-          statusText: "",
-          statusColor: "#2b9c5a",
-        },
-      ],
-    },
-    viewer,
-  );
 }
 
 function decorateRoomMessage(message) {
