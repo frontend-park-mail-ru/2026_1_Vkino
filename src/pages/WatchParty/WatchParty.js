@@ -2580,14 +2580,14 @@ function applyPlaybackStateToRoom(roomData, playbackPatch = {}) {
 
 function upsertRoomFeedItem(items, nextItem) {
   const normalizedItems = Array.isArray(items) ? items : [];
-  const nextId = normalizeText(nextItem?.id);
+  const nextKey = getRoomFeedItemKey(nextItem);
 
-  if (!nextId) {
+  if (!nextKey) {
     return normalizedItems;
   }
 
   const existingIndex = normalizedItems.findIndex((item) => {
-    return normalizeText(item?.id) === nextId;
+    return getRoomFeedItemKey(item) === nextKey;
   });
   const itemsWithoutExactMatch =
     existingIndex === -1
@@ -2740,7 +2740,10 @@ function isSameRoomFeedItem(left, right) {
     return false;
   }
 
-  if (normalizeText(left.id) === normalizeText(right.id)) {
+  const leftKey = getRoomFeedItemKey(left);
+  const rightKey = getRoomFeedItemKey(right);
+
+  if (leftKey && rightKey && leftKey === rightKey) {
     return true;
   }
 
@@ -2764,6 +2767,20 @@ function buildPollOptionsSignature(options = []) {
     .map((option) => normalizeText(option?.label))
     .filter(Boolean)
     .join("|");
+}
+
+function getRoomFeedItemKey(item) {
+  if (!item) {
+    return "";
+  }
+
+  const normalizedId = normalizeText(item.id);
+
+  if (!normalizedId) {
+    return "";
+  }
+
+  return `${item.isBet ? "poll" : "message"}:${normalizedId}`;
 }
 
 function markPollSelection(pollItem, optionId) {
