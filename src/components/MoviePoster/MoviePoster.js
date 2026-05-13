@@ -5,6 +5,7 @@ import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
 const DEFAULT_VARIANT = "default";
 const DEFAULT_SIZE = "medium";
 const DEFAULT_ACTION_TEXT = "Смотреть";
+const CARD_FALLBACK_SRC = "/img/card-fallback.png";
 
 export default class MoviePosterComponent extends BaseComponent {
   constructor(context = {}, parent = null, el = null) {
@@ -19,12 +20,48 @@ export default class MoviePosterComponent extends BaseComponent {
     }
 
     super(context, Handlebars.templates["MoviePoster.hbs"], parent, el);
+    this._posterImageEl = null;
   }
 
   init() {
     this.context = buildPosterContext(this.context);
     return super.init();
   }
+
+  addEventListeners() {
+    if (this.context?.variant === "person") {
+      return;
+    }
+
+    this._posterImageEl = this.el?.querySelector(".movie-poster-card__image");
+
+    if (this._posterImageEl instanceof HTMLImageElement) {
+      this._posterImageEl.addEventListener("error", this._handleImageError);
+    }
+  }
+
+  removeEventListeners() {
+    if (this._posterImageEl instanceof HTMLImageElement) {
+      this._posterImageEl.removeEventListener("error", this._handleImageError);
+    }
+
+    this._posterImageEl = null;
+  }
+
+  _handleImageError = (event) => {
+    const image = event.currentTarget;
+
+    if (!(image instanceof HTMLImageElement)) {
+      return;
+    }
+
+    if (image.dataset.fallbackApplied === "true") {
+      return;
+    }
+
+    image.dataset.fallbackApplied = "true";
+    image.src = CARD_FALLBACK_SRC;
+  };
 }
 
 function buildPosterContext(context = {}) {

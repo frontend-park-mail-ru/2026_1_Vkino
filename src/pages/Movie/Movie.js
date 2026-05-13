@@ -18,7 +18,7 @@ import {
   watchPartyService,
 } from "@/js/WatchPartyService.js";
 
-const DEFAULT_POSTER_URL = "/img/cards/interstellar.webp";
+const DEFAULT_POSTER_URL = "/img/card-fallback.png";
 
 const COUNTRY_BY_ID = {
   1: "Россия",
@@ -66,6 +66,7 @@ export default class MoviePage extends BasePage {
     this._onCreateWatchPartyRoomBound =
       this._onCreateWatchPartyRoom.bind(this);
     this._isPopStateListenerAttached = false;
+    this._movieImageElements = [];
   }
 
   init() {
@@ -179,6 +180,17 @@ export default class MoviePage extends BasePage {
       "click",
       this._onCreateWatchPartyRoomBound,
     );
+
+    this._movieImageElements = Array.from(
+      this.el.querySelectorAll(
+        ".movie-main-poster, .movie-trailer-image, .movie-series-list .movie-poster",
+      ),
+    );
+    this._movieImageElements.forEach((image) => {
+      if (image instanceof HTMLImageElement) {
+        image.addEventListener("error", this._onMovieImageError);
+      }
+    });
   }
 
   removeEventListeners() {
@@ -200,6 +212,13 @@ export default class MoviePage extends BasePage {
       "click",
       this._onCreateWatchPartyRoomBound,
     );
+
+    this._movieImageElements.forEach((image) => {
+      if (image instanceof HTMLImageElement) {
+        image.removeEventListener("error", this._onMovieImageError);
+      }
+    });
+    this._movieImageElements = [];
   }
 
   beforeDestroy() {
@@ -210,6 +229,21 @@ export default class MoviePage extends BasePage {
     window.removeEventListener("popstate", this._onPopStateBound);
     this._isPopStateListenerAttached = false;
   }
+
+  _onMovieImageError = (event) => {
+    const image = event.currentTarget;
+
+    if (!(image instanceof HTMLImageElement)) {
+      return;
+    }
+
+    if (image.dataset.fallbackApplied === "true") {
+      return;
+    }
+
+    image.dataset.fallbackApplied = "true";
+    image.src = DEFAULT_POSTER_URL;
+  };
 
   _setupCastCarousel() {
     const carouselSlot = this.el.querySelector("#movie-cast-carousel");

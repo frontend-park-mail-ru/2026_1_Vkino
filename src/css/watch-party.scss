@@ -191,6 +191,66 @@
   border: 1px solid rgba(230, 204, 171, 0.12);
 }
 
+.watch-party__poster-card--create {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
+  cursor: pointer;
+  background: rgba(24, 12, 6, 0.72);
+  transition:
+    transform var(--duration-fast) var(--ease-default),
+    border-color var(--duration-fast) var(--ease-default),
+    background-color var(--duration-fast) var(--ease-default);
+}
+
+.watch-party__poster-card--create:hover,
+.watch-party__poster-card--create:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(255, 87, 31, 0.35);
+  background: rgba(33, 15, 9, 0.88);
+  outline: none;
+}
+
+.watch-party__poster-card-create__inner {
+  min-height: 190px;
+  width: 100%;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-3);
+  background:
+    linear-gradient(180deg, rgba(31, 13, 8, 0.72), rgba(14, 7, 4, 0.9)),
+    radial-gradient(circle at top right, rgba(255, 87, 31, 0.16), transparent 28%);
+}
+
+.watch-party__poster-card-create__icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(255, 87, 31, 0.14);
+  border: 1px solid rgba(255, 87, 31, 0.3);
+  color: var(--accent);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.watch-party__poster-card-create__title {
+  font-family: var(--font-headers);
+  font-size: 1.35rem;
+  color: var(--text-primary);
+}
+
+.watch-party__poster-card-create__text {
+  max-width: 18ch;
+  color: var(--text-secondary);
+}
+
 .watch-party__poster-card img,
 .watch-party__room-media img,
 .watch-party__my-room-thumb {
@@ -416,7 +476,7 @@
 
 .watch-party__room-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 360px));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 320px));
   gap: var(--space-4);
   justify-content: flex-start;
   align-items: start;
@@ -431,8 +491,12 @@
   overflow: hidden;
 }
 
+.watch-party__room-card {
+  text-align: left;
+}
+
 .watch-party__room-media {
-  min-height: 220px;
+  height: 240px;
 }
 
 .watch-party__room-media::after {
@@ -454,7 +518,11 @@
 }
 
 .watch-party__room-tag {
-  padding: 0.32rem 0.65rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
 }
 
 .watch-party__room-tag--live,
@@ -465,9 +533,15 @@
 }
 
 .watch-party__room-tag--secondary {
-  background: rgba(6, 3, 1, 0.62);
-  color: var(--text-primary);
-  border: 1px solid rgba(230, 204, 171, 0.14);
+  background: rgba(5, 4, 4, 0.84);
+  color: #ffe3bc;
+  border: 1px solid rgba(255, 191, 120, 0.45);
+  font-size: 1.05rem;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0;
+  box-shadow:
+    0 0 0 1px rgba(255, 214, 166, 0.08) inset,
+    0 12px 30px rgba(0, 0, 0, 0.34);
 }
 
 .watch-party__room-body {
@@ -475,6 +549,16 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+.watch-party__room-card .watch-party__room-actions {
+  flex-wrap: nowrap;
+}
+
+.watch-party__room-card .watch-party__room-actions .watch-party__button {
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .watch-party__room-host span {

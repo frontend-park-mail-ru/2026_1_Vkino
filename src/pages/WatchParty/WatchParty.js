@@ -35,6 +35,7 @@ const HERO_COPY = {
 const WATCH_PARTY_WS_RECONNECT_DELAY_MS = 3000;
 const WATCH_PARTY_ROOM_POLL_INTERVAL_MS = 2000;
 const WATCH_PARTY_ROOM_STATUS_AUTO_HIDE_MS = 3000;
+const WATCH_PARTY_CARD_FALLBACK_SRC = "/img/card-fallback.png";
 
 export default class WatchPartyPage extends BasePage {
   constructor(context = {}, parent = null, el = null) {
@@ -86,6 +87,7 @@ export default class WatchPartyPage extends BasePage {
     this._roomStatePollInFlight = false;
     this._roomSubscriptionReady = false;
     this._roomStatusAutoHideTimerId = 0;
+    this._watchPartyImageElements = [];
   }
 
   init() {
@@ -109,6 +111,7 @@ export default class WatchPartyPage extends BasePage {
   addEventListeners() {
     this.el.addEventListener("click", this._onClick);
     this.el.addEventListener("submit", this._onSubmit);
+    this._bindWatchPartyImageFallbacks();
 
     if (this._mode === "room" && !this._uiState.loading && !this._uiState.hasError) {
       this._connectRoomSubscription();
@@ -131,6 +134,12 @@ export default class WatchPartyPage extends BasePage {
 
     this.el.removeEventListener("click", this._onClick);
     this.el.removeEventListener("submit", this._onSubmit);
+    this._watchPartyImageElements.forEach((image) => {
+      if (image instanceof HTMLImageElement) {
+        image.removeEventListener("error", this._onWatchPartyImageError);
+      }
+    });
+    this._watchPartyImageElements = [];
     this._disconnectRoomSubscription();
     this._stopRoomStatePolling();
     this._clearRoomStatusAutoHide();
@@ -1065,6 +1074,35 @@ export default class WatchPartyPage extends BasePage {
     this.getChild("watch-party-room-chat")?.clearBetComposerDraft();
   }
 
+  _bindWatchPartyImageFallbacks() {
+    this._watchPartyImageElements = Array.from(
+      this.el.querySelectorAll(
+        ".watch-party__poster-card img, .watch-party__room-media img, .watch-party__my-room-thumb",
+      ),
+    );
+
+    this._watchPartyImageElements.forEach((image) => {
+      if (image instanceof HTMLImageElement) {
+        image.addEventListener("error", this._onWatchPartyImageError);
+      }
+    });
+  }
+
+  _onWatchPartyImageError = (event) => {
+    const image = event.currentTarget;
+
+    if (!(image instanceof HTMLImageElement)) {
+      return;
+    }
+
+    if (image.dataset.fallbackApplied === "true") {
+      return;
+    }
+
+    image.dataset.fallbackApplied = "true";
+    image.src = WATCH_PARTY_CARD_FALLBACK_SRC;
+  };
+
   _refreshRoomChrome(overrides = {}) {
     if (this._mode !== "room") {
       return;
@@ -1915,6 +1953,17 @@ function buildRoomActionPayload(action, payload = {}) {
 }
 
 function buildLobbyContext(pageData, uiState) {
+  const heroPostersDisplay =
+    pageData.heroPosters.length === 1
+      ? [
+          ...pageData.heroPosters,
+          {
+            id: "create-room-hero-placeholder",
+            isHeroCreateRoomPlaceholder: true,
+          },
+        ]
+      : pageData.heroPosters;
+
   return {
     ...HERO_COPY,
     isRoomView: false,
@@ -1926,6 +1975,7 @@ function buildLobbyContext(pageData, uiState) {
     featuredRoomsUnavailableText: "Список комнат пуст.",
     myRoomsCountLabel: `${pageData.myRooms.length} ${pluralizeRooms(pageData.myRooms.length)}`,
     heroPosters: pageData.heroPosters,
+    heroPostersDisplay,
     visibilityOptions: pageData.visibilityOptions,
     featuredRooms: pageData.featuredRooms,
     myRooms: pageData.myRooms,
@@ -2081,11 +2131,26 @@ function mapOverviewToPageData(overview, fallbackData) {
     overview && typeof overview === "object" && !Array.isArray(overview)
       ? overview
       : {};
+  const featuredRoomItems = readArray(normalizedOverview, [
+    "featuredRooms",
+    "featured_rooms",
+    "onlineRooms",
+    "online_rooms",
+    "active_rooms",
+    "rooms",
+  ]);
+  const heroPosterItems = readArray(normalizedOverview, [
+    "heroPosters",
+    "hero_posters",
+    "posters",
+  ]);
 
   return {
     heroPosters: mapHeroPosters(
-      readArray(normalizedOverview, ["heroPosters", "hero_posters", "posters"]),
-      fallbackData.heroPosters,
+      heroPosterItems,
+      Array.isArray(featuredRoomItems) && featuredRoomItems.length
+        ? mapHeroPostersFromRooms(featuredRoomItems, fallbackData.heroPosters)
+        : fallbackData.heroPosters,
     ),
     visibilityOptions: mapVisibilityOptions(
       readArray(normalizedOverview, [
@@ -2097,14 +2162,7 @@ function mapOverviewToPageData(overview, fallbackData) {
       fallbackData.visibilityOptions,
     ),
     featuredRooms: mapFeaturedRooms(
-      readArray(normalizedOverview, [
-        "featuredRooms",
-        "featured_rooms",
-        "active_rooms",
-        "onlineRooms",
-        "online_rooms",
-        "rooms",
-      ]),
+      featuredRoomItems,
       fallbackData.featuredRooms,
     ),
     myRooms: mapMyRooms(
@@ -2927,6 +2985,38 @@ function mapHeroPosters(items, fallbackItems) {
   });
 }
 
+function mapHeroPostersFromRooms(items, fallbackItems) {
+  if (!Array.isArray(items) || !items.length) {
+    return fallbackItems.slice(0, 2).map((item) => ({ ...item }));
+  }
+
+  return items.slice(0, 2).map((item, index) => {
+    const fallback = fallbackItems[index % fallbackItems.length];
+    const membersCount = normalizeCount(
+      item?.membersCount ??
+        item?.members_count ??
+        item?.participantsCount ??
+        item?.participants_count ??
+        item?.viewersCount ??
+        item?.viewers_count,
+    );
+
+    return {
+      id:
+        normalizeText(item?.id || item?.roomId || item?.room_id) ||
+        fallback?.id,
+      title:
+        normalizeText(item?.title || item?.name) || fallback?.title || "Комната",
+      label:
+        normalizeText(item?.host_name || item?.hostName) ||
+        (membersCount
+          ? `${membersCount} ${pluralizeParticipants(membersCount)}`
+          : fallback?.label),
+      imageUrl: resolveImageUrl(item, fallback?.imageUrl),
+    };
+  });
+}
+
 function mapVisibilityOptions(items, fallbackItems) {
   if (!Array.isArray(items) || !items.length) {
     return fallbackItems.map((item) => ({ ...item }));
@@ -2951,14 +3041,14 @@ function mapVisibilityOptions(items, fallbackItems) {
 
 function mapFeaturedRooms(items, fallbackItems) {
   if (!Array.isArray(items) || !items.length) {
-    return fallbackItems.map((item, index) => ({
+    return fallbackItems.slice(0, 2).map((item, index) => ({
       imageUrl:
         index % 2 === 0 ? "/img/cards/interstellar.webp" : "/img/joker.jpeg",
       ...item,
     }));
   }
 
-  return items.slice(0, 6).map((item, index) => {
+  return items.slice(0, 2).map((item, index) => {
     const fallback =
       fallbackItems[index % fallbackItems.length] || fallbackItems[0];
     const membersCount = normalizeCount(
@@ -2969,6 +3059,7 @@ function mapFeaturedRooms(items, fallbackItems) {
         item?.viewersCount ??
         item?.viewers_count,
     );
+    const resolvedMembersCount = membersCount || fallback?.membersCount || 0;
 
     return {
       id:
@@ -2997,7 +3088,8 @@ function mapFeaturedRooms(items, fallbackItems) {
         ) ||
         fallback?.movieTitle ||
         "Фильм",
-      membersCount: membersCount || fallback?.membersCount || 0,
+      membersCount: resolvedMembersCount,
+      membersLabel: `${resolvedMembersCount} ${pluralizeParticipants(resolvedMembersCount)}`,
       privacyLabel: resolveVisibilityLabelText(
         item?.privacyLabel ||
           item?.privacy_label ||
@@ -3669,14 +3761,31 @@ function resolveVisibilityLabel(value, options) {
 
 function resolveImageUrl(item, fallback) {
   return (
-    normalizeText(
-      item?.imageUrl ||
-        item?.image_url ||
-        item?.posterUrl ||
-        item?.poster_url ||
-        item?.coverUrl ||
-        item?.cover_url,
-    ) || fallback
+    resolveMediaUrl(
+      normalizeText(
+        item?.imageUrl ||
+          item?.image_url ||
+          item?.posterUrl ||
+          item?.poster_url ||
+          item?.coverUrl ||
+          item?.cover_url,
+      ),
+      MEDIA_BUCKETS.cards,
+    ) ||
+    resolveMediaUrl(
+      normalizeText(
+        item?.playback?.img_url ||
+          item?.playback?.imgUrl ||
+          item?.playback?.poster_url ||
+          item?.playback?.posterUrl ||
+          item?.movie?.img_url ||
+          item?.movie?.imgUrl ||
+          item?.movie?.poster_url ||
+          item?.movie?.posterUrl,
+      ),
+      MEDIA_BUCKETS.cards,
+    ) ||
+    fallback
   );
 }
 

@@ -285,14 +285,31 @@
           </div>
 
           <div class="watch-party__poster-stack" aria-label="Подборка для совместного просмотра">
-            {{#each heroPosters}}
-              <article class="watch-party__poster-card">
-                <img src="{{this.imageUrl}}" alt="{{this.title}}" />
-                <div class="watch-party__poster-overlay">
-                  <span class="watch-party__poster-chip">{{this.label}}</span>
-                  <span class="watch-party__poster-play" aria-hidden="true"></span>
-                </div>
-              </article>
+            {{#each heroPostersDisplay}}
+              {{#if this.isHeroCreateRoomPlaceholder}}
+                <button
+                  class="watch-party__poster-card watch-party__poster-card--create"
+                  type="button"
+                  data-action="scroll-to-section"
+                  data-target="create-room-section"
+                >
+                  <span class="watch-party__poster-card-create__inner">
+                    <span class="watch-party__poster-card-create__icon" aria-hidden="true">+</span>
+                    <span class="watch-party__poster-card-create__title">Создать комнату</span>
+                    <span class="watch-party__poster-card-create__text">
+                      Быстрый переход к настройке новой комнаты
+                    </span>
+                  </span>
+                </button>
+              {{else}}
+                <article class="watch-party__poster-card">
+                  <img src="{{this.imageUrl}}" alt="{{this.title}}" />
+                  <div class="watch-party__poster-overlay">
+                    <span class="watch-party__poster-chip">{{this.label}}</span>
+                    <span class="watch-party__poster-play" aria-hidden="true"></span>
+                  </div>
+                </article>
+              {{/if}}
             {{/each}}
           </div>
         </section>
@@ -408,11 +425,9 @@
                         <span class="watch-party__room-tag watch-party__room-tag--live">LIVE</span>
                       {{/if}}
                       <span class="watch-party__room-tag watch-party__room-tag--secondary">
-                        {{this.membersCount}} участников
+                        {{this.membersLabel}}
                       </span>
                     </div>
-
-                    <span class="watch-party__poster-play watch-party__poster-play--solid" aria-hidden="true"></span>
                   </div>
 
                   <div class="watch-party__room-body">
