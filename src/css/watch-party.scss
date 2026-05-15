@@ -172,6 +172,12 @@
   width: 100%;
 }
 
+.watch-party__button:disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .watch-party__poster-stack {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

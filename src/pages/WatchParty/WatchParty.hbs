@@ -119,17 +119,18 @@
                     </div>
                   </div>
 
-                  <div class="watch-room-topbar__actions">
-
-                    <button
-                      class="watch-room-topbar__action watch-room-topbar__action_copy"
-                      type="button"
-                      data-action="copy-room-link"
-                      data-link="{{inviteLink}}"
-                    >
-                      Пригласить
-                    </button>
-                  </div>
+                  {{#if inviteLink}}
+                    <div class="watch-room-topbar__actions">
+                      <button
+                        class="watch-room-topbar__action watch-room-topbar__action_copy"
+                        type="button"
+                        data-action="copy-room-link"
+                        data-link="{{inviteLink}}"
+                      >
+                        Пригласить
+                      </button>
+                    </div>
+                  {{/if}}
                 </div>
               </div>
             </div>
@@ -390,8 +391,8 @@
                   <input
                     class="watch-party__input"
                     name="inviteLink"
-                    type="url"
-                    placeholder="https://vkino.ru/watch-party/id31"
+                    type="text"
+                    placeholder="https://vkino.ru/watch-party/join/abc123"
                   />
                 </label>
                 <button class="watch-party__button watch-party__button--ghost" type="submit">
@@ -438,22 +439,32 @@
                     <p class="watch-party__room-host">{{this.movieTitle}} · {{this.progressLabel}}</p>
 
                     <div class="watch-party__room-actions">
-                      <button
-                        class="watch-party__button watch-party__button--accent"
-                        type="button"
-                        data-action="join-featured-room"
-                        data-room-id="{{this.id}}"
-                      >
-                        Присоединиться
-                      </button>
-                      <button
-                        class="watch-party__button watch-party__button--ghost"
-                        type="button"
-                        data-action="copy-link"
-                        data-link="{{this.roomHref}}"
-                      >
-                        Копировать ссылку
-                      </button>
+                      {{#if this.roomHref}}
+                        <button
+                          class="watch-party__button watch-party__button--accent"
+                          type="button"
+                          data-action="join-featured-room"
+                          data-room-link="{{this.roomHref}}"
+                        >
+                          Присоединиться
+                        </button>
+                        <button
+                          class="watch-party__button watch-party__button--ghost"
+                          type="button"
+                          data-action="copy-link"
+                          data-link="{{this.roomHref}}"
+                        >
+                          Копировать ссылку
+                        </button>
+                      {{else}}
+                        <button
+                          class="watch-party__button watch-party__button--ghost"
+                          type="button"
+                          disabled
+                        >
+                          Нужна ссылка
+                        </button>
+                      {{/if}}
                     </div>
                   </div>
                 </article>
@@ -504,14 +515,16 @@
                       >
                         Войти
                       </button>
-                      <button
-                        class="watch-party__button watch-party__button--ghost"
-                        type="button"
-                        data-action="copy-link"
-                        data-link="{{this.roomLink}}"
-                      >
-                        Поделиться
-                      </button>
+                      {{#if this.roomLink}}
+                        <button
+                          class="watch-party__button watch-party__button--ghost"
+                          type="button"
+                          data-action="copy-link"
+                          data-link="{{this.roomLink}}"
+                        >
+                          Поделиться
+                        </button>
+                      {{/if}}
                       <button
                         class="watch-party__button watch-party__button--ghost watch-party__button--danger"
                         type="button"

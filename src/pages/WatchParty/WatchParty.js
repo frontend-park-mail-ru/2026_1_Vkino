@@ -10,6 +10,7 @@ import { movieService } from "@/js/MovieService.js";
 import {
   buildWatchPartyFallbackOverview,
   buildWatchPartyFallbackRoom,
+  buildWatchPartyJoinPath,
   buildWatchPartyRoomPath,
   saveLocalWatchPartyRoom,
   watchPartyService,
@@ -103,6 +104,10 @@ export default class WatchPartyPage extends BasePage {
   async loadContext({ showLoading = false } = {}) {
     if (this._mode === "room") {
       return this._loadRoomContext({ showLoading });
+    }
+
+    if (this._routeState.isJoinView) {
+      return this._loadJoinContext({ showLoading });
     }
 
     return this._loadLobbyContext({ showLoading });
@@ -199,6 +204,9 @@ export default class WatchPartyPage extends BasePage {
         );
         break;
       case "join-featured-room":
+        event.preventDefault();
+        this._openRoomFromAction(actionTarget);
+        break;
       case "open-my-room":
         event.preventDefault();
         this._openRoom(actionTarget.dataset.roomId || "");
@@ -325,6 +333,53 @@ export default class WatchPartyPage extends BasePage {
     });
   }
 
+  async _loadJoinContext({ showLoading = false } = {}) {
+    const inviteCode = normalizeText(this._routeState.inviteCode);
+
+    if (!inviteCode) {
+      await this._loadLobbyContext({ showLoading });
+      this._setLobbyStatus("В ссылке отсутствует invite-код комнаты.", "error");
+      return;
+    }
+
+    if (!authStore.getState().user) {
+      this._redirectToSignIn();
+      return;
+    }
+
+    if (showLoading) {
+      this._refreshView({
+        isLoading: true,
+        errorMessage: "",
+        statusMessage: "",
+      });
+    }
+
+    const result = await this._joinRoomByInviteCode(inviteCode);
+
+    if (result.ok) {
+      const joinedRoomId = extractWatchPartyRoomIdentifier(result.resp);
+
+      if (joinedRoomId) {
+        router.go(buildWatchPartyRoomPath(joinedRoomId));
+        return;
+      }
+    }
+
+    console.error("WatchPartyPage: не удалось войти в комнату по invite", {
+      inviteCode,
+      status: result.status,
+      error: result.error,
+      resp: result.resp,
+    });
+
+    await this._loadLobbyContext({ showLoading: false });
+    this._setLobbyStatus(
+      result.error || "Не удалось войти в комнату по ссылке.",
+      "error",
+    );
+  }
+
   async _loadRoomContext({ showLoading = false } = {}) {
     const roomId = this._routeState.roomId;
 
@@ -349,8 +404,7 @@ export default class WatchPartyPage extends BasePage {
     }
 
     const viewer = buildCurrentViewer();
-    const joinResult = await this._joinRoomFromRoute(roomId);
-    const result = joinResult.ok ? joinResult : await watchPartyService.getRoom(roomId);
+    const result = await watchPartyService.getRoom(roomId);
 
     if (!result.ok) {
       console.error("WatchPartyPage: не удалось загрузить комнату", {
@@ -365,7 +419,7 @@ export default class WatchPartyPage extends BasePage {
         loading: false,
         hasError: true,
         errorTitle: "Данных нет",
-        errorText: "Не удалось получить данные комнаты с сервера.",
+        errorText: buildRoomAccessErrorText(result),
         roomStatusMessage: "",
         roomStatusTone: "info",
       });
@@ -413,30 +467,19 @@ export default class WatchPartyPage extends BasePage {
     });
   }
 
-  async _joinRoomFromRoute(roomId) {
-    if (!authStore.getState().user) {
+  async _joinRoomByInviteCode(inviteCode) {
+    const normalizedInviteCode = normalizeText(inviteCode);
+
+    if (!normalizedInviteCode) {
       return {
         ok: false,
         status: 0,
         resp: null,
-        error: "",
+        error: "Не удалось определить invite-код комнаты.",
       };
     }
 
-    const normalizedRoomId = normalizeText(roomId);
-
-    if (!normalizedRoomId) {
-      return {
-        ok: false,
-        status: 0,
-        resp: null,
-        error: "",
-      };
-    }
-
-    return watchPartyService.joinRoom({
-      room_id: normalizeRoomIdPayload(normalizedRoomId),
-    });
+    return watchPartyService.joinRoomByInviteCode(normalizedInviteCode);
   }
 
   async _handleCreateRoom(form) {
@@ -495,41 +538,17 @@ export default class WatchPartyPage extends BasePage {
       return;
     }
 
-    const roomIdFromLink = extractRoomIdFromLink(inviteLink);
-    const joinPayload = roomIdFromLink
-      ? {
-          room_id: normalizeRoomIdPayload(roomIdFromLink),
-        }
-      : {
-          invite_link: inviteLink,
-        };
-    const result = await watchPartyService.joinRoom(joinPayload);
+    const inviteCode = extractInviteCodeFromLink(inviteLink);
 
-    if (!result.ok) {
+    if (!inviteCode) {
       this._setLobbyStatus(
-        result.error || "Не удалось войти в комнату по ссылке.",
+        "Не удалось определить invite-код по ссылке. Проверьте формат приглашения.",
         "error",
       );
       return;
     }
 
-    const joinedRoomPayload = extractWatchPartyRoom(result.resp) || result.resp;
-    const joinedRoomId = normalizeText(
-      joinedRoomPayload?.id ||
-        joinedRoomPayload?.roomId ||
-        joinedRoomPayload?.room_id ||
-        roomIdFromLink,
-    );
-
-    if (!joinedRoomId) {
-      this._setLobbyStatus(
-        "Не удалось определить комнату по ссылке. Проверьте формат приглашения.",
-        "error",
-      );
-      return;
-    }
-
-    router.go(buildWatchPartyRoomPath(joinedRoomId));
+    router.go(buildWatchPartyJoinPath(inviteCode));
   }
 
   async _handleSendChatMessage(form) {
@@ -901,6 +920,17 @@ export default class WatchPartyPage extends BasePage {
     router.go(buildWatchPartyRoomPath(normalizedRoomId));
   }
 
+  _openRoomFromAction(actionTarget) {
+    const roomLink = normalizeText(actionTarget.dataset.roomLink);
+
+    if (roomLink) {
+      router.go(roomLink);
+      return;
+    }
+
+    this._openRoom(actionTarget.dataset.roomId || "");
+  }
+
   _setRoomPanel(panel) {
     if (this._mode !== "room") {
       return;
@@ -1028,6 +1058,13 @@ export default class WatchPartyPage extends BasePage {
       behavior: "smooth",
       block: "start",
     });
+  }
+
+  _redirectToSignIn() {
+    const returnTo = encodeURIComponent(
+      window.location.pathname + window.location.search,
+    );
+    router.go(`/sign-in?return_to=${returnTo}`);
   }
 
   _refreshView(overrides = {}) {
@@ -2241,14 +2278,12 @@ function mapRoomDtoToViewModel(roomDto, fallbackRoom, viewer) {
       resolveInviteLink(
         normalizedRoomDto.inviteLink ||
           normalizedRoomDto.invite_link ||
+          normalizedRoomDto.shareUrl ||
+          normalizedRoomDto.share_url ||
+          normalizedRoomDto.joinUrl ||
+          normalizedRoomDto.join_url ||
           normalizedRoomDto.roomLink ||
           normalizedRoomDto.room_link,
-        normalizeText(
-          normalizedRoomDto.id ||
-            normalizedRoomDto.roomId ||
-            normalizedRoomDto.room_id ||
-            fallbackRoom.id,
-        ) || fallbackRoom.id,
         fallbackRoom.inviteLink,
       ),
     hostName:
@@ -3112,8 +3147,17 @@ function mapFeaturedRooms(items, fallbackItems) {
         fallback?.isLive ? "LIVE" : "",
       ),
       roomHref:
-        normalizeText(item?.roomHref || item?.roomLink || item?.room_link) ||
-        buildWatchPartyRoomPath(item?.id || fallback?.id || index + 1),
+        resolveInviteLink(
+          item?.roomHref ||
+            item?.roomLink ||
+            item?.room_link ||
+            item?.joinUrl ||
+            item?.join_url ||
+            item?.shareUrl ||
+            item?.share_url ||
+            item?.inviteLink ||
+            item?.invite_link,
+        ) || "",
       imageUrl: resolveImageUrl(
         item,
         fallback?.imageUrl || "/img/cards/interstellar.webp",
@@ -3154,12 +3198,16 @@ function mapMyRooms(items) {
         normalizeText(item?.meta) ||
         `${normalizeText(item?.movieTitle || item?.movie_title || item?.movie?.title) || "Фильм"} · ${participantsCount} ${pluralizeParticipants(participantsCount)}`,
       roomLink:
-        normalizeText(
+        resolveInviteLink(
           item?.roomLink ||
             item?.room_link ||
+            item?.shareUrl ||
+            item?.share_url ||
+            item?.joinUrl ||
+            item?.join_url ||
             item?.inviteLink ||
             item?.invite_link,
-        ) || buildWatchPartyRoomPath(roomId),
+        ) || "",
       imageUrl: resolveImageUrl(item, "/img/65.jpg"),
     };
   });
@@ -3738,25 +3786,39 @@ function readWatchPartyRouteState(pathname) {
     .split("/")
     .filter(Boolean);
 
-  if (pathParts[0] !== "watch-party" || !pathParts[1]) {
+  if (pathParts[0] !== "watch-party") {
     return {
       isRoomView: false,
+      isJoinView: false,
       roomId: "",
+      inviteCode: "",
+    };
+  }
+
+  if (pathParts[1] === "join") {
+    return {
+      isRoomView: false,
+      isJoinView: true,
+      roomId: "",
+      inviteCode: normalizeText(pathParts[2]),
+    };
+  }
+
+  if (!pathParts[1]) {
+    return {
+      isRoomView: false,
+      isJoinView: false,
+      roomId: "",
+      inviteCode: "",
     };
   }
 
   return {
     isRoomView: true,
+    isJoinView: false,
     roomId: normalizeText(pathParts[1]).replace(/^id/i, ""),
+    inviteCode: "",
   };
-}
-
-function resolveVisibilityLabel(value, options) {
-  const normalizedValue = normalizeVisibilityValue(value);
-  const matched = options.find((option) => {
-    return normalizeVisibilityValue(option.value) === normalizedValue;
-  });
-  return matched?.label || resolveVisibilityLabelText(normalizedValue);
 }
 
 function resolveImageUrl(item, fallback) {
@@ -3807,20 +3869,63 @@ function resolveLiveLabel(value, fallback) {
   return fallback || "";
 }
 
-function extractRoomIdFromLink(link) {
+function extractInviteCodeFromLink(link) {
   const normalizedLink = normalizeText(link);
 
   if (!normalizedLink) {
     return "";
   }
 
+  if (
+    !normalizedLink.includes("/") &&
+    !normalizedLink.includes("?") &&
+    !normalizedLink.includes("#") &&
+    !/^https?:\/\//i.test(normalizedLink)
+  ) {
+    return normalizedLink;
+  }
+
   try {
     const parsedUrl = new URL(normalizedLink, window.location.origin);
     const routeState = readWatchPartyRouteState(parsedUrl.pathname);
-    return routeState.roomId;
+    if (routeState.isJoinView) {
+      return routeState.inviteCode;
+    }
+
+    return normalizeText(
+      parsedUrl.searchParams.get("invite_code") ||
+        parsedUrl.searchParams.get("inviteCode"),
+    );
   } catch {
     return "";
   }
+}
+
+function extractWatchPartyRoomIdentifier(payload) {
+  const roomPayload = extractWatchPartyRoom(payload) || payload;
+
+  if (!roomPayload || typeof roomPayload !== "object" || Array.isArray(roomPayload)) {
+    return "";
+  }
+
+  return normalizeText(
+    roomPayload.id ||
+      roomPayload.roomId ||
+      roomPayload.room_id ||
+      roomPayload.internal_room_id,
+  );
+}
+
+function buildRoomAccessErrorText(result) {
+  if (result?.status === 403) {
+    return "Доступ к комнате есть только у участников. Откройте invite-ссылку и войдите в комнату через нее.";
+  }
+
+  if (result?.status === 404) {
+    return "Комната не найдена или ссылка устарела.";
+  }
+
+  return "Не удалось получить данные комнаты с сервера.";
 }
 
 function absolutizeRoomLink(link) {
@@ -4023,21 +4128,34 @@ function hasRoomMovieBinding(roomData = {}) {
   return Boolean(normalizeText(playerSource.movieId || playerSource.movie_id));
 }
 
-function resolveInviteLink(inviteLink, roomId, fallbackLink = "") {
+function resolveInviteLink(inviteLink, fallbackLink = "") {
   const normalizedInviteLink = normalizeText(inviteLink);
 
-  if (!normalizedInviteLink) {
-    return buildWatchPartyRoomPath(roomId || fallbackLink || "1");
+  if (normalizedInviteLink) {
+    if (
+      normalizedInviteLink.startsWith("/") ||
+      /^https?:\/\//i.test(normalizedInviteLink)
+    ) {
+      return normalizedInviteLink;
+    }
+
+    return buildWatchPartyJoinPath(normalizedInviteLink);
+  }
+
+  const normalizedFallbackLink = normalizeText(fallbackLink);
+
+  if (!normalizedFallbackLink) {
+    return "";
   }
 
   if (
-    normalizedInviteLink.startsWith("/") ||
-    /^https?:\/\//i.test(normalizedInviteLink)
+    normalizedFallbackLink.startsWith("/") ||
+    /^https?:\/\//i.test(normalizedFallbackLink)
   ) {
-    return normalizedInviteLink;
+    return normalizedFallbackLink;
   }
 
-  return buildWatchPartyRoomPath(roomId || fallbackLink || "1");
+  return buildWatchPartyJoinPath(normalizedFallbackLink);
 }
 
 function resolveVisibilityLabelText(value, fallback = "Только по ссылке") {
@@ -4086,16 +4204,6 @@ function normalizeNonNegativeInteger(value) {
   }
 
   return Math.max(0, Math.floor(parsed));
-}
-
-function normalizeRoomIdPayload(value) {
-  const normalizedValue = normalizeText(value);
-
-  if (/^\d+$/.test(normalizedValue)) {
-    return Number.parseInt(normalizedValue, 10);
-  }
-
-  return normalizedValue;
 }
 
 function resolveHostNameFromMembers(items) {

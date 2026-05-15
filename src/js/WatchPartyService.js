@@ -85,6 +85,21 @@ export class WatchPartyService {
     return this.api.post("/rooms", payload);
   }
 
+  async joinRoomByInviteCode(inviteCode) {
+    const normalizedInviteCode = normalizeText(inviteCode);
+
+    if (!normalizedInviteCode) {
+      return {
+        ok: false,
+        status: 0,
+        resp: null,
+        error: "WatchPartyService: не передан invite-код комнаты",
+      };
+    }
+
+    return this.api.get(`/join/${encodeURIComponent(normalizedInviteCode)}`);
+  }
+
   async joinRoom(payload) {
     return this.api.post("/join", payload);
   }
@@ -183,6 +198,13 @@ export function buildWatchPartyRoomPath(roomId) {
   return `/watch-party/id${encodeURIComponent(normalizedRoomId)}`;
 }
 
+export function buildWatchPartyJoinPath(inviteCode) {
+  const normalizedInviteCode = normalizeText(inviteCode);
+  return normalizedInviteCode
+    ? `/watch-party/join/${encodeURIComponent(normalizedInviteCode)}`
+    : "/watch-party";
+}
+
 export function buildWatchPartyFallbackOverview() {
   return {
     heroPosters: FALLBACK_OVERVIEW.heroPosters.map((item) => ({ ...item })),
@@ -204,7 +226,7 @@ export function buildWatchPartyFallbackRoom(roomId = "") {
     progressLabel: "",
     liveLabel: "",
     privacyLabel: "",
-    inviteLink: normalizedRoomId ? buildWatchPartyRoomPath(normalizedRoomId) : "",
+    inviteLink: "",
     hostName: "",
     roomNote: "",
     movie: {
@@ -267,24 +289,6 @@ export function deleteLocalWatchPartyRoom(roomId) {
 
 export const watchPartyService = new WatchPartyService(apiService);
 
-function sanitizeRoom(room) {
-  if (!room || typeof room !== "object" || Array.isArray(room)) {
-    return null;
-  }
-
-  const normalizedId = normalizeRoomId(room.id);
-
-  if (!normalizedId) {
-    return null;
-  }
-
-  return {
-    ...cloneValue(room),
-    id: normalizedId,
-    inviteLink: normalizeText(room.inviteLink) || buildWatchPartyRoomPath(normalizedId),
-  };
-}
-
 function normalizeRoomId(roomId) {
   return String(roomId ?? "")
     .trim()
@@ -294,23 +298,6 @@ function normalizeRoomId(roomId) {
 
 function normalizeText(value) {
   return String(value || "").trim();
-}
-
-function normalizeCount(value) {
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-}
-
-function pluralizeParticipants(count) {
-  if (count % 10 === 1 && count % 100 !== 11) {
-    return "участник";
-  }
-
-  if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) {
-    return "участника";
-  }
-
-  return "участников";
 }
 
 function pickAvatarTint(seed) {

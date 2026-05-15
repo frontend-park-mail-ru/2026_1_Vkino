@@ -136,6 +136,10 @@ async function start() {
     )
     .registerRoute("/watch-party", (root) => new WatchPartyPage({}, null, root))
     .registerRoute(
+      "/watch-party/join/:inviteCode",
+      (root) => new WatchPartyPage({}, null, root),
+    )
+    .registerRoute(
       "/watch-party/:roomId",
       (root) => new WatchPartyPage({}, null, root),
     )
