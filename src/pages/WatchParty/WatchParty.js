@@ -15,6 +15,7 @@ import {
   saveLocalWatchPartyRoom,
   watchPartyService,
 } from "@/js/WatchPartyService.js";
+import { userService } from "@/js/UserService.js";
 import {
   extractMovie,
   extractSelections,
@@ -24,7 +25,11 @@ import {
 import { router } from "@/router/index.js";
 import { authStore } from "@/store/authStore.js";
 import { getDisplayNameFromEmail } from "@/utils/user.js";
-import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
+import {
+  MEDIA_BUCKETS,
+  resolveAvatarUrl,
+  resolveMediaUrl,
+} from "@/utils/media.js";
 
 const HERO_COPY = {
   heroEyebrow: "Совместный просмотр",
@@ -195,6 +200,18 @@ export default class WatchPartyPage extends BasePage {
       case "copy-room-link":
         event.preventDefault();
         await this._copyRoomLink(actionTarget.dataset.link || "");
+        break;
+      case "open-room-invite-modal":
+        event.preventDefault();
+        await this._openRoomInviteModal();
+        break;
+      case "close-room-invite-modal":
+        event.preventDefault();
+        this._closeRoomInviteModal();
+        break;
+      case "invite-room-friend":
+        event.preventDefault();
+        await this._inviteFriendToRoom(actionTarget.dataset.friendId || "");
         break;
       case "delete-room":
         event.preventDefault();
@@ -400,6 +417,9 @@ export default class WatchPartyPage extends BasePage {
         hasError: false,
         errorTitle: "",
         errorText: "",
+        isInviteModalOpen: false,
+        inviteFriendsLoading: false,
+        inviteFriendsError: "",
       });
     }
 
@@ -422,6 +442,9 @@ export default class WatchPartyPage extends BasePage {
         errorText: buildRoomAccessErrorText(result),
         roomStatusMessage: "",
         roomStatusTone: "info",
+        isInviteModalOpen: false,
+        inviteFriendsLoading: false,
+        inviteFriendsError: "",
       });
       return;
     }
@@ -464,6 +487,9 @@ export default class WatchPartyPage extends BasePage {
       errorText: "",
       roomStatusMessage: "",
       roomStatusTone: "info",
+      isInviteModalOpen: false,
+      inviteFriendsLoading: false,
+      inviteFriendsError: "",
     });
   }
 
@@ -879,6 +905,140 @@ export default class WatchPartyPage extends BasePage {
     } catch {
       this._setCopyFallbackStatus(normalizedLink);
     }
+  }
+
+  async _openRoomInviteModal() {
+    if (this._mode !== "room") {
+      return;
+    }
+
+    if (!isCurrentViewerRoomHost(this._roomData)) {
+      this._setTemporaryRoomStatus(
+        "Приглашать друзей в комнату может только хозяин.",
+        "warning",
+      );
+      return;
+    }
+
+    if (!absolutizeRoomLink(this._roomData.inviteLink)) {
+      this._setTemporaryRoomStatus(
+        "Для этой комнаты пока недоступна invite-ссылка.",
+        "error",
+      );
+      return;
+    }
+
+    this._refreshView({
+      isInviteModalOpen: true,
+      inviteFriendsError: "",
+    });
+
+    await this._ensureInviteFriendsLoaded();
+  }
+
+  _closeRoomInviteModal() {
+    if (this._mode !== "room" || !this._uiState.isInviteModalOpen) {
+      return;
+    }
+
+    this._refreshView({
+      isInviteModalOpen: false,
+      inviteFriendsError: "",
+    });
+  }
+
+  async _ensureInviteFriendsLoaded({ force = false } = {}) {
+    if (this._mode !== "room") {
+      return;
+    }
+
+    if (this._uiState.inviteFriendsLoading) {
+      return;
+    }
+
+    if (!force && this._uiState.inviteFriendsLoaded) {
+      return;
+    }
+
+    this._refreshView({
+      inviteFriendsLoading: true,
+      inviteFriendsError: "",
+    });
+
+    const result = await userService.getFriendsList({ limit: 100, offset: 0 });
+
+    if (!result.ok) {
+      this._refreshView({
+        inviteFriendsLoading: false,
+        inviteFriendsLoaded: false,
+        inviteFriendsError:
+          result.error || "Не удалось загрузить список друзей.",
+      });
+      return;
+    }
+
+    this._refreshView({
+      inviteFriendsLoading: false,
+      inviteFriendsLoaded: true,
+      inviteFriendsError: "",
+      inviteFriends: normalizeInviteFriends(result.resp?.friends || []),
+    });
+  }
+
+  async _inviteFriendToRoom(friendId) {
+    const normalizedFriendId = normalizeText(friendId);
+    const roomId = normalizeText(this._roomData.id);
+
+    if (!normalizedFriendId || !roomId) {
+      this._setTemporaryRoomStatus(
+        "Не удалось определить друга или комнату для приглашения.",
+        "error",
+      );
+      return;
+    }
+
+    if (!isCurrentViewerRoomHost(this._roomData)) {
+      this._setTemporaryRoomStatus(
+        "Приглашать друзей в комнату может только хозяин.",
+        "warning",
+      );
+      return;
+    }
+
+    const nextInFlightIds = new Set(this._uiState.inviteRequestInFlightIds || []);
+    nextInFlightIds.add(normalizedFriendId);
+
+    this._refreshView({
+      inviteRequestInFlightIds: Array.from(nextInFlightIds),
+    });
+
+    const result = await watchPartyService.inviteFriendToRoom(
+      normalizedFriendId,
+      roomId,
+    );
+
+    nextInFlightIds.delete(normalizedFriendId);
+
+    if (!result.ok) {
+      this._refreshView({
+        inviteRequestInFlightIds: Array.from(nextInFlightIds),
+      });
+      this._setTemporaryRoomStatus(
+        result.error || "Не удалось отправить приглашение.",
+        "error",
+      );
+      return;
+    }
+
+    this._refreshView({
+      inviteRequestInFlightIds: Array.from(nextInFlightIds),
+      inviteFriendStatuses: {
+        ...(this._uiState.inviteFriendStatuses || {}),
+        [normalizedFriendId]: "pending",
+      },
+    });
+
+    this._setTemporaryRoomStatus("Приглашение отправлено.", "success");
   }
 
   async _deleteRoom(roomId, roomTitle) {
@@ -2021,6 +2181,10 @@ function buildLobbyContext(pageData, uiState) {
 
 function buildRoomContext(roomData, uiState) {
   const chatContext = buildRoomChatContext(roomData, uiState);
+  const inviteLink = absolutizeRoomLink(roomData.inviteLink);
+  const canInviteFriends = Boolean(
+    inviteLink && isCurrentViewerRoomHost(roomData),
+  );
 
   return {
     isRoomView: true,
@@ -2038,7 +2202,16 @@ function buildRoomContext(roomData, uiState) {
     progressLabel: roomData.progressLabel,
     participantsLabel: roomData.participantsLabel,
     privacyLabel: roomData.privacyLabel,
-    inviteLink: absolutizeRoomLink(roomData.inviteLink),
+    inviteLink,
+    canInviteFriends,
+    isInviteModalOpen: Boolean(uiState.isInviteModalOpen),
+    inviteFriendsLoading: Boolean(uiState.inviteFriendsLoading),
+    inviteFriendsError: uiState.inviteFriendsError || "",
+    inviteFriends: buildInviteFriendsViewModels(
+      uiState.inviteFriends,
+      roomData,
+      uiState,
+    ),
     hostName: roomData.hostName,
     liveLabel: roomData.liveLabel,
     hasRoomMovieSelection: hasRoomMovieSelection(roomData),
@@ -2946,6 +3119,22 @@ function isCurrentViewerRoomHost(roomData = {}) {
   );
 }
 
+function findRoomMemberByUserId(roomData = {}, userId = "") {
+  const normalizedUserId = normalizeText(userId);
+
+  if (!normalizedUserId || !Array.isArray(roomData.members)) {
+    return null;
+  }
+
+  return (
+    roomData.members.find((member) => {
+      return (
+        normalizeText(member?.userId || member?.id) === normalizedUserId
+      );
+    }) || null
+  );
+}
+
 function shouldRefreshRoomStructure(previousRoomData = {}, nextRoomData = {}) {
   if (hasRoomMovieSelection(previousRoomData) !== hasRoomMovieSelection(nextRoomData)) {
     return true;
@@ -3682,9 +3871,90 @@ function createInitialRoomUiState() {
     topMovieCandidatesLoading: false,
     topMovieCandidatesError: "",
     topMovieCandidates: [],
+    isInviteModalOpen: false,
+    inviteFriendsLoading: false,
+    inviteFriendsLoaded: false,
+    inviteFriendsError: "",
+    inviteFriends: [],
+    inviteFriendStatuses: {},
+    inviteRequestInFlightIds: [],
     isBetComposerOpen: false,
     betComposerOptionCount: 2,
   };
+}
+
+function normalizeInviteFriends(items = []) {
+  return Array.isArray(items)
+    ? items
+        .map((friend) => {
+          const id = normalizeText(friend?.id || friend?.user_id || friend?.userId);
+
+          if (!id) {
+            return null;
+          }
+
+          const displayName =
+            normalizeText(friend?.displayName) ||
+            normalizeText(getDisplayNameFromEmail(friend?.email)) ||
+            "Пользователь";
+
+          return {
+            id,
+            email: normalizeText(friend?.email),
+            displayName,
+            initials: displayName.charAt(0).toUpperCase(),
+            avatarUrl:
+              resolveAvatarUrl(friend, { resolveMediaUrl }) ||
+              "/img/user-avatar.png",
+          };
+        })
+        .filter(Boolean)
+    : [];
+}
+
+function buildInviteFriendsViewModels(friends = [], roomData = {}, uiState = {}) {
+  const inFlightIds = new Set(uiState.inviteRequestInFlightIds || []);
+  const localStatuses = uiState.inviteFriendStatuses || {};
+
+  return Array.isArray(friends)
+    ? friends.map((friend) => {
+        const roomMember = findRoomMemberByUserId(roomData, friend.id);
+        const memberStatus = normalizeText(roomMember?.statusText).toLowerCase();
+        const localStatus = normalizeText(localStatuses[friend.id]).toLowerCase();
+        const isInviting = inFlightIds.has(friend.id);
+        const isPending =
+          localStatus === "pending" ||
+          memberStatus.includes("pending") ||
+          memberStatus.includes("ожида");
+        const isInRoom =
+          Boolean(roomMember) && !isPending && !memberStatus.includes("offline");
+
+        let buttonLabel = "Пригласить";
+        let statusLabel = "";
+        let isDisabled = false;
+
+        if (isInviting) {
+          buttonLabel = "Отправка...";
+          isDisabled = true;
+        } else if (isInRoom) {
+          buttonLabel = "В комнате";
+          statusLabel = "В комнате";
+          isDisabled = true;
+        } else if (isPending) {
+          buttonLabel = "Приглашен";
+          statusLabel = "Ожидает вход";
+          isDisabled = true;
+        }
+
+        return {
+          ...friend,
+          statusLabel,
+          isInviting,
+          isInviteDisabled: isDisabled,
+          inviteButtonLabel: buttonLabel,
+        };
+      })
+    : [];
 }
 
 function buildCurrentViewer() {

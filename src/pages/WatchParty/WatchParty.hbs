@@ -119,13 +119,12 @@
                     </div>
                   </div>
 
-                  {{#if inviteLink}}
+                  {{#if canInviteFriends}}
                     <div class="watch-room-topbar__actions">
                       <button
                         class="watch-room-topbar__action watch-room-topbar__action_copy"
                         type="button"
-                        data-action="copy-room-link"
-                        data-link="{{inviteLink}}"
+                        data-action="open-room-invite-modal"
                       >
                         Пригласить
                       </button>
@@ -219,6 +218,120 @@
                 {{#unless isChatPanel}}hidden{{/unless}}
               ></section>
             </aside>
+
+            {{#if canInviteFriends}}
+              {{#if isInviteModalOpen}}
+              <div class="watch-room-invite">
+                <button
+                  class="watch-room-invite__backdrop"
+                  type="button"
+                  aria-hidden="true"
+                  tabindex="-1"
+                ></button>
+
+                <section
+                  class="watch-room-invite__dialog"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="watch-room-invite-title"
+                >
+                  <div class="watch-room-invite__header">
+                    <div class="watch-room-invite__copy">
+                      <div class="watch-room-invite__eyebrow">Приглашение в комнату</div>
+                      <h2 class="watch-room-invite__title" id="watch-room-invite-title">
+                        Позовите друзей в просмотр
+                      </h2>
+                      <p class="watch-room-invite__subtitle">
+                        Отправьте приглашение друзьям или скопируйте ссылку на комнату.
+                      </p>
+                    </div>
+
+                    <button
+                      class="watch-room-invite__close"
+                      type="button"
+                      data-action="close-room-invite-modal"
+                      aria-label="Закрыть окно приглашения"
+                    >
+                      <span></span>
+                      <span></span>
+                    </button>
+                  </div>
+
+                  <div class="watch-room-invite__share">
+                    <div class="watch-room-invite__link">
+                      <span class="watch-room-invite__link-label">Ссылка для комнаты</span>
+                      <span class="watch-room-invite__link-value">{{inviteLink}}</span>
+                    </div>
+
+                    <button
+                      class="watch-room-invite__copy-button"
+                      type="button"
+                      data-action="copy-room-link"
+                      data-link="{{inviteLink}}"
+                    >
+                      Скопировать ссылку
+                    </button>
+                  </div>
+
+                  <div class="watch-room-invite__friends">
+                    <div class="watch-room-invite__friends-head">
+                      <span>Друзья</span>
+                      <span>{{inviteFriends.length}}</span>
+                    </div>
+
+                    {{#if inviteFriendsLoading}}
+                      <div class="watch-room-invite__state">Загружаем список друзей...</div>
+                    {{else}}
+                      {{#if inviteFriendsError}}
+                        <div class="watch-room-invite__state watch-room-invite__state_error">
+                          {{inviteFriendsError}}
+                        </div>
+                      {{else}}
+                        {{#if inviteFriends.length}}
+                          <div class="watch-room-invite__list">
+                            {{#each inviteFriends}}
+                              <div class="watch-room-invite__item">
+                                <div class="watch-room-invite__friend">
+                                  <div class="watch-room-invite__avatar">
+                                    <img src="{{this.avatarUrl}}" alt="{{this.displayName}}" />
+                                  </div>
+
+                                  <div class="watch-room-invite__friend-copy">
+                                    <div class="watch-room-invite__friend-name">{{this.displayName}}</div>
+                                    <div class="watch-room-invite__friend-email">{{this.email}}</div>
+                                  </div>
+                                </div>
+
+                                <div class="watch-room-invite__item-actions">
+                                  {{#if this.statusLabel}}
+                                    <span class="watch-room-invite__badge">{{this.statusLabel}}</span>
+                                  {{/if}}
+
+                                  <button
+                                    class="watch-room-invite__friend-button"
+                                    type="button"
+                                    data-action="invite-room-friend"
+                                    data-friend-id="{{this.id}}"
+                                    {{#if this.isInviteDisabled}}disabled{{/if}}
+                                  >
+                                    {{this.inviteButtonLabel}}
+                                  </button>
+                                </div>
+                              </div>
+                            {{/each}}
+                          </div>
+                        {{else}}
+                          <div class="watch-room-invite__state">
+                            У вас пока нет друзей для приглашения.
+                          </div>
+                        {{/if}}
+                      {{/if}}
+                    {{/if}}
+                  </div>
+                </section>
+              </div>
+              {{/if}}
+            {{/if}}
           </section>
         {{/if}}
       {{/if}}
@@ -296,9 +409,11 @@
                 >
                   <span class="watch-party__poster-card-create__inner">
                     <span class="watch-party__poster-card-create__icon" aria-hidden="true">+</span>
-                    <span class="watch-party__poster-card-create__title">Создать комнату</span>
-                    <span class="watch-party__poster-card-create__text">
-                      Быстрый переход к настройке новой комнаты
+                    <span class="watch-party__poster-card-create__content">
+                      <span class="watch-party__poster-card-create__title">Создать комнату</span>
+                      <span class="watch-party__poster-card-create__text">
+                        Быстрый переход к настройке новой комнаты
+                      </span>
                     </span>
                   </span>
                 </button>

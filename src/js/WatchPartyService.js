@@ -191,6 +191,25 @@ export class WatchPartyService {
       payload,
     );
   }
+
+  async inviteFriendToRoom(friendId, roomId) {
+    const normalizedFriendId = normalizeText(friendId);
+    const normalizedRoomId = normalizeRoomId(roomId);
+
+    if (!normalizedFriendId || !normalizedRoomId) {
+      return {
+        ok: false,
+        status: 0,
+        resp: null,
+        error: "WatchPartyService: не переданы id друга или комнаты",
+      };
+    }
+
+    return this.api.post(
+      `/friends/${encodeURIComponent(normalizedFriendId)}/invite`,
+      { room_id: Number(normalizedRoomId) || normalizedRoomId },
+    );
+  }
 }
 
 export function buildWatchPartyRoomPath(roomId) {
@@ -207,7 +226,7 @@ export function buildWatchPartyJoinPath(inviteCode) {
 
 export function buildWatchPartyFallbackOverview() {
   return {
-    heroPosters: FALLBACK_OVERVIEW.heroPosters.map((item) => ({ ...item })),
+    heroPosters: [],
     visibilityOptions: FALLBACK_OVERVIEW.visibilityOptions.map((item) => ({
       ...item,
     })),
