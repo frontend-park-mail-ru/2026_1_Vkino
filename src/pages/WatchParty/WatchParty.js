@@ -183,11 +183,34 @@ export default class WatchPartyPage extends BasePage {
   _onClick = async (event) => {
     const actionTarget = event.target.closest("[data-action]");
 
+    if (
+      this._mode === "lobby" &&
+      this._uiState.isVisibilityMenuOpen &&
+      !event.target.closest("[data-role='watch-party-visibility']") &&
+      (!actionTarget ||
+        !["toggle-room-visibility-menu", "select-room-visibility"].includes(
+          actionTarget.dataset.action,
+        ))
+    ) {
+      this._refreshView({ isVisibilityMenuOpen: false });
+    }
+
     if (!actionTarget) {
       return;
     }
 
     switch (actionTarget.dataset.action) {
+      case "toggle-room-visibility-menu":
+        event.preventDefault();
+        this._toggleRoomVisibilityMenu();
+        break;
+      case "select-room-visibility":
+        event.preventDefault();
+        this._selectRoomVisibility(
+          actionTarget.dataset.value || "",
+          actionTarget.dataset.label || actionTarget.textContent || "",
+        );
+        break;
       case "retry-overview":
         event.preventDefault();
         await this.loadContext({ showLoading: true });
@@ -550,6 +573,43 @@ export default class WatchPartyPage extends BasePage {
     }
 
     router.go(buildWatchPartyRoomPath(createdRoomId));
+  }
+
+  _toggleRoomVisibilityMenu() {
+    if (this._mode !== "lobby") {
+      return;
+    }
+
+    this._refreshView({
+      isVisibilityMenuOpen: !this._uiState.isVisibilityMenuOpen,
+    });
+  }
+
+  _selectRoomVisibility(value, label = "") {
+    if (this._mode !== "lobby") {
+      return;
+    }
+
+    const normalizedValue = normalizeText(value);
+    const normalizedLabel = normalizeText(label);
+
+    if (!normalizedValue) {
+      return;
+    }
+
+    this._overviewData = {
+      ...this._overviewData,
+      visibilityOptions: (this._overviewData.visibilityOptions || []).map((option) => ({
+        ...option,
+        selected: normalizeText(option.value) === normalizedValue,
+      })),
+    };
+
+    this._refreshView({
+      isVisibilityMenuOpen: false,
+      visibilitySelectedValue: normalizedValue,
+      visibilitySelectedLabel: normalizedLabel,
+    });
   }
 
   async _handleJoinRoom(form) {
@@ -2150,6 +2210,12 @@ function buildRoomActionPayload(action, payload = {}) {
 }
 
 function buildLobbyContext(pageData, uiState) {
+  const selectedVisibilityOption =
+    pageData.visibilityOptions.find((item) => item.selected) ||
+    pageData.visibilityOptions[0] || {
+      value: "private",
+      label: "Только по ссылке",
+    };
   const heroPostersDisplay =
     pageData.heroPosters.length === 1
       ? [
@@ -2168,6 +2234,11 @@ function buildLobbyContext(pageData, uiState) {
     errorMessage: uiState.errorMessage || "",
     statusMessage: uiState.statusMessage || "",
     statusTone: uiState.statusTone || "info",
+    isVisibilityMenuOpen: Boolean(uiState.isVisibilityMenuOpen),
+    visibilitySelectedValue:
+      uiState.visibilitySelectedValue || selectedVisibilityOption.value,
+    visibilitySelectedLabel:
+      uiState.visibilitySelectedLabel || selectedVisibilityOption.label,
     featuredRoomsOnlineLabel: `${pageData.featuredRooms.length} ${pluralizeRooms(pageData.featuredRooms.length)} онлайн`,
     featuredRoomsUnavailableText: "Список комнат пуст.",
     myRoomsCountLabel: `${pageData.myRooms.length} ${pluralizeRooms(pageData.myRooms.length)}`,
@@ -3205,6 +3276,9 @@ function mapHeroPosters(items, fallbackItems) {
         normalizeText(item?.label || item?.badge || item?.genre) ||
         fallback.label,
       imageUrl: resolveImageUrl(item, fallback.imageUrl),
+      roomHref:
+        normalizeText(item?.roomHref || item?.room_link || item?.roomLink) ||
+        "",
     };
   });
 }
@@ -3237,6 +3311,9 @@ function mapHeroPostersFromRooms(items, fallbackItems) {
           ? `${membersCount} ${pluralizeParticipants(membersCount)}`
           : fallback?.label),
       imageUrl: resolveImageUrl(item, fallback?.imageUrl),
+      roomHref: buildWatchPartyRoomPath(
+        normalizeText(item?.id || item?.roomId || item?.room_id),
+      ),
     };
   });
 }
@@ -3856,6 +3933,9 @@ function createInitialLobbyUiState() {
     errorMessage: "",
     statusMessage: "",
     statusTone: "info",
+    isVisibilityMenuOpen: false,
+    visibilitySelectedValue: "",
+    visibilitySelectedLabel: "",
   };
 }
 

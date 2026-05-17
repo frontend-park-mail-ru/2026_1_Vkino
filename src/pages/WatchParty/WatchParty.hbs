@@ -422,7 +422,18 @@
                   <img src="{{this.imageUrl}}" alt="{{this.title}}" />
                   <div class="watch-party__poster-overlay">
                     <span class="watch-party__poster-chip">{{this.label}}</span>
-                    <span class="watch-party__poster-play" aria-hidden="true"></span>
+                    <button
+                      class="watch-party__poster-cta"
+                      type="button"
+                      {{#if this.roomHref}}
+                        data-action="join-featured-room"
+                        data-room-link="{{this.roomHref}}"
+                      {{else}}
+                        disabled
+                      {{/if}}
+                    >
+                      Присоединиться
+                    </button>
                   </div>
                 </article>
               {{/if}}
@@ -465,13 +476,35 @@
 
                 <label class="watch-party__field">
                   <span>Доступ</span>
-                  <select class="watch-party__input watch-party__input--select" name="visibility">
-                    {{#each visibilityOptions}}
-                      <option value="{{this.value}}"{{#if this.selected}} selected{{/if}}>
-                        {{this.label}}
-                      </option>
-                    {{/each}}
-                  </select>
+                  <div class="watch-party__category{{#if isVisibilityMenuOpen}} is-open{{/if}}" data-role="watch-party-visibility">
+                    <input name="visibility" type="hidden" value="{{visibilitySelectedValue}}" />
+                    <button
+                      class="watch-party__input watch-party__category-trigger"
+                      type="button"
+                      aria-expanded="{{#if isVisibilityMenuOpen}}true{{else}}false{{/if}}"
+                      aria-controls="watch-party-visibility-menu"
+                      data-action="toggle-room-visibility-menu"
+                    >
+                      <span class="watch-party__category-trigger-label">{{visibilitySelectedLabel}}</span>
+                    </button>
+                    <div
+                      class="watch-party__category-menu"
+                      id="watch-party-visibility-menu"
+                      {{#unless isVisibilityMenuOpen}}hidden{{/unless}}
+                    >
+                      {{#each visibilityOptions}}
+                        <button
+                          class="watch-party__category-option"
+                          type="button"
+                          data-action="select-room-visibility"
+                          data-value="{{this.value}}"
+                          data-label="{{this.label}}"
+                        >
+                          {{this.label}}
+                        </button>
+                      {{/each}}
+                    </div>
+                  </div>
                 </label>
 
                 <button
@@ -507,7 +540,7 @@
                     class="watch-party__input"
                     name="inviteLink"
                     type="text"
-                    placeholder="https://vkino.ru/watch-party/join/abc123"
+                    placeholder="https://vkino.tech/watch-party/join/<invite-code>"
                   />
                 </label>
                 <button class="watch-party__button watch-party__button--ghost" type="submit">
