@@ -18,7 +18,7 @@ import {
   watchPartyService,
 } from "@/js/WatchPartyService.js";
 
-const DEFAULT_POSTER_URL = "/img/card-fallback.png";
+const DEFAULT_POSTER_URL = "/img/card-fallback.webp";
 
 const COUNTRY_BY_ID = {
   1: "Россия",
@@ -946,8 +946,8 @@ function mapActors(value) {
         title: name,
         name,
         posterUrl:
-          normalizeActorImageUrl(actor.img_url) || "/img/user-avatar.png",
-        imgUrl: normalizeActorImageUrl(actor.img_url) || "/img/user-avatar.png",
+          normalizeActorImageUrl(actor.img_url) || "/img/user-avatar.webp",
+        imgUrl: normalizeActorImageUrl(actor.img_url) || "/img/user-avatar.webp",
         href: `/actor/${encodeURIComponent(normalizeString(actor.id))}`,
         actionText: "Об актере",
       };

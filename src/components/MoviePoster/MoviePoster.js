@@ -5,7 +5,7 @@ import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
 const DEFAULT_VARIANT = "default";
 const DEFAULT_SIZE = "medium";
 const DEFAULT_ACTION_TEXT = "Смотреть";
-const CARD_FALLBACK_SRC = "/img/card-fallback.png";
+const CARD_FALLBACK_SRC = "/img/card-fallback.webp";
 
 export default class MoviePosterComponent extends BaseComponent {
   constructor(context = {}, parent = null, el = null) {

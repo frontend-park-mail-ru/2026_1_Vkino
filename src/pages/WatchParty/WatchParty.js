@@ -41,7 +41,7 @@ const HERO_COPY = {
 const WATCH_PARTY_WS_RECONNECT_DELAY_MS = 3000;
 const WATCH_PARTY_ROOM_POLL_INTERVAL_MS = 2000;
 const WATCH_PARTY_ROOM_STATUS_AUTO_HIDE_MS = 3000;
-const WATCH_PARTY_CARD_FALLBACK_SRC = "/img/card-fallback.png";
+const WATCH_PARTY_CARD_FALLBACK_SRC = "/img/card-fallback.webp";
 
 export default class WatchPartyPage extends BasePage {
   constructor(context = {}, parent = null, el = null) {
@@ -3985,7 +3985,7 @@ function normalizeInviteFriends(items = []) {
             initials: displayName.charAt(0).toUpperCase(),
             avatarUrl:
               resolveAvatarUrl(friend, { resolveMediaUrl }) ||
-              "/img/user-avatar.png",
+              "/img/user-avatar.webp",
           };
         })
         .filter(Boolean)
