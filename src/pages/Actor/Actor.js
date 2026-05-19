@@ -242,7 +242,7 @@ export default class ActorPage extends BasePage {
         actor.country_name ?? actor.country ?? actor.Country,
       ),
       picture_src:
-        this._normalizeImageUrl(imageValue) || "/img/user-avatar.png",
+        this._normalizeImageUrl(imageValue) || "/img/user-avatar.webp",
       birth_date: birthDate ? this._formatDate(birthDate) : "Не указана",
       biography: biography || "Нет описания",
       movies_count: movies.length,

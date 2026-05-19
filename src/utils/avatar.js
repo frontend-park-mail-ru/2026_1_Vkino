@@ -4,7 +4,7 @@ import { MEDIA_BUCKETS, resolveMediaUrl } from "./media.js";
  * Путь к дефолтному аватару, используемому при отсутствии пользовательского изображения.
  * @type {string}
  */
-export const DEFAULT_AVATAR_URL = "/img/user-avatar.png";
+export const DEFAULT_AVATAR_URL = "/img/user-avatar.webp";
 
 /**
  * Нормализует URL аватара для безопасного использования в интерфейсе.

@@ -8,8 +8,8 @@ const CACHE_NAMES = {
 };
 const APP_SHELL_URLS = [
   "/index.html",
-  "/img/logo.png",
-  "/img/user-avatar.png",
+  "/img/logo.webp",
+  "/img/user-avatar.webp",
   "/icons/logo.ico",
 ];
 const STATIC_DESTINATIONS = new Set(["script", "style", "image", "font"]);
@@ -238,10 +238,10 @@ function isHttpRequest(protocol) {
 
 async function getImageFallbackResponse(url) {
   if (url.pathname.includes("avatar")) {
-    return caches.match("/img/user-avatar.png");
+    return caches.match("/img/user-avatar.webp");
   }
 
-  return caches.match("/img/logo.png");
+  return caches.match("/img/logo.webp");
 }
 
 async function fetchWithTimeout(request, timeoutMs) {
