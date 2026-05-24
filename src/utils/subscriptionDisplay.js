@@ -29,6 +29,37 @@ const AD_POLICY_LABELS = {
   none: "Без рекламы",
 };
 
+const FREE_CAPABILITIES_DEFAULTS = {
+  canWatchPaidContent: false,
+  canUseSmartContinue: false,
+  adPolicy: "no_skip",
+  adPolicyLabel: AD_POLICY_LABELS.no_skip,
+  dailyCoinsLimit: 3,
+  monthlyRoomLimit: 3,
+  maxRoomMembers: 2,
+  usage: null,
+};
+
+const TARIFF_LOADING_STUB_CODES = ["level_2", "level_3", "level_4"];
+
+function toOptionalFiniteNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function toOptionalPositiveInt(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) {
+    return null;
+  }
+  return Math.trunc(n);
+}
+
+function normalizeAdPolicy(value) {
+  const policy = String(value ?? "no_skip").trim();
+  return policy || "no_skip";
+}
+
 /**
  * Статические фичи тарифов по seed из migrations/000011 (опции Олега).
  * @param {string} code — free | level_2 | level_3 | level_4
@@ -95,6 +126,7 @@ export function mapTariffToPlan(tariff) {
   const level = Number(tariff.level);
   const tier = backendLevelToUiTier(level);
   const priceMoney = Number(tariff.price_money);
+  const priceCoins = toOptionalFiniteNumber(tariff.price_vkino_coins);
 
   return {
     id: code,
@@ -104,11 +136,12 @@ export function mapTariffToPlan(tariff) {
     level,
     price: Number.isFinite(priceMoney) ? `${priceMoney}₽` : null,
     priceMoney: Number.isFinite(priceMoney) ? priceMoney : null,
-    priceCoins: Number(tariff.price_vkino_coins) || null,
-    durationDays: Number(tariff.duration_days) || 30,
+    priceCoins,
+    durationDays: toOptionalPositiveInt(tariff.duration_days),
     dailyCoins: getDailyCoinsLabel(code),
     isPopular: code === "level_3",
     requiresPayment: tier > 0,
+    isLoadingStub: false,
     features: getPlanFeaturesByCode(code),
   };
 }
@@ -133,8 +166,50 @@ export function getFreePlan() {
     dailyCoins: "3",
     isPopular: false,
     requiresPayment: false,
+    isLoadingStub: false,
     features: getPlanFeaturesByCode("free"),
   };
+}
+
+function buildLoadingStubPlan(code) {
+  const tier = backendLevelToUiTier(
+    code === "level_2" ? 2 : code === "level_3" ? 3 : 4,
+  );
+
+  return {
+    id: code,
+    productRefId: null,
+    name: getPlanDisplayName(code),
+    tier,
+    level: tier + 1,
+    price: null,
+    priceMoney: null,
+    priceCoins: null,
+    durationDays: null,
+    dailyCoins: getDailyCoinsLabel(code),
+    isPopular: code === "level_3",
+    requiresPayment: false,
+    isLoadingStub: true,
+    features: getPlanFeaturesByCode(code),
+  };
+}
+
+/**
+ * Skeleton-планы при недоступности GET /payments/tariffs.
+ * Без цен и productRefId — оплата заблокирована.
+ */
+export function getTariffsLoadingPlans() {
+  return [
+    getFreePlan(),
+    ...TARIFF_LOADING_STUB_CODES.map(buildLoadingStubPlan),
+  ];
+}
+
+/**
+ * @deprecated Используйте getTariffsLoadingPlans().
+ */
+export function getDefaultPlans() {
+  return getTariffsLoadingPlans();
 }
 
 /**
@@ -184,34 +259,42 @@ export function normalizeSubscriptionFromApi(raw) {
  */
 export function normalizeCapabilitiesFromApi(raw) {
   if (!raw || typeof raw !== "object") {
-    return {
-      canWatchPaidContent: false,
-      canUseSmartContinue: false,
-      adPolicy: "no_skip",
-      dailyCoinsLimit: 3,
-      monthlyRoomLimit: 3,
-      maxRoomMembers: 2,
-      usage: null,
-    };
+    return { ...FREE_CAPABILITIES_DEFAULTS };
   }
 
   const caps = raw.capabilities ?? raw;
   const usage = raw.usage ?? null;
+  const adPolicy = normalizeAdPolicy(caps.ad_policy);
+  const dailyCoinsLimit =
+    toOptionalFiniteNumber(caps.daily_coins_limit) ??
+    FREE_CAPABILITIES_DEFAULTS.dailyCoinsLimit;
+  const monthlyRoomLimit =
+    toOptionalFiniteNumber(caps.monthly_room_limit) ??
+    FREE_CAPABILITIES_DEFAULTS.monthlyRoomLimit;
+  const maxRoomMembers =
+    toOptionalFiniteNumber(caps.max_room_members) ??
+    FREE_CAPABILITIES_DEFAULTS.maxRoomMembers;
 
   return {
     canWatchPaidContent: Boolean(caps.can_watch_paid_content),
     canUseSmartContinue: Boolean(caps.can_use_smart_continue),
-    adPolicy: String(caps.ad_policy ?? "no_skip"),
-    adPolicyLabel: AD_POLICY_LABELS[caps.ad_policy] ?? caps.ad_policy,
-    dailyCoinsLimit: caps.daily_coins_limit ?? 3,
-    monthlyRoomLimit: caps.monthly_room_limit,
-    maxRoomMembers: caps.max_room_members ?? 2,
+    adPolicy,
+    adPolicyLabel: AD_POLICY_LABELS[adPolicy] ?? adPolicy,
+    dailyCoinsLimit,
+    monthlyRoomLimit,
+    maxRoomMembers,
     usage: usage
       ? {
-          coinsReceivedToday: usage.coins_received_today,
-          coinsRemainingToday: usage.coins_remaining_today,
-          roomsCreatedThisMonth: usage.rooms_created_this_month,
-          roomsRemainingThisMonth: usage.rooms_remaining_this_month,
+          coinsReceivedToday: toOptionalFiniteNumber(usage.coins_received_today),
+          coinsRemainingToday: toOptionalFiniteNumber(
+            usage.coins_remaining_today,
+          ),
+          roomsCreatedThisMonth: toOptionalFiniteNumber(
+            usage.rooms_created_this_month,
+          ),
+          roomsRemainingThisMonth: toOptionalFiniteNumber(
+            usage.rooms_remaining_this_month,
+          ),
         }
       : null,
   };
@@ -234,9 +317,9 @@ export function markPlansForPreview(plans, current) {
 export function getDefaultSubscriptionPlansPreview() {
   return [
     { id: "free", name: "Нет подписки", tier: 0, priceSummary: "Бесплатно" },
-    { id: "level_2", name: "Подписка I уровня", tier: 1, priceSummary: "299 ₽ / мес" },
-    { id: "level_3", name: "Подписка II уровня", tier: 2, priceSummary: "499 ₽ / мес" },
-    { id: "level_4", name: "Подписка III уровня", tier: 3, priceSummary: "699 ₽ / мес" },
+    { id: "level_2", name: "Подписка I уровня", tier: 1, priceSummary: "—" },
+    { id: "level_3", name: "Подписка II уровня", tier: 2, priceSummary: "—" },
+    { id: "level_4", name: "Подписка III уровня", tier: 3, priceSummary: "—" },
   ];
 }
 
@@ -249,39 +332,4 @@ export function buildPlansFromTariffs(tariffs = []) {
     .map(mapTariffToPlan)
     .sort((a, b) => a.tier - b.tier);
   return [getFreePlan(), ...paidPlans];
-}
-
-/**
- * Fallback-планы при недоступности API (id могут отличаться от prod).
- */
-export function getDefaultPlans() {
-  return buildPlansFromTariffs([
-    {
-      id: 2,
-      code: "level_2",
-      title: "Level 2",
-      price_money: 299,
-      duration_days: 30,
-      level: 2,
-      price_vkino_coins: 399,
-    },
-    {
-      id: 3,
-      code: "level_3",
-      title: "Level 3",
-      price_money: 499,
-      duration_days: 30,
-      level: 3,
-      price_vkino_coins: 699,
-    },
-    {
-      id: 4,
-      code: "level_4",
-      title: "Level 4",
-      price_money: 699,
-      duration_days: 30,
-      level: 4,
-      price_vkino_coins: 999,
-    },
-  ]);
 }

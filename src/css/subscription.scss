@@ -611,6 +611,7 @@
   inset: 0;
   margin: auto;
   width: min(420px, calc(100vw - var(--space-8)));
+  height: fit-content;
   max-height: min(90vh, 640px);
   overflow: hidden;
   display: flex;
@@ -632,8 +633,6 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
   padding: 0;
 }
 
@@ -997,11 +996,9 @@
 }
 
 .modal_payment__body {
-  padding: 0 var(--space-5) var(--space-5);
+  padding: 0 var(--space-5) var(--space-2);
   margin-bottom: 0;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
+  overflow: visible;
 }
 
 .modal_payment__methods-title {
@@ -1045,8 +1042,8 @@
 }
 
 .modal_payment__footer {
-  margin-top: auto;
-  padding: var(--space-4) var(--space-5);
+  display: flex;
+  padding: var(--space-4) var(--space-5) 0;
   border-top: 1px solid rgba(217, 104, 45, 0.15);
   background: rgba(6, 3, 1, 0.42);
   justify-content: stretch;
@@ -1060,6 +1057,103 @@
 
 .modal__content {
   padding: var(--space-5);
+}
+
+.modal.modal_payment-result:not([open]) {
+  display: none;
+}
+
+.modal.modal_payment-result[open] {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(420px, calc(100vw - var(--space-8)));
+  max-height: min(90vh, 520px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: 1px solid rgba(217, 104, 45, 0.35);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(
+    180deg,
+    rgba(39, 20, 11, 0.98) 0%,
+    rgba(18, 9, 5, 0.99) 100%
+  );
+  box-shadow:
+    0 0 0 1px rgba(255, 87, 31, 0.12),
+    0 28px 80px rgba(0, 0, 0, 0.55);
+}
+
+.modal_payment-result__content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+}
+
+.modal_payment-result__body {
+  padding: var(--space-6) var(--space-5) var(--space-4);
+  padding-right: 3.75rem;
+  text-align: center;
+}
+
+.modal_payment-result__spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto var(--space-4);
+  border: 3px solid rgba(230, 204, 171, 0.15);
+  border-top-color: var(--accent);
+  border-radius: var(--radius-full);
+  animation: payment-result-spin 0.8s linear infinite;
+}
+
+@keyframes payment-result-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.modal_payment-result__title {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-headers);
+  font-size: var(--text-xl);
+  color: var(--text-color);
+}
+
+.modal_payment-result__text,
+.modal_payment-result__meta {
+  margin: 0;
+  color: var(--text-color-2);
+  font-size: var(--text-sm);
+  line-height: var(--leading-loose);
+}
+
+.modal_payment-result__meta {
+  margin-top: var(--space-3);
+  color: var(--accent);
+  font-weight: var(--weight-semibold);
+}
+
+.modal_payment-result__footer {
+  margin-top: auto;
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid rgba(217, 104, 45, 0.15);
+  background: rgba(6, 3, 1, 0.42);
+  justify-content: stretch;
+  gap: var(--space-3);
+}
+
+.modal_payment-result__footer .btn {
+  flex: 1;
+  min-height: 44px;
+}
+
+.modal_payment .modal__content,
+.modal_payment-result .modal__content {
+  padding: 0 0 var(--space-6);
 }
 
 .modal__close {
@@ -1430,9 +1524,9 @@
 
 .modal_payment__yookassa-note {
   margin: 0 0 1rem;
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-color-2);
   font-size: var(--text-sm);
-  line-height: 1.5;
+  line-height: var(--leading-loose);
 }
 
 .modal_payment__coins-btn {
@@ -1440,60 +1534,10 @@
   opacity: 0.65;
 }
 
-.payment-return {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 3rem 1rem 4rem;
-}
-
-.payment-return__card {
-  width: min(100%, 520px);
-  padding: 2rem;
-  border-radius: 16px;
-  background: var(--surface-elevated, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-}
-
-.payment-return__title {
-  margin: 0 0 0.75rem;
-  font-size: var(--text-2xl);
-}
-
-.payment-return__text,
-.payment-return__meta {
-  margin: 0 0 1rem;
-  color: var(--text-secondary, #9ca3af);
-  line-height: 1.5;
-}
-
-.payment-return__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-}
-
-.payment-return__spinner {
-  width: 40px;
-  height: 40px;
-  margin: 0 auto 1rem;
-  border: 3px solid rgba(255, 255, 255, 0.15);
-  border-top-color: var(--accent, #7c5cff);
-  border-radius: 50%;
-  animation: payment-return-spin 0.8s linear infinite;
-}
-
-@keyframes payment-return-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .subscription-current__usage {
   margin: 0.75rem 0 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-color-2);
 }
 
 /* Адаптив */
@@ -1512,5 +1556,59 @@
   
   .subscription-management__actions {
     grid-template-columns: 1fr;
+  }
+
+  .modal.modal_payment[open] {
+    width: calc(100vw - var(--space-4));
+    max-height: calc(100dvh - var(--space-4));
+    border-radius: var(--radius-lg);
+  }
+
+  .modal_payment__header {
+    padding: var(--space-5) var(--space-4) var(--space-4);
+    padding-right: 3.25rem;
+  }
+
+  .modal_payment__plan-card,
+  .modal_payment__body,
+  .modal_payment__footer {
+    padding-inline: var(--space-4);
+  }
+
+  .modal_payment .modal__content {
+    padding-bottom: var(--space-6);
+  }
+
+  .modal_payment__footer {
+    flex-direction: column;
+  }
+
+  .modal_payment__footer .btn {
+    width: 100%;
+    flex: none;
+  }
+
+  .modal.modal_payment-result[open] {
+    width: calc(100vw - var(--space-4));
+    max-height: calc(100dvh - var(--space-4));
+    border-radius: var(--radius-lg);
+  }
+
+  .modal_payment-result__body,
+  .modal_payment-result__footer {
+    padding-inline: var(--space-4);
+  }
+
+  .modal_payment-result__body {
+    padding-right: 3.25rem;
+  }
+
+  .modal_payment-result__footer {
+    flex-direction: column;
+  }
+
+  .modal_payment-result__footer .btn {
+    width: 100%;
+    flex: none;
   }
 }
