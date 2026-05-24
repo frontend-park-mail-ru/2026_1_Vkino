@@ -2,6 +2,10 @@ import { createStore } from "./createStore.js";
 import { userService } from "@/js/UserService.js";
 import { getApiErrorMessage } from "@/utils/apiError.js";
 import { extractProfile } from "@/utils/apiResponse.js";
+import {
+  normalizeCapabilitiesFromApi,
+  normalizeSubscriptionFromApi,
+} from "@/utils/subscriptionDisplay.js";
 
 const initialState = {
   status: "idle",
@@ -67,6 +71,64 @@ class AuthStore {
       error: null,
     });
   }
+
+  /**
+   * Подмешивает подписку и capabilities в объект пользователя.
+   * @param {Object} user
+   * @param {Object|null} capabilitiesResponse — ответ GET /subscription/capabilities
+   */
+  _mergeSubscriptionIntoUser(user, capabilitiesResponse) {
+    if (!user || !capabilitiesResponse) {
+      return user;
+    }
+
+    const subscription = normalizeSubscriptionFromApi(
+      capabilitiesResponse.subscription,
+    );
+    const capabilities = normalizeCapabilitiesFromApi(capabilitiesResponse);
+
+    return {
+      ...user,
+      subscription,
+      subscriptionRaw: capabilitiesResponse.subscription ?? null,
+      capabilities,
+      usage: capabilities.usage,
+    };
+  }
+
+  /**
+   * Загружает подписку с сервера и обновляет store.
+   * @returns {Promise<boolean>} true если данные обновлены
+   */
+  async refreshSubscription() {
+    const state = this.getState();
+    if (state.status !== "authenticated" || !state.user) {
+      return false;
+    }
+
+    const result = await userService.getSubscriptionCapabilities();
+    if (!result.ok) {
+      return false;
+    }
+
+    this._setState({
+      user: this._mergeSubscriptionIntoUser(state.user, result.resp),
+    });
+    return true;
+  }
+
+  async _hydrateAuthenticatedUser(profile) {
+    const user = extractProfile(profile);
+    this._setAuthenticated(user);
+
+    const subResult = await userService.getSubscriptionCapabilities();
+    if (subResult.ok) {
+      const state = this.getState();
+      this._setState({
+        user: this._mergeSubscriptionIntoUser(state.user, subResult.resp),
+      });
+    }
+  }
   /**
    * Инициализация сессии при запуске приложения.
    * Проверяет наличие токена, пытается получить данные пользователя
@@ -101,7 +163,7 @@ class AuthStore {
 
 
     if (meResult.ok) {
-      this._setAuthenticated(extractProfile(meResult.resp));
+      await this._hydrateAuthenticatedUser(meResult.resp);
       return;
     }
 
@@ -112,7 +174,7 @@ class AuthStore {
         meResult = await userService.me();
 
         if (meResult.ok) {
-          this._setAuthenticated(extractProfile(meResult.resp));
+          await this._hydrateAuthenticatedUser(meResult.resp);
           return;
         }
       }
@@ -158,7 +220,7 @@ class AuthStore {
     const meResult = await userService.me();
 
     if (meResult.ok) {
-      this._setAuthenticated(extractProfile(meResult.resp));
+      await this._hydrateAuthenticatedUser(meResult.resp);
       return signInResult;
     }
 
@@ -197,7 +259,7 @@ class AuthStore {
     const meResult = await userService.me();
 
     if (meResult.ok) {
-      this._setAuthenticated(extractProfile(meResult.resp));
+      await this._hydrateAuthenticatedUser(meResult.resp);
       return signUpResult;
     }
 
@@ -258,12 +320,32 @@ class AuthStore {
     const nextUser = { ...state.user };
     if (subscription == null) {
       delete nextUser.subscription;
+      delete nextUser.subscriptionRaw;
     } else {
       nextUser.subscription = subscription;
     }
 
     this._setState({
       user: nextUser,
+    });
+  }
+
+  /**
+   * Обновляет capabilities в профиле клиента.
+   * @param {Object|null} capabilities
+   */
+  updateUserCapabilities(capabilities) {
+    const state = this.getState();
+    if (state.status !== "authenticated" || !state.user) {
+      return;
+    }
+
+    this._setState({
+      user: {
+        ...state.user,
+        capabilities: capabilities ?? null,
+        usage: capabilities?.usage ?? null,
+      },
     });
   }
 }

@@ -16,7 +16,7 @@
                 {{currentUserSubscription.label}}
               </span>
               {{#if currentUserSubscription.renewsAt}}
-                <span class="subscription-hero__renew">Обновление: {{currentUserSubscription.renewsAt}}</span>
+                <span class="subscription-hero__renew">Активна до: {{currentUserSubscription.renewsAt}}</span>
               {{/if}}
             </div>
             <p class="subscription-hero__message subscription-hero__message_best">
@@ -29,7 +29,7 @@
                 {{currentUserSubscription.label}}
               </span>
               {{#if currentUserSubscription.renewsAt}}
-                <span class="subscription-hero__renew">Обновление: {{currentUserSubscription.renewsAt}}</span>
+                <span class="subscription-hero__renew">Активна до: {{currentUserSubscription.renewsAt}}</span>
               {{/if}}
             </div>
             <p class="subscription-hero__message subscription-hero__message_compact">
@@ -143,18 +143,22 @@
               <button type="button" class="btn btn_outline subscription-plan-card__btn" disabled>
                 Ваш план
               </button>
-            {{else}}
-              {{#if this.isLowerTierThanUser}}
+            {{else if this.isLowerTierThanUser}}
+              <button type="button" class="btn btn_outline subscription-plan-card__btn" disabled>
+                Входит в план
+              </button>
+            {{else if this.canUpgrade}}
               <button
                 type="button"
-                class="btn btn_outline subscription-plan-card__btn"
+                class="btn btn_accent subscription-plan-card__btn"
                 data-action="select-plan"
                 data-plan-id="{{this.id}}"
                 data-plan-name="{{this.name}}"
+                data-requires-payment="true"
               >
-                Выбрать
+                Улучшить
               </button>
-              {{else}}
+            {{else}}
               <button
                 type="button"
                 class="btn {{#if this.requiresPayment}}btn_accent{{else}}btn_outline{{/if}} subscription-plan-card__btn"
@@ -163,17 +167,8 @@
                 data-plan-name="{{this.name}}"
                 {{#if this.requiresPayment}}data-requires-payment="true"{{/if}}
               >
-                {{#if this.requiresPayment}}
-                  {{#if ../currentUserSubscription}}
-                    Улучшить
-                  {{else}}
-                    Подключить
-                  {{/if}}
-                {{else}}
-                  Выбрать
-                {{/if}}
+                {{#if this.requiresPayment}}Подключить{{else}}Выбрать{{/if}}
               </button>
-              {{/if}}
             {{/if}}
           </div>
         </article>
@@ -205,7 +200,7 @@
       </button>
       <div class="modal_payment__header">
         <h3 class="modal_payment__title">Оформление подписки</h3>
-        <p class="modal_payment__subtitle">Выберите способ оплаты и подтвердите подключение тарифа.</p>
+        <p class="modal_payment__subtitle">Вы будете перенаправлены на защищённую страницу оплаты ЮKassa.</p>
       </div>
       <div class="modal_payment__plan-card">
         <span class="modal_payment__plan-label">Выбранный план</span>
@@ -214,57 +209,18 @@
       </div>
       <div class="modal__body modal_payment__body">
         <p class="modal_payment__methods-title">Способ оплаты</p>
-        <div class="modal__payment-methods">
-          <label class="payment-method">
-            <input type="radio" name="paymentMethod" value="card" checked />
-            <span class="payment-method__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 10h20" stroke="currentColor" stroke-width="1.5"/></svg>
-            </span>
-            <span class="payment-method__label">Банковская карта</span>
-          </label>
-          {{#if hasYooMoney}}
-          <label class="payment-method">
-            <input type="radio" name="paymentMethod" value="yoomoney" />
-            <span class="payment-method__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-            </span>
-            <span class="payment-method__label">ЮMoney</span>
-          </label>
-          {{/if}}
-        </div>
-
-        {{#if currentUserCard}}
-          <div class="modal__saved-card modal_payment__saved-card">
-            <span class="modal__card-label">Сохранённая карта</span>
-            <span class="modal__card-number">•••• {{currentUserCard.last4}}</span>
-          </div>
-        {{/if}}
+        <p class="modal_payment__yookassa-note">
+          Карта, ЮMoney, СБП и другие методы выбираются на стороне ЮKassa.
+        </p>
+        <button type="button" class="btn btn_outline modal_payment__coins-btn" disabled title="Скоро">
+          Оплатить VKino coins (скоро)
+        </button>
       </div>
       <div class="modal__footer modal_payment__footer">
         <button type="button" class="btn btn_outline" data-action="cancel-payment">Отмена</button>
         <button type="button" class="btn btn_accent" data-action="confirm-payment" id="confirmPaymentBtn">
-          Оплатить и подключить
+          Перейти к оплате
         </button>
-      </div>
-    </div>
-  </dialog>
-
-  <dialog class="modal modal_cancel" id="cancelModal" data-role="cancel-modal">
-    <div class="modal__content">
-      <button type="button" class="subscription-modal-dismiss" data-action="close-modal" aria-label="Закрыть">
-        <span class="subscription-modal-dismiss__icon" aria-hidden="true">
-          <span class="subscription-modal-dismiss__line"></span>
-          <span class="subscription-modal-dismiss__line"></span>
-        </span>
-      </button>
-      <h3 class="modal__title">Отмена подписки</h3>
-      <div class="modal__body">
-        <p>Вы уверены, что хотите отменить подписку «<span data-role="cancel-plan-name"></span>»?</p>
-        <p class="modal__warning">Доступ к премиум-функциям сохранится до <strong data-role="cancel-end-date"></strong>.</p>
-      </div>
-      <div class="modal__footer">
-        <button class="btn btn_outline" data-action="keep-subscription">Оставить</button>
-        <button class="btn btn_danger" data-action="confirm-cancel">Подтвердить отмену</button>
       </div>
     </div>
   </dialog>

@@ -50,6 +50,7 @@ export default class MoviePage extends BasePage {
         cacheMessage: "",
         actionStatusMessage: "",
         actionStatusTone: "warning",
+        showPaywall: false,
         movie: createEmptyMovieData(),
         ...context,
       },
@@ -121,19 +122,20 @@ export default class MoviePage extends BasePage {
     }
 
     const moviePayload = extractMovie(resp);
+    const mappedMovie = {
+      ...mapMovieDtoToViewModel(moviePayload || {}),
+      isFavorite: resolveFavoriteFlag(moviePayload),
+    };
 
     this._contextLoaded = true;
-    const isFavorite = resolveFavoriteFlag(moviePayload);
     this.refresh({
       ...this.context,
       loading: false,
       hasError: false,
       errorText: "",
       actionStatusMessage: "",
-      movie: {
-        ...mapMovieDtoToViewModel(moviePayload || {}),
-        isFavorite,
-      },
+      movie: mappedMovie,
+      showPaywall: shouldShowPaywall(mappedMovie),
       cacheMessage: getCacheFallbackNotice(movieResult),
       actionStatusTone: this.context.actionStatusTone || "warning",
     });
@@ -321,23 +323,41 @@ export default class MoviePage extends BasePage {
       return;
     }
 
-    const player = this.getChild("movie-player");
-
-    if (!player) {
-      return;
-    }
-
     const fromLocation = readWatchState(window.location, this.context.movie);
     const initialEpisode = resolveInitialEpisode(this.context.movie);
     const episodeId =
       fromLocation.shouldOpen && fromLocation.episodeId
         ? fromLocation.episodeId
         : initialEpisode?.id || "";
+
+    if (this._isPaidContentBlocked(this.context.movie, episodeId)) {
+      this.refresh({
+        ...this.context,
+        showPaywall: true,
+        actionStatusMessage: "Для просмотра нужна подписка.",
+        actionStatusTone: "warning",
+      });
+      return;
+    }
+
+    const player = this.getChild("movie-player");
+
+    if (!player) {
+      return;
+    }
+
     const startSeconds = fromLocation.shouldOpen
       ? fromLocation.startSeconds
       : 0;
 
     await this._openPlayer(episodeId, { startSeconds });
+  }
+
+  _isPaidContentBlocked(movie, episodeId = "") {
+    if (!requiresPaidSubscription(movie, episodeId)) {
+      return false;
+    }
+    return !canWatchPaidContent();
   }
 
   async _openPlayer(initialEpisodeId = "", options = {}) {
@@ -347,11 +367,22 @@ export default class MoviePage extends BasePage {
       return;
     }
 
+    const normalizedEpisodeId = normalizeString(initialEpisodeId);
+
+    if (this._isPaidContentBlocked(this.context.movie, normalizedEpisodeId)) {
+      this.refresh({
+        ...this.context,
+        showPaywall: true,
+        actionStatusMessage: "Для просмотра нужна подписка.",
+        actionStatusTone: "warning",
+      });
+      return;
+    }
+
     const startSeconds = Math.max(
       0,
       Math.floor(Number(options.startSeconds) || 0),
     );
-    const normalizedEpisodeId = normalizeString(initialEpisodeId);
 
     if (!isPlayerWatchLocation(window.location)) {
       window.history.pushState(
@@ -390,6 +421,17 @@ export default class MoviePage extends BasePage {
     const watchState = readWatchState(window.location, this.context.movie);
 
     if (!watchState.shouldOpen) {
+      await player.close({ restoreHistory: false });
+      return;
+    }
+
+    if (this._isPaidContentBlocked(this.context.movie, watchState.episodeId)) {
+      this.refresh({
+        ...this.context,
+        showPaywall: true,
+        actionStatusMessage: "Для просмотра нужна подписка.",
+        actionStatusTone: "warning",
+      });
       await player.close({ restoreHistory: false });
       return;
     }
@@ -732,6 +774,7 @@ function mapMovieDtoToViewModel(dto) {
     reviews: mapReviews(dto.reviews),
     episodes: mapEpisodes(dto.episodes),
     cast: mapActors(dto.actors),
+    isPaid: Boolean(dto.is_paid ?? dto.isPaid),
   };
 }
 
@@ -811,6 +854,7 @@ function mapEpisodes(value) {
         description: normalizeString(episode.description),
         durationSeconds: Number(episode.duration_seconds) || 0,
         imgUrl: normalizeImageUrl(episode.img_url) || DEFAULT_POSTER_URL,
+        isPaid: Boolean(episode.is_paid ?? episode.isPaid),
       };
     })
     .filter(Boolean)
@@ -1199,4 +1243,32 @@ function resolveCurrentUserDisplayName() {
     normalizeString(authState.user?.email) ||
     "Вы"
   );
+}
+
+function canWatchPaidContent() {
+  const authState = authStore.getState();
+  if (authState.status !== "authenticated") {
+    return false;
+  }
+  return Boolean(authState.user?.capabilities?.canWatchPaidContent);
+}
+
+function requiresPaidSubscription(movie, episodeId = "") {
+  if (!movie) {
+    return false;
+  }
+
+  const normalizedEpisodeId = normalizeString(episodeId);
+  if (normalizedEpisodeId && Array.isArray(movie.episodes)) {
+    const episode = movie.episodes.find((item) => item.id === normalizedEpisodeId);
+    if (episode?.isPaid) {
+      return true;
+    }
+  }
+
+  return Boolean(movie.isPaid);
+}
+
+function shouldShowPaywall(movie) {
+  return requiresPaidSubscription(movie) && !canWatchPaidContent();
 }

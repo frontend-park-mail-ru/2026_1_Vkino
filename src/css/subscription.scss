@@ -1428,6 +1428,74 @@
   text-decoration: underline;
 }
 
+.modal_payment__yookassa-note {
+  margin: 0 0 1rem;
+  color: var(--text-secondary, #9ca3af);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.modal_payment__coins-btn {
+  width: 100%;
+  opacity: 0.65;
+}
+
+.payment-return {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 3rem 1rem 4rem;
+}
+
+.payment-return__card {
+  width: min(100%, 520px);
+  padding: 2rem;
+  border-radius: 16px;
+  background: var(--surface-elevated, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+}
+
+.payment-return__title {
+  margin: 0 0 0.75rem;
+  font-size: var(--text-2xl);
+}
+
+.payment-return__text,
+.payment-return__meta {
+  margin: 0 0 1rem;
+  color: var(--text-secondary, #9ca3af);
+  line-height: 1.5;
+}
+
+.payment-return__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.payment-return__spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 1rem;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: var(--accent, #7c5cff);
+  border-radius: 50%;
+  animation: payment-return-spin 0.8s linear infinite;
+}
+
+@keyframes payment-return-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.subscription-current__usage {
+  margin: 0.75rem 0 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary, #9ca3af);
+}
+
 /* Адаптив */
 @media (max-width: 768px) {
   .subscription-plans-grid {
