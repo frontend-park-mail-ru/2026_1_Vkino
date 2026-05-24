@@ -64,7 +64,6 @@
 
 .movie-poster-card__meta,
 .movie-poster-card__genres,
-.movie-poster-card__description,
 .movie-poster-card__rating {
   color: #f3e5d4;
 }
@@ -81,16 +80,6 @@
   font-size: 18px;
   font-weight: 800;
   line-height: 1.05;
-}
-
-.movie-poster-card__description {
-  font-size: 12px;
-  line-height: 1.35;
-  max-width: 44ch;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  overflow: hidden;
 }
 
 .movie-poster-card__meta--hero {
@@ -179,7 +168,6 @@
   font-size: 16px;
 }
 
-.movie-poster-card--small .movie-poster-card__description,
 .movie-poster-card--small .movie-poster-card__button {
   display: none;
 }
@@ -210,10 +198,6 @@
 .movie-poster-card--hero .movie-poster-card__meta,
 .movie-poster-card--hero .movie-poster-card__genres {
   font-size: 13px;
-}
-
-.movie-poster-card--hero .movie-poster-card__description {
-  max-width: 52ch;
 }
 
 .movie-poster-card--person .movie-poster-card__media {

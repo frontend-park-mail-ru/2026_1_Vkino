@@ -5,6 +5,8 @@ export interface PageInstance {
 
 export type PageBuilder = (root: Element) => PageInstance;
 
+const DEFAULT_DOCUMENT_TITLE = "VKino";
+
 export class Router {
   private root: Element;
   private routeTable: Map<string, PageBuilder>;
@@ -155,6 +157,7 @@ export class Router {
       this.activePage.destroy();
     }
 
+    document.title = DEFAULT_DOCUMENT_TITLE;
     this.root.innerHTML = "";
     const page = pageBuilder(this.root);
 

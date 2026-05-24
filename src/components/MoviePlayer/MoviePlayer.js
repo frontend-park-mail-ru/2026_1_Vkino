@@ -390,6 +390,10 @@ export default class MoviePlayerComponent extends BaseComponent {
       activeEpisodeId: normalizedEpisodeId,
       activeEpisode,
       episodes: markActiveEpisode(this.context.episodes, normalizedEpisodeId),
+      ...buildEpisodeNavigationState(
+        this.context.episodes,
+        normalizedEpisodeId,
+      ),
       hasError: false,
       errorText: "",
       isEmpty: false,
@@ -778,6 +782,9 @@ export default class MoviePlayerComponent extends BaseComponent {
       "is-controls-visible",
       this.context.areControlsVisible,
     );
+    overlay?.classList.toggle("is-playing", this.context.isPlaying);
+    overlay?.classList.toggle("is-loading", this.context.isLoading);
+    overlay?.classList.toggle("is-error", this.context.hasError);
     overlay?.classList.toggle("is-empty", this.context.isEmpty);
     overlay?.classList.toggle(
       "is-fullscreen-fallback",
@@ -837,6 +844,22 @@ export default class MoviePlayerComponent extends BaseComponent {
 
       node.classList.toggle("is-active", isActive);
     });
+
+    const previousEpisodeButton = this.el.querySelector(
+      '[data-action="previous-episode"]',
+    );
+    const nextEpisodeButton = this.el.querySelector(
+      '[data-action="next-episode"]',
+    );
+
+    previousEpisodeButton?.toggleAttribute(
+      "disabled",
+      !this.context.hasPreviousEpisode,
+    );
+    nextEpisodeButton?.toggleAttribute(
+      "disabled",
+      !this.context.hasNextEpisode,
+    );
 
     if (titleEl) {
       titleEl.textContent = this.context.episodeTitle;
@@ -919,8 +942,18 @@ export default class MoviePlayerComponent extends BaseComponent {
     this._bindAction(
       '[data-action="seek-backward"]',
       this._onSeekBackwardClick,
+      true,
     );
-    this._bindAction('[data-action="seek-forward"]', this._onSeekForwardClick);
+    this._bindAction(
+      '[data-action="seek-forward"]',
+      this._onSeekForwardClick,
+      true,
+    );
+    this._bindAction(
+      '[data-action="previous-episode"]',
+      this._onPreviousEpisodeClick,
+    );
+    this._bindAction('[data-action="next-episode"]', this._onNextEpisodeClick);
     this._bindAction(
       '[data-action="toggle-episode-menu"]',
       this._onToggleEpisodeMenuClick,
@@ -966,11 +999,18 @@ export default class MoviePlayerComponent extends BaseComponent {
     this._unbindAction(
       '[data-action="seek-backward"]',
       this._onSeekBackwardClick,
+      true,
     );
     this._unbindAction(
       '[data-action="seek-forward"]',
       this._onSeekForwardClick,
+      true,
     );
+    this._unbindAction(
+      '[data-action="previous-episode"]',
+      this._onPreviousEpisodeClick,
+    );
+    this._unbindAction('[data-action="next-episode"]', this._onNextEpisodeClick);
     this._unbindAction(
       '[data-action="toggle-episode-menu"]',
       this._onToggleEpisodeMenuClick,
@@ -1239,6 +1279,16 @@ export default class MoviePlayerComponent extends BaseComponent {
     this._seekTo((Number(this.videoEl?.currentTime) || 0) + SEEK_STEP_SECONDS);
   };
 
+  _onPreviousEpisodeClick = async (event) => {
+    event.preventDefault();
+    await this._loadAdjacentEpisode(-1);
+  };
+
+  _onNextEpisodeClick = async (event) => {
+    event.preventDefault();
+    await this._loadAdjacentEpisode(1);
+  };
+
   _onToggleFullscreenClick = async (event) => {
     event.preventDefault();
     await this.toggleFullscreen();
@@ -1269,6 +1319,31 @@ export default class MoviePlayerComponent extends BaseComponent {
       restoreProgress: true,
     });
   };
+
+  async _loadAdjacentEpisode(direction) {
+    const episodes = Array.isArray(this.context.episodes)
+      ? this.context.episodes
+      : [];
+    const activeIndex = getActiveEpisodeIndex(
+      episodes,
+      this.context.activeEpisodeId,
+    );
+    const nextEpisode = episodes[activeIndex + direction];
+
+    if (!nextEpisode?.id) {
+      return;
+    }
+
+    this.context = {
+      ...this.context,
+      isEpisodeMenuOpen: false,
+    };
+
+    await this.loadEpisode(nextEpisode.id, {
+      autoplay: true,
+      restoreProgress: true,
+    });
+  }
 
   _onDocumentClick(event) {
     if (!this.context.isEpisodeMenuOpen || !this.el) {
@@ -1630,6 +1705,8 @@ function createInitialContext() {
     activeEpisode: null,
     episodes: [],
     hasEpisodes: false,
+    hasPreviousEpisode: false,
+    hasNextEpisode: false,
     showEpisodeMenuButton: false,
     isEpisodeMenuOpen: false,
     episodesCountLabel: "",
@@ -1656,6 +1733,10 @@ function buildOpenContext(movieData, activeEpisodeId) {
     (normalizedContentType === "series" ||
       normalizedContentType === "serial") &&
     episodes.length > 0;
+  const episodeNavigationState = buildEpisodeNavigationState(
+    episodes,
+    activeEpisode?.id || "",
+  );
 
   return {
     isOpen: true,
@@ -1675,6 +1756,7 @@ function buildOpenContext(movieData, activeEpisodeId) {
     activeEpisode,
     episodes,
     hasEpisodes: episodes.length > 1,
+    ...episodeNavigationState,
     showEpisodeMenuButton: shouldShowEpisodeMenu,
     isEpisodeMenuOpen: false,
     episodesCountLabel: `${episodes.length} ${pluralizeEpisodes(episodes.length)}`,
@@ -1782,6 +1864,33 @@ function resolveDirectPlaybackPayload(episode = null) {
     duration_seconds: Number(episode.durationSeconds) || 0,
     position_seconds: Number(episode.playbackPositionSeconds) || 0,
   };
+}
+
+function buildEpisodeNavigationState(episodes = [], activeEpisodeId = "") {
+  const activeIndex = getActiveEpisodeIndex(episodes, activeEpisodeId);
+
+  return {
+    hasPreviousEpisode: activeIndex > 0,
+    hasNextEpisode: activeIndex >= 0 && activeIndex < episodes.length - 1,
+  };
+}
+
+function getActiveEpisodeIndex(episodes = [], activeEpisodeId = "") {
+  if (!Array.isArray(episodes) || !episodes.length) {
+    return -1;
+  }
+
+  const normalizedActiveEpisodeId = normalizeString(activeEpisodeId);
+
+  if (!normalizedActiveEpisodeId) {
+    return 0;
+  }
+
+  const activeIndex = episodes.findIndex(
+    (episode) => normalizeString(episode.id) === normalizedActiveEpisodeId,
+  );
+
+  return activeIndex >= 0 ? activeIndex : 0;
 }
 
 function markActiveEpisode(episodes = [], activeEpisodeId = "") {

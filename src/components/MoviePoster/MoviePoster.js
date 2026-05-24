@@ -68,7 +68,6 @@ function buildPosterContext(context = {}) {
   const variant = context.variant || DEFAULT_VARIANT;
   const size = context.size || DEFAULT_SIZE;
   const genres = normalizeGenres(context.genres);
-  const description = normalizeDescription(context.description);
   const ageRating = normalizeAgeRating(
     context.ageRating || context.age_rating || context.ageLimit,
   );
@@ -93,7 +92,6 @@ function buildPosterContext(context = {}) {
     imageUrl,
     href: context.href || "/movie",
     actionText: context.actionText || DEFAULT_ACTION_TEXT,
-    description,
     genreText: genres.join(" • "),
     heroFacts: buildHeroFacts(ageRating, genres),
     imdbRating,
@@ -104,7 +102,6 @@ function buildPosterContext(context = {}) {
     useContainedImage: variant === "hero" && !hasHeroBackdrop,
     showAlwaysContent: variantConfig.showAlwaysContent,
     showOverlay: variantConfig.showOverlay,
-    showDescription: variantConfig.showDescription && Boolean(description),
     showButton: variantConfig.showButton,
   };
 }
@@ -114,7 +111,6 @@ function getVariantConfig(variant) {
     return {
       showAlwaysContent: false,
       showOverlay: true,
-      showDescription: false,
       showButton: false,
     };
   }
@@ -123,7 +119,6 @@ function getVariantConfig(variant) {
     return {
       showAlwaysContent: true,
       showOverlay: false,
-      showDescription: true,
       showButton: true,
     };
   }
@@ -132,7 +127,6 @@ function getVariantConfig(variant) {
     return {
       showAlwaysContent: true,
       showOverlay: false,
-      showDescription: false,
       showButton: false,
     };
   }
@@ -141,7 +135,6 @@ function getVariantConfig(variant) {
     return {
       showAlwaysContent: false,
       showOverlay: true,
-      showDescription: true,
       showButton: true,
     };
   }
@@ -149,7 +142,6 @@ function getVariantConfig(variant) {
   return {
     showAlwaysContent: false,
     showOverlay: true,
-    showDescription: true,
     showButton: true,
   };
 }
@@ -184,17 +176,6 @@ function normalizeAgeRating(value) {
   }
 
   return normalized.endsWith("+") ? normalized : `${normalized}+`;
-}
-
-function normalizeDescription(description) {
-  const normalized = String(description || "").trim();
-  if (!normalized) {
-    return "";
-  }
-
-  return normalized.length > 160
-    ? `${normalized.slice(0, 157).trim()}...`
-    : normalized;
 }
 
 function normalizeRating(value) {
