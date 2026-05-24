@@ -37,7 +37,52 @@
             </div>
             <div class="settings__field">
               <label class="settings__label">Дата рождения</label>
-              <input class="settings__input settings__input_editable" type="date" id="birthDate" value="{{userData.birthDate}}" data-field="birthdate" />
+              <div class="settings-date" data-role="birthdate-picker">
+                <input class="settings-date__value-input settings__input_editable" type="hidden" id="birthDate" value="{{userData.birthDate}}" data-field="birthdate" />
+                <button
+                  class="settings-date__trigger"
+                  type="button"
+                  data-action="toggle-birthdate-calendar"
+                  data-role="birthdate-trigger"
+                  aria-expanded="false"
+                  aria-controls="birthdate-calendar"
+                >
+                  <span class="settings-date__value" data-role="birthdate-label">{{userData.birthDate}}</span>
+                  <svg class="settings-date__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="4" y="5.5" width="16" height="15" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M8 3.5V7.5M16 3.5V7.5M4.5 10H19.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                  </svg>
+                </button>
+                <div class="settings-date__popup" id="birthdate-calendar" data-role="birthdate-calendar" hidden>
+                  <div class="settings-date__header">
+                    <button class="settings-date__nav" type="button" data-action="birthdate-prev-month" aria-label="Предыдущий месяц">
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </button>
+                    <div class="settings-date__selectors">
+                      <select class="settings-date__select" data-role="birthdate-month" aria-label="Месяц"></select>
+                      <select class="settings-date__select" data-role="birthdate-year" aria-label="Год"></select>
+                    </div>
+                    <button class="settings-date__nav" type="button" data-action="birthdate-next-month" aria-label="Следующий месяц">
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="settings-date__weekdays" aria-hidden="true">
+                    <span>Пн</span>
+                    <span>Вт</span>
+                    <span>Ср</span>
+                    <span>Чт</span>
+                    <span>Пт</span>
+                    <span>Сб</span>
+                    <span>Вс</span>
+                  </div>
+                  <div class="settings-date__grid" data-role="birthdate-calendar-grid"></div>
+                  <button class="settings-date__clear" type="button" data-action="clear-birthdate">Очистить</button>
+                </div>
+              </div>
             </div>
           </div>
           <div class="settings__error" id="birthdate-error"></div>

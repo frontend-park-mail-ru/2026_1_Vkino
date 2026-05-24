@@ -18,6 +18,36 @@ import {
   getDefaultSubscriptionPlansPreview,
 } from "@/utils/subscriptionDisplay.js";
 
+const BIRTHDATE_MIN_YEAR = 1900;
+const BIRTHDATE_MONTH_NAMES = [
+  "Январь",
+  "Февраль",
+  "Март",
+  "Апрель",
+  "Май",
+  "Июнь",
+  "Июль",
+  "Август",
+  "Сентябрь",
+  "Октябрь",
+  "Ноябрь",
+  "Декабрь",
+];
+const BIRTHDATE_MONTH_NAMES_GENITIVE = [
+  "января",
+  "февраля",
+  "марта",
+  "апреля",
+  "мая",
+  "июня",
+  "июля",
+  "августа",
+  "сентября",
+  "октября",
+  "ноября",
+  "декабря",
+];
+
 export default class SettingsPage extends BasePage {
   constructor(context = {}, parent = null, el = null) {
     if (!el) {
@@ -67,6 +97,8 @@ export default class SettingsPage extends BasePage {
     this._editableInputHandlers = new Map();
     this._passwordInputHandlers = new Map();
     this._buttonHandlers = new Map();
+    this._birthdateCalendar = null;
+    this._birthdateCalendarHandlers = [];
     this._avatarInputHandler = null;
     this._pendingAvatarFile = null;
     this._authUnsubscribe = null;
@@ -186,6 +218,7 @@ export default class SettingsPage extends BasePage {
   addEventListeners() {
     this._destroyPasswordToggle = initPasswordToggle(this.el);
     this._setupEditableFields();
+    this._setupBirthdateCalendar();
     this._setupAvatarUpload();
     this._setupPasswordValidation();
     this._setupButtonHandlers();
@@ -218,6 +251,7 @@ export default class SettingsPage extends BasePage {
   _validateBirthDate() {
     const birthDateInput = this.el.querySelector("#birthDate");
     const errorEl = this.el.querySelector("#birthdate-error");
+    const trigger = this.el.querySelector('[data-role="birthdate-trigger"]');
     const value = normalizeDateInputValue(birthDateInput?.value);
 
     if (!birthDateInput) {
@@ -226,6 +260,7 @@ export default class SettingsPage extends BasePage {
 
     if (!value) {
       setError(birthDateInput, errorEl, "");
+      trigger?.classList.remove("is-error");
       return "";
     }
 
@@ -242,7 +277,344 @@ export default class SettingsPage extends BasePage {
     }
 
     setError(birthDateInput, errorEl, message);
+    trigger?.classList.toggle("is-error", Boolean(message));
     return message;
+  }
+
+  _setupBirthdateCalendar() {
+    const root = this.el.querySelector('[data-role="birthdate-picker"]');
+    const input = this.el.querySelector("#birthDate");
+    const trigger = this.el.querySelector('[data-role="birthdate-trigger"]');
+    const popup = this.el.querySelector('[data-role="birthdate-calendar"]');
+    const label = this.el.querySelector('[data-role="birthdate-label"]');
+    const grid = this.el.querySelector('[data-role="birthdate-calendar-grid"]');
+    const monthSelect = this.el.querySelector('[data-role="birthdate-month"]');
+    const yearSelect = this.el.querySelector('[data-role="birthdate-year"]');
+
+    if (
+      !root ||
+      !input ||
+      !trigger ||
+      !popup ||
+      !label ||
+      !grid ||
+      !monthSelect ||
+      !yearSelect
+    ) {
+      return;
+    }
+
+    const selectedValue = normalizeDateInputValue(input.value);
+    input.value = selectedValue;
+
+    const selectedDate = parseStrictDateInputValue(selectedValue);
+    const today = getTodayDate();
+    const viewSource = selectedDate || today;
+
+    this._birthdateCalendar = {
+      root,
+      input,
+      trigger,
+      popup,
+      label,
+      grid,
+      monthSelect,
+      yearSelect,
+      viewDate: new Date(viewSource.getFullYear(), viewSource.getMonth(), 1),
+    };
+
+    this._syncBirthdateCalendarLabel();
+    this._renderBirthdateCalendar();
+
+    const onRootClick = (event) => {
+      const actionButton = event.target.closest("[data-action]");
+      if (!actionButton || !root.contains(actionButton)) {
+        return;
+      }
+
+      const { action } = actionButton.dataset;
+
+      if (action === "toggle-birthdate-calendar") {
+        event.preventDefault();
+        this._toggleBirthdateCalendar();
+        return;
+      }
+
+      if (action === "birthdate-prev-month") {
+        event.preventDefault();
+        this._shiftBirthdateCalendarMonth(-1);
+        return;
+      }
+
+      if (action === "birthdate-next-month") {
+        event.preventDefault();
+        this._shiftBirthdateCalendarMonth(1);
+        return;
+      }
+
+      if (action === "select-birthdate") {
+        event.preventDefault();
+        if (!actionButton.disabled) {
+          this._setBirthdateCalendarValue(actionButton.dataset.date || "");
+          this._closeBirthdateCalendar();
+        }
+        return;
+      }
+
+      if (action === "clear-birthdate") {
+        event.preventDefault();
+        this._setBirthdateCalendarValue("");
+        this._closeBirthdateCalendar();
+      }
+    };
+
+    const onRootChange = (event) => {
+      if (event.target === monthSelect) {
+        const month = Number(monthSelect.value);
+        if (Number.isInteger(month)) {
+          this._setBirthdateCalendarView(
+            this._birthdateCalendar.viewDate.getFullYear(),
+            month,
+          );
+        }
+      }
+
+      if (event.target === yearSelect) {
+        const year = Number(yearSelect.value);
+        if (Number.isInteger(year)) {
+          this._setBirthdateCalendarView(
+            year,
+            this._birthdateCalendar.viewDate.getMonth(),
+          );
+        }
+      }
+    };
+
+    const onDocumentClick = (event) => {
+      if (!root.contains(event.target)) {
+        this._closeBirthdateCalendar();
+      }
+    };
+
+    const onDocumentKeydown = (event) => {
+      if (event.key === "Escape") {
+        this._closeBirthdateCalendar();
+        trigger.focus();
+      }
+    };
+
+    root.addEventListener("click", onRootClick);
+    root.addEventListener("change", onRootChange);
+    document.addEventListener("click", onDocumentClick);
+    document.addEventListener("keydown", onDocumentKeydown);
+
+    this._birthdateCalendarHandlers = [
+      { target: root, type: "click", handler: onRootClick },
+      { target: root, type: "change", handler: onRootChange },
+      { target: document, type: "click", handler: onDocumentClick },
+      { target: document, type: "keydown", handler: onDocumentKeydown },
+    ];
+  }
+
+  _toggleBirthdateCalendar() {
+    if (!this._birthdateCalendar) {
+      return;
+    }
+
+    if (this._birthdateCalendar.popup.hidden) {
+      this._openBirthdateCalendar();
+    } else {
+      this._closeBirthdateCalendar();
+    }
+  }
+
+  _openBirthdateCalendar() {
+    if (!this._birthdateCalendar) {
+      return;
+    }
+
+    const { popup, trigger } = this._birthdateCalendar;
+    popup.hidden = false;
+    trigger.setAttribute("aria-expanded", "true");
+  }
+
+  _closeBirthdateCalendar() {
+    if (!this._birthdateCalendar) {
+      return;
+    }
+
+    const { popup, trigger } = this._birthdateCalendar;
+    popup.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+  }
+
+  _shiftBirthdateCalendarMonth(step) {
+    if (!this._birthdateCalendar) {
+      return;
+    }
+
+    const { viewDate } = this._birthdateCalendar;
+    this._setBirthdateCalendarView(
+      viewDate.getFullYear(),
+      viewDate.getMonth() + step,
+    );
+  }
+
+  _setBirthdateCalendarView(year, month) {
+    if (!this._birthdateCalendar) {
+      return;
+    }
+
+    const today = getTodayDate();
+    const nextViewDate = new Date(year, month, 1);
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const minMonthStart = new Date(BIRTHDATE_MIN_YEAR, 0, 1);
+
+    if (nextViewDate > currentMonthStart) {
+      this._birthdateCalendar.viewDate = currentMonthStart;
+    } else if (nextViewDate < minMonthStart) {
+      this._birthdateCalendar.viewDate = minMonthStart;
+    } else {
+      this._birthdateCalendar.viewDate = nextViewDate;
+    }
+
+    this._renderBirthdateCalendar();
+  }
+
+  _setBirthdateCalendarValue(value) {
+    if (!this._birthdateCalendar) {
+      return;
+    }
+
+    const normalizedValue = normalizeDateInputValue(value);
+    const { input } = this._birthdateCalendar;
+    const selectedDate = parseStrictDateInputValue(normalizedValue);
+
+    input.value = selectedDate ? normalizedValue : "";
+
+    if (selectedDate) {
+      this._birthdateCalendar.viewDate = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        1,
+      );
+    }
+
+    this._syncBirthdateCalendarLabel();
+    this._renderBirthdateCalendar();
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  _syncBirthdateCalendarLabel() {
+    if (!this._birthdateCalendar) {
+      return;
+    }
+
+    const { input, label, trigger } = this._birthdateCalendar;
+    const normalizedValue = normalizeDateInputValue(input.value);
+    const labelText = formatBirthdateDisplayValue(normalizedValue);
+
+    label.textContent = labelText || "Выберите дату";
+    trigger.classList.toggle("has-value", Boolean(labelText));
+  }
+
+  _renderBirthdateCalendar() {
+    if (!this._birthdateCalendar) {
+      return;
+    }
+
+    const {
+      grid,
+      input,
+      monthSelect,
+      yearSelect,
+      popup,
+      viewDate,
+    } = this._birthdateCalendar;
+    const selectedValue = normalizeDateInputValue(input.value);
+    const today = getTodayDate();
+    const todayValue = formatDateInputValue(today);
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const minYear = Math.min(BIRTHDATE_MIN_YEAR, year);
+    const maxYear = today.getFullYear();
+
+    monthSelect.replaceChildren(
+      ...BIRTHDATE_MONTH_NAMES.map((monthName, index) => {
+        const option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = monthName;
+        option.selected = index === month;
+        option.disabled =
+          year === today.getFullYear() && index > today.getMonth();
+        return option;
+      }),
+    );
+
+    const yearOptions = [];
+    for (let optionYear = maxYear; optionYear >= minYear; optionYear -= 1) {
+      const option = document.createElement("option");
+      option.value = String(optionYear);
+      option.textContent = String(optionYear);
+      option.selected = optionYear === year;
+      yearOptions.push(option);
+    }
+    yearSelect.replaceChildren(...yearOptions);
+
+    const firstDay = new Date(year, month, 1);
+    const firstWeekday = getMondayBasedWeekday(firstDay);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cells = [];
+
+    for (let index = 0; index < firstWeekday; index += 1) {
+      const placeholder = document.createElement("span");
+      placeholder.className = "settings-date__day-placeholder";
+      cells.push(placeholder);
+    }
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const date = new Date(year, month, day);
+      date.setHours(0, 0, 0, 0);
+      const dateValue = formatDateInputValue(date);
+      const button = document.createElement("button");
+
+      button.type = "button";
+      button.className = "settings-date__day";
+      button.dataset.action = "select-birthdate";
+      button.dataset.date = dateValue;
+      button.textContent = String(day);
+      button.disabled = date > today;
+      button.classList.toggle("is-selected", dateValue === selectedValue);
+      button.classList.toggle("is-today", dateValue === todayValue);
+      cells.push(button);
+    }
+
+    grid.replaceChildren(...cells);
+
+    const previousButton = popup.querySelector(
+      '[data-action="birthdate-prev-month"]',
+    );
+    const nextButton = popup.querySelector(
+      '[data-action="birthdate-next-month"]',
+    );
+    const nextMonth = new Date(year, month + 1, 1);
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    if (previousButton) {
+      previousButton.disabled = year <= BIRTHDATE_MIN_YEAR && month === 0;
+    }
+    if (nextButton) {
+      nextButton.disabled = nextMonth > currentMonthStart;
+    }
+  }
+
+  _destroyBirthdateCalendar() {
+    for (const { target, type, handler } of this._birthdateCalendarHandlers) {
+      target.removeEventListener(type, handler);
+    }
+    this._birthdateCalendarHandlers = [];
+    this._birthdateCalendar = null;
   }
 
   _setupAvatarUpload() {
@@ -656,6 +1028,7 @@ export default class SettingsPage extends BasePage {
       input.removeEventListener("blur", handler);
     }
     this._editableInputHandlers.clear();
+    this._destroyBirthdateCalendar();
 
     for (const [input, handler] of this._passwordInputHandlers) {
       input.removeEventListener("input", handler);
@@ -788,4 +1161,36 @@ function parseStrictDateInputValue(value) {
   }
 
   return date;
+}
+
+function getTodayDate() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+function getMondayBasedWeekday(date) {
+  return (date.getDay() + 6) % 7;
+}
+
+function formatDateInputValue(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function formatBirthdateDisplayValue(value) {
+  const date = parseStrictDateInputValue(value);
+
+  if (!date) {
+    return "";
+  }
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = BIRTHDATE_MONTH_NAMES_GENITIVE[date.getMonth()];
+  const year = date.getFullYear();
+
+  return `${day} ${month} ${year}`;
 }

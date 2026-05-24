@@ -12,7 +12,7 @@ import { resolveAvatarUrl as resolveDefaultAvatarUrl } from "@/utils/avatar.js";
 import { MEDIA_BUCKETS, resolveAvatarUrl, resolveMediaUrl } from "@/utils/media.js";
 import { normalizeTimeFields } from "@/utils/time.js";
 import { formatBirthdate, getDisplayNameFromEmail } from "@/utils/user.js";
-import { extractProfile } from "@/utils/apiResponse.js";
+import { extractProfile, unwrapPayload } from "@/utils/apiResponse.js";
 import { normalizeSubscriptionFromApi } from "@/utils/subscriptionDisplay.js";
 
 /**
@@ -156,17 +156,17 @@ export default class ProfilePage extends BasePage {
     }
 
     const continueWatching = continueResult.ok
-      ? normalizeWatchProgress(continueResult.resp?.items || [], {
+      ? normalizeWatchProgress(extractListItems(continueResult.resp), {
           actionText: "Продолжить просмотр",
         })
       : [];
     const watchHistory = historyResult.ok
-      ? normalizeWatchProgress(historyResult.resp?.items || [], {
+      ? normalizeWatchProgress(extractListItems(historyResult.resp), {
           actionText: "Смотреть",
         })
       : [];
     const favorites = favoritesResult.ok
-      ? normalizeMovieCards(favoritesResult.resp?.movies || [])
+      ? normalizeMovieCards(extractListItems(favoritesResult.resp))
       : [];
     const friendsPreview = friendsResult.ok
       ? normalizeFriendsPreview(friendsResult.resp?.friends || [])
@@ -368,6 +368,9 @@ function normalizeWatchProgress(items = [], options = {}) {
       : "Продолжить просмотр";
 
   return items.map((item) => {
+    const movie = getNestedObject(item, "movie");
+    const content = getNestedObject(item, "content");
+    const source = movie || content || item;
     const { duration: durationRaw, position: positionRaw } = normalizeTimeFields(item);
     const duration = Number.isFinite(durationRaw) ? durationRaw : 0;
     const position = Number.isFinite(positionRaw) ? positionRaw : 0;
@@ -393,14 +396,50 @@ function normalizeWatchProgress(items = [], options = {}) {
       normalizedProgressPercent > 0 && normalizedProgressPercent < 2
         ? 2
         : normalizedProgressPercent;
-    const contentType = String(item.content_type || "").toLowerCase();
+    const contentType = String(
+      item.content_type ||
+        item.contentType ||
+        source.content_type ||
+        source.contentType ||
+        "",
+    ).toLowerCase();
     const isSeries = contentType === "series" || contentType === "serial";
-    const movieId = item.movie_id;
-    const episodeId = normalizeId(item.episode_id);
-    const seasonNumber = item.season_number;
-    const episodeNumber = item.episode_number;
-    const movieTitle = item.movie_title || "";
-    const posterUrl = item.poster_url;
+    const movieId =
+      item.movie_id ||
+      item.movieId ||
+      item.MovieID ||
+      item.id_movie ||
+      source.id ||
+      source.ID ||
+      item.id ||
+      item.ID;
+    const episodeId = normalizeId(
+      item.episode_id ||
+        item.episodeId ||
+        item.EpisodeID ||
+        getNestedObject(item, "episode")?.id ||
+        getNestedObject(item, "episode")?.ID,
+    );
+    const seasonNumber =
+      item.season_number ||
+      item.seasonNumber ||
+      item.SeasonNumber ||
+      getNestedObject(item, "episode")?.season_number;
+    const episodeNumber =
+      item.episode_number ||
+      item.episodeNumber ||
+      item.EpisodeNumber ||
+      getNestedObject(item, "episode")?.episode_number;
+    const movieTitle =
+      item.movie_title ||
+      item.movieTitle ||
+      item.MovieTitle ||
+      source.title ||
+      source.Title ||
+      source.name ||
+      source.Name ||
+      "Фильм";
+    const posterUrl = getMoviePosterSource(item);
     const startPart = position > 0 ? `&start=${position}` : "";
     const episodePart = episodeId ? `&episode=${episodeId}` : "";
     const normalizedMovieId = normalizeId(movieId);
@@ -448,12 +487,175 @@ function normalizeFriendsPreview(friends = []) {
  * @returns {string[]} нормализованный список жанров
  */
 function normalizeMovieCards(cards = []) {
-  return cards.map((card) => ({
-    id: String(card.id),
-    title: card.title,
-    posterUrl: resolveMediaUrl(card.img_url || card.poster_url, MEDIA_BUCKETS.cards),
-    href: `/movie/${card.id}`,
-    variant: "compact",
-    size: "medium",
-  }));
+  return cards
+    .map((card, index) => {
+      const movie = getNestedObject(card, "movie");
+      const content = getNestedObject(card, "content");
+      const source = movie || content || card;
+      const id = normalizeId(
+        source.id ||
+          source.ID ||
+          card.movie_id ||
+          card.movieId ||
+          card.MovieID ||
+          card.id_movie ||
+          card.id ||
+          card.ID ||
+          `favorite-${index}`,
+      );
+
+      return {
+        id,
+        title:
+          source.title ||
+          source.Title ||
+          source.name ||
+          source.Name ||
+          card.title ||
+          card.Title ||
+          card.name ||
+          card.Name ||
+          "Фильм",
+        posterUrl: resolveMediaUrl(getMoviePosterSource(card), MEDIA_BUCKETS.cards),
+        href: `/movie/${encodeURIComponent(id)}`,
+        variant: "compact",
+        size: "medium",
+      };
+    })
+    .filter((card) => card.id);
+}
+
+function getMoviePosterSource(item = {}) {
+  const movie = item.movie && typeof item.movie === "object" ? item.movie : {};
+  const episode =
+    item.episode && typeof item.episode === "object" ? item.episode : {};
+  const content =
+    item.content && typeof item.content === "object" ? item.content : {};
+
+  return (
+    item.posterUrl ||
+    item.poster_url ||
+    item.PosterURL ||
+    item.poster ||
+    item.posterSrc ||
+    item.poster_src ||
+    item.imgUrl ||
+    item.img_url ||
+    item.ImgURL ||
+    item.image ||
+    item.imageUrl ||
+    item.image_url ||
+    item.ImageURL ||
+    item.imageSrc ||
+    item.image_src ||
+    item.card_url ||
+    item.cardUrl ||
+    item.CardURL ||
+    item.card_image_url ||
+    item.cardImageUrl ||
+    item.movie_poster_url ||
+    item.moviePosterUrl ||
+    item.movie_img_url ||
+    item.movieImgUrl ||
+    item.picture_src ||
+    item.picture_url ||
+    item.pictureUrl ||
+    item.PictureURL ||
+    item.pictureFileKey ||
+    item.picture_file_key ||
+    item.PictureFileKey ||
+    item.posterFileKey ||
+    item.poster_file_key ||
+    item.PosterFileKey ||
+    item.file_key ||
+    item.fileKey ||
+    item.FileKey ||
+    movie.posterUrl ||
+    movie.poster_url ||
+    movie.PosterURL ||
+    movie.poster ||
+    movie.posterSrc ||
+    movie.poster_src ||
+    movie.imgUrl ||
+    movie.img_url ||
+    movie.ImgURL ||
+    movie.image ||
+    movie.imageUrl ||
+    movie.image_url ||
+    movie.ImageURL ||
+    movie.imageSrc ||
+    movie.image_src ||
+    movie.card_url ||
+    movie.cardUrl ||
+    movie.CardURL ||
+    movie.card_image_url ||
+    movie.cardImageUrl ||
+    movie.picture_src ||
+    movie.picture_url ||
+    movie.pictureUrl ||
+    movie.PictureURL ||
+    movie.pictureFileKey ||
+    movie.picture_file_key ||
+    movie.PictureFileKey ||
+    movie.posterFileKey ||
+    movie.poster_file_key ||
+    movie.PosterFileKey ||
+    content.posterUrl ||
+    content.poster_url ||
+    content.imgUrl ||
+    content.img_url ||
+    content.imageUrl ||
+    content.image_url ||
+    content.card_url ||
+    content.cardUrl ||
+    episode.posterUrl ||
+    episode.poster_url ||
+    episode.poster ||
+    episode.imgUrl ||
+    episode.img_url ||
+    episode.ImgURL ||
+    episode.imageUrl ||
+    episode.image_url ||
+    episode.picture_src ||
+    episode.picture_url ||
+    episode.PictureFileKey ||
+    ""
+  );
+}
+
+function extractListItems(resp = {}) {
+  const unwrapped = unwrapPayload(resp);
+
+  if (Array.isArray(unwrapped)) {
+    return unwrapped;
+  }
+
+  const candidates = [
+    unwrapped?.items,
+    unwrapped?.Items,
+    unwrapped?.movies,
+    unwrapped?.Movies,
+    unwrapped?.favorites,
+    unwrapped?.Favorites,
+    unwrapped?.history,
+    unwrapped?.History,
+    unwrapped?.results,
+    unwrapped?.Results,
+    unwrapped?.records,
+    unwrapped?.Records,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  return [];
+}
+
+function getNestedObject(source = {}, key) {
+  const capitalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
+  const value = source?.[key] || source?.[capitalizedKey];
+  return value && typeof value === "object" ? value : null;
 }

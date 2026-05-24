@@ -23,6 +23,7 @@ export default class PosterCarouselComponent extends BaseComponent {
     this._onDocumentMouseLeaveBound = this._onDocumentMouseLeave.bind(this);
     this._onWindowBlurBound = this._onWindowBlur.bind(this);
     this._onWindowResizeBound = this._onWindowResize.bind(this);
+    this._onViewportScrollBound = this._updateScrollArrowState.bind(this);
     this._onSlideClickBound = this._onSlideClick.bind(this);
     this._onDragStartBound = this._onDragStart.bind(this);
   }
@@ -54,6 +55,9 @@ export default class PosterCarouselComponent extends BaseComponent {
     prevButton?.addEventListener("click", this._onPrevClick);
     nextButton?.addEventListener("click", this._onNextClick);
     viewport?.addEventListener("mousedown", this._onViewportMouseDown);
+    viewport?.addEventListener("scroll", this._onViewportScrollBound, {
+      passive: true,
+    });
     slides.forEach((slide) => {
       slide.addEventListener("click", this._onSlideClickBound);
       slide.addEventListener("dragstart", this._onDragStartBound);
@@ -68,6 +72,8 @@ export default class PosterCarouselComponent extends BaseComponent {
 
     if (this.context.centeredHero) {
       this._applyActiveSlideState();
+    } else {
+      this._updateScrollArrowState();
     }
   }
 
@@ -80,6 +86,7 @@ export default class PosterCarouselComponent extends BaseComponent {
     prevButton?.removeEventListener("click", this._onPrevClick);
     nextButton?.removeEventListener("click", this._onNextClick);
     viewport?.removeEventListener("mousedown", this._onViewportMouseDown);
+    viewport?.removeEventListener("scroll", this._onViewportScrollBound);
     slides.forEach((slide) => {
       slide.removeEventListener("click", this._onSlideClickBound);
       slide.removeEventListener("dragstart", this._onDragStartBound);
@@ -196,7 +203,10 @@ export default class PosterCarouselComponent extends BaseComponent {
   }
 
   _onWindowResize() {
-    if (!this.context.centeredHero) return;
+    if (!this.context.centeredHero) {
+      this._updateScrollArrowState();
+      return;
+    }
 
     if (this._isHeroCycling) {
       this._cancelHeroCycle();
@@ -220,11 +230,31 @@ export default class PosterCarouselComponent extends BaseComponent {
     });
   }
 
-  _applyActiveSlideState() {
+  _updateScrollArrowState() {
+    if (this.context.centeredHero) return;
+
+    const viewport = this.el.querySelector('[data-role="viewport"]');
+    const prevButton = this.el.querySelector('[data-action="scroll-prev"]');
+    const nextButton = this.el.querySelector('[data-action="scroll-next"]');
+
+    if (!viewport || (!prevButton && !nextButton)) {
+      return;
+    }
+
+    const maxScrollLeft = Math.max(viewport.scrollWidth - viewport.clientWidth, 0);
+    const canScrollBackward = viewport.scrollLeft > 1;
+    const canScrollForward = viewport.scrollLeft < maxScrollLeft - 1;
+
+    updateArrowAvailability(prevButton, canScrollBackward);
+    updateArrowAvailability(nextButton, canScrollForward);
+  }
+
+  _applyActiveSlideState(nextActiveIndex = null) {
     const slides = Array.from(
       this.el.querySelectorAll(".poster-carousel__slide"),
     );
-    const activeIndex = Math.floor(slides.length / 2);
+    const activeIndex =
+      nextActiveIndex === null ? Math.floor(slides.length / 2) : nextActiveIndex;
 
     slides.forEach((slide, index) => {
       slide.classList.toggle("is-active", index === activeIndex);
@@ -243,51 +273,57 @@ export default class PosterCarouselComponent extends BaseComponent {
 
     this._isHeroCycling = true;
     const gap = getTrackGap(track);
+    const activeIndex = Math.floor(slides.length / 2);
 
     if (direction > 0) {
       const firstSlide = slides[0];
-      const shift = firstSlide.getBoundingClientRect().width + gap;
+      const shift = firstSlide.offsetWidth + gap;
 
-      track.style.transition = `transform ${HERO_CYCLE_DURATION_MS}ms ease`;
+      this._applyActiveSlideState(activeIndex + 1);
+      void track.offsetWidth;
+
+      track.style.transition = `transform ${HERO_CYCLE_DURATION_MS}ms ${HERO_CYCLE_EASING}`;
       track.style.transform = `translateX(${-shift}px)`;
-      track.addEventListener(
-        "transitionend",
-        () => {
-          track.style.transition = "none";
-          track.style.transform = "translateX(0)";
-          track.append(firstSlide);
-          this._applyActiveSlideState();
-          this._isHeroCycling = false;
-        },
-        { once: true },
-      );
+      const onTransitionEnd = (event) => {
+        if (event.target !== track) return;
+
+        track.removeEventListener("transitionend", onTransitionEnd);
+        track.style.transition = "none";
+        track.style.transform = "translateX(0)";
+        track.append(firstSlide);
+        this._applyActiveSlideState();
+        this._isHeroCycling = false;
+      };
+      track.addEventListener("transitionend", onTransitionEnd);
       return;
     }
 
     const lastSlide = slides[slides.length - 1];
     track.prepend(lastSlide);
 
-    const shift = lastSlide.getBoundingClientRect().width + gap;
+    const shift = lastSlide.offsetWidth + gap;
     track.style.transition = "none";
     track.style.transform = `translateX(${-shift}px)`;
+    this._applyActiveSlideState(activeIndex);
     void track.offsetWidth;
 
-    track.style.transition = `transform ${HERO_CYCLE_DURATION_MS}ms ease`;
+    track.style.transition = `transform ${HERO_CYCLE_DURATION_MS}ms ${HERO_CYCLE_EASING}`;
     track.style.transform = "translateX(0)";
-    track.addEventListener(
-      "transitionend",
-      () => {
-        track.style.transition = "none";
-        track.style.transform = "translateX(0)";
-        this._applyActiveSlideState();
-        this._isHeroCycling = false;
-      },
-      { once: true },
-    );
+    const onTransitionEnd = (event) => {
+      if (event.target !== track) return;
+
+      track.removeEventListener("transitionend", onTransitionEnd);
+      track.style.transition = "none";
+      track.style.transform = "translateX(0)";
+      this._applyActiveSlideState();
+      this._isHeroCycling = false;
+    };
+    track.addEventListener("transitionend", onTransitionEnd);
   }
 }
 
-const HERO_CYCLE_DURATION_MS = 320;
+const HERO_CYCLE_DURATION_MS = 620;
+const HERO_CYCLE_EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 function buildCarouselContext(context = {}) {
   const movies = Array.isArray(context.movies) ? context.movies : [];
@@ -300,6 +336,8 @@ function buildCarouselContext(context = {}) {
     showTitle: !centeredHero && Boolean(context.title),
     showArrows: context.showArrows !== false,
     centeredHero,
+    canScrollBackward: centeredHero,
+    canScrollForward: true,
     posterItems: movies.map((movie, index) => ({
       ...movie,
       size: centeredHero ? "hero" : movie.size || posterSize,
@@ -316,4 +354,12 @@ function buildCarouselContext(context = {}) {
 function getTrackGap(track) {
   const styles = window.getComputedStyle(track);
   return Number.parseFloat(styles.columnGap || styles.gap || "0") || 0;
+}
+
+function updateArrowAvailability(button, isAvailable) {
+  if (!button) return;
+
+  button.classList.toggle("is-hidden", !isAvailable);
+  button.hidden = !isAvailable;
+  button.disabled = !isAvailable;
 }

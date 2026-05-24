@@ -123,6 +123,20 @@
   color: rgba(232, 210, 181, 0.55);
 }
 
+.vk-header__search-input::-webkit-search-cancel-button {
+  width: 14px;
+  height: 14px;
+  appearance: none;
+  background: #ff6a2a;
+  cursor: pointer;
+  -webkit-mask:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 4L12 12M12 4L4 12' stroke='black' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 4L12 12M12 4L4 12' stroke='black' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
 .vk-header__search-panel {
   position: absolute;
   top: calc(100% + 10px);

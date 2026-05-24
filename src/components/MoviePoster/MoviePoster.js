@@ -99,6 +99,7 @@ function buildPosterContext(context = {}) {
     hasRatings: variant !== "hero" && Boolean(imdbRating || kpRating),
     isHero: variant === "hero",
     isPerson: variant === "person",
+    personRoleLabel: context.personRoleLabel || "Актер",
     useContainedImage: variant === "hero" && !hasHeroBackdrop,
     showAlwaysContent: variantConfig.showAlwaysContent,
     showOverlay: variantConfig.showOverlay,
