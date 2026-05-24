@@ -151,6 +151,18 @@
               </button>
             </div>
 
+            {{#if showPaywall}}
+              <div class="movie-paywall" role="alert">
+                <h3 class="movie-paywall__title">Платный контент</h3>
+                <p class="movie-paywall__text">
+                  Для просмотра этого {{movie.contentType}} нужна подписка с доступом к платному контенту.
+                </p>
+                <a href="/subscription" class="btn btn_accent movie-paywall__cta" router-link>
+                  Оформить подписку
+                </a>
+              </div>
+            {{/if}}
+
             <p class="movie-description">{{movie.description}}</p>
           </div>
         </div>

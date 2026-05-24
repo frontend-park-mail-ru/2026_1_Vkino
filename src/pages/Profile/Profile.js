@@ -174,9 +174,11 @@ export default class ProfilePage extends BasePage {
     const isFavoritesEmpty = favorites.length === 0;
     const isFriendsEmpty = friendsPreview.length === 0;
 
-    const subscriptionNormalized = subscriptionResult.ok
-      ? normalizeSubscriptionFromApi(subscriptionResult.resp)
-      : null;
+    const storeSubscription = authStore.getState().user?.subscription ?? null;
+    const subscriptionNormalized = storeSubscription
+      ?? (subscriptionResult.ok
+        ? normalizeSubscriptionFromApi(subscriptionResult.resp?.subscription)
+        : null);
     const subscriptionTier = subscriptionNormalized?.tier ?? 0;
     const subscriptionLabel =
       subscriptionNormalized?.label ?? "Нет подписки";

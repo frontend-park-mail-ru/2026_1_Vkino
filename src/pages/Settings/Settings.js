@@ -126,10 +126,27 @@ export default class SettingsPage extends BasePage {
   }
 
   async _loadSubscriptionSection() {
+    const state = authStore.getState();
+    let current = state.user?.subscription ?? null;
+    let usageSummary = null;
+
+    if (state.user?.usage) {
+      usageSummary = this._buildUsageSummary(state.user.usage, state.user.capabilities);
+    }
+
     const [plansRes, subRes] = await Promise.all([
       userService.getSubscriptionPlans(),
-      userService.getCurrentUserSubscription(),
+      !current || !usageSummary
+        ? userService.getCurrentUserSubscription()
+        : Promise.resolve({ ok: true, resp: null }),
     ]);
+
+    if ((!current || !usageSummary) && subRes.ok) {
+      current = current ?? normalizeSubscriptionFromApi(subRes.resp?.subscription);
+      if (subRes.resp?.usage) {
+        usageSummary = this._buildUsageSummary(subRes.resp.usage, subRes.resp?.capabilities);
+      }
+    }
 
     let previewPlans = getDefaultSubscriptionPlansPreview();
     if (
@@ -137,29 +154,21 @@ export default class SettingsPage extends BasePage {
       Array.isArray(plansRes.resp?.plans) &&
       plansRes.resp.plans.length > 0
     ) {
-      previewPlans = plansRes.resp.plans.map((p) => {
-        const tier = Number(p.tier) || 0;
-        const priceNum = Number(p.price);
-        let priceSummary = "Бесплатно";
-        if (tier > 0 && Number.isFinite(priceNum) && priceNum > 0) {
-          priceSummary = `${priceNum} ₽ / мес`;
-        } else if (tier > 0 && p.price != null && String(p.price).trim()) {
-          priceSummary = String(p.price).includes("₽")
-            ? String(p.price)
-            : `${p.price} ₽ / мес`;
-        }
-        return {
-          id: p.id,
-          name: p.name,
-          tier,
-          priceSummary,
-        };
-      });
+      previewPlans = plansRes.resp.plans.map((p) => ({
+        id: p.id,
+        name: p.name,
+        tier: Number(p.tier) || 0,
+        priceSummary:
+          p.tier > 0 && p.priceMoney
+            ? `${p.priceMoney} ₽ / мес`
+            : p.tier > 0 && p.price
+              ? String(p.price).includes("₽")
+                ? `${p.price} / мес`
+                : `${p.price} / мес`
+              : "Бесплатно",
+      }));
     }
 
-    const current = subRes.ok
-      ? normalizeSubscriptionFromApi(subRes.resp)
-      : null;
     const subscriptionPlans = markPlansForPreview(previewPlans, current);
 
     this._settingsSubscriptionHydrated = true;
@@ -167,9 +176,26 @@ export default class SettingsPage extends BasePage {
       ...this.context,
       currentSubscription: current,
       subscriptionPlans,
+      subscriptionUsageSummary: usageSummary,
     });
 
     this._scrollSubscriptionIntoViewIfNeeded();
+  }
+
+  _buildUsageSummary(usage, capabilities) {
+    if (!usage) return null;
+
+    const parts = [];
+    if (usage.coinsRemainingToday != null) {
+      parts.push(`Coins сегодня: ${usage.coinsRemainingToday}`);
+    }
+    if (usage.roomsRemainingThisMonth != null) {
+      parts.push(`Комнат в этом месяце: ${usage.roomsRemainingThisMonth}`);
+    } else if (capabilities?.monthlyRoomLimit == null) {
+      parts.push("Комнаты: без лимита");
+    }
+
+    return parts.length ? parts.join(" · ") : null;
   }
 
   _scrollSubscriptionIntoViewIfNeeded() {

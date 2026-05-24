@@ -111,6 +111,9 @@
               <div class="subscription-current__actions">
                 <a href="/subscription" class="btn btn_outline" router-link>Управление подпиской</a>
               </div>
+              {{#if subscriptionUsageSummary}}
+                <p class="subscription-current__usage">{{subscriptionUsageSummary}}</p>
+              {{/if}}
             </div>
           {{else}}
             <div class="settings-subscription-empty">
