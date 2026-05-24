@@ -424,3 +424,25 @@
     grid-template-columns: 1fr;
   }
 }
+
+.movie-paywall {
+  margin: 1rem 0;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid rgba(124, 92, 255, 0.35);
+  background: rgba(124, 92, 255, 0.08);
+}
+
+.movie-paywall__title {
+  margin: 0 0 0.5rem;
+  font-size: var(--text-lg);
+}
+
+.movie-paywall__text {
+  margin: 0 0 1rem;
+  color: var(--text-secondary, #9ca3af);
+}
+
+.movie-paywall__cta {
+  display: inline-flex;
+}

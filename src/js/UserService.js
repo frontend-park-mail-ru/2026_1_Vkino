@@ -1,4 +1,9 @@
 import { apiService } from "./api.js";
+import { paymentService } from "./PaymentService.js";
+import {
+  buildPlansFromTariffs,
+  normalizeCapabilitiesFromApi,
+} from "@/utils/subscriptionDisplay.js";
 
 /**
  * Сервис авторизации. Надстройка нам ApiService
@@ -150,117 +155,50 @@ export class UserService {
   }
 
   /**
-   * Список тарифных планов подписки.
+   * Список тарифных планов подписки (free + платные из payment-service).
    */
   async getSubscriptionPlans() {
-    return Promise.resolve({ ok: true, resp: { plans: [] } });
+    const result = await paymentService.getTariffs();
+    if (!result.ok) {
+      return result;
+    }
+
+    const tariffs = Array.isArray(result.resp?.tariffs) ? result.resp.tariffs : [];
+    return {
+      ok: true,
+      resp: {
+        plans: buildPlansFromTariffs(tariffs),
+      },
+    };
   }
 
   /**
-   * Текущая подписка пользователя.
+   * Текущая подписка, capabilities и usage пользователя.
+   */
+  async getSubscriptionCapabilities() {
+    return this.api.get("/subscription/capabilities");
+  }
+
+  /**
+   * Текущая подписка пользователя (обёртка над capabilities).
    */
   async getCurrentUserSubscription() {
-    const renews = new Date(Date.now() + 30 * 864e5).toISOString();
+    const result = await this.getSubscriptionCapabilities();
+    if (!result.ok) {
+      return result;
+    }
 
-    /* Нет подписки (empty state на странице тарифов и в профиле)
-    return Promise.resolve({ ok: true, resp: null });*/
-    
+    const normalized = normalizeCapabilitiesFromApi(result.resp);
 
-    /* Подписка I уровня */
-    return Promise.resolve({
+    return {
       ok: true,
       resp: {
-        plan_id: "tier1",
-        tier: 1,
-        plan_name: "Подписка I уровня",
-        renews_at: renews,
-        can_cancel: true,
-        status: "active",
+        subscription: result.resp?.subscription ?? null,
+        capabilities: normalized,
+        usage: normalized.usage,
+        raw: result.resp,
       },
-    });
-    
-
-    /* Подписка II уровня 
-    return Promise.resolve({
-      ok: true,
-      resp: {
-        plan_id: "tier2",
-        tier: 2,
-        plan_name: "Подписка II уровня",
-        renews_at: renews,
-        can_cancel: true,
-        status: "active",
-      },
-    });
-    */
-
-    /* Подписка III уровня (максимум — без кнопки «Улучшить») */
-    return Promise.resolve({
-      ok: true,
-      resp: {
-        plan_id: "tier3",
-        tier: 3,
-        plan_name: "Подписка III уровня",
-        renews_at: renews,
-        can_cancel: true,
-        status: "active",
-      },
-    });
-    
-
-    const stub = {
-      plan_id: "free",
-      tier: 0,
-      plan_name: "Нет подписки",
-      renews_at: null,
-      can_cancel: false,
-      status: "active",
     };
-    return Promise.resolve({ ok: true, resp: stub });
-  }
-
-  /**
-   * Способы оплаты.
-   */
-  async getPaymentMethods() {
-    return Promise.resolve({
-      ok: true,
-      resp: { cards: [], yoomoney: false },
-    });
-  }
-
-  /**
-   * Оформление подписки.
-   */
-  async createSubscription(payload = {}) {
-    const planId = String(payload.plan_id || "tier1");
-    const meta = {
-      free: { tier: 0, plan_name: "Нет подписки" },
-      tier1: { tier: 1, plan_name: "Подписка I уровня" },
-      tier2: { tier: 2, plan_name: "Подписка II уровня" },
-      tier3: { tier: 3, plan_name: "Подписка III уровня" },
-    };
-    const m = meta[planId] || meta.tier1;
-    return Promise.resolve({
-      ok: true,
-      resp: {
-        subscription: {
-          plan_id: planId,
-          tier: m.tier,
-          plan_name: m.plan_name,
-          renews_at: new Date(Date.now() + 30 * 864e5).toISOString(),
-          can_cancel: planId !== "free",
-          status: "active",
-        },
-      },
-    });
-  }
-
-  /**
-   * Отмена подписки.
-   */
-  async cancelSubscription() {
-    return Promise.resolve({ ok: true, resp: {} });
   }
 
   /**

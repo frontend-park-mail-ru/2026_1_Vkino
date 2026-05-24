@@ -1,0 +1,75 @@
+<div class="page page_payment-return">
+  <header id="header"></header>
+
+  <main class="main-content payment-return">
+    <section class="payment-return__card">
+      {{#if isLoading}}
+        <div class="payment-return__status payment-return__status_loading">
+          <div class="payment-return__spinner" aria-hidden="true"></div>
+          <h1 class="payment-return__title">Обрабатываем оплату…</h1>
+          <p class="payment-return__text">
+            Пожалуйста, подождите. Мы проверяем статус платежа.
+          </p>
+        </div>
+      {{else if isSuccess}}
+        <div class="payment-return__status payment-return__status_success">
+          <h1 class="payment-return__title">Подписка активирована</h1>
+          {{#if subscriptionLabel}}
+            <p class="payment-return__text">
+              Тариф «{{subscriptionLabel}}» успешно подключён.
+            </p>
+          {{/if}}
+          {{#if renewsAt}}
+            <p class="payment-return__meta">Активна до {{renewsAt}}</p>
+          {{/if}}
+          <div class="payment-return__actions">
+            <a href="/" class="btn btn_outline" router-link>На главную</a>
+            <a href="/subscription" class="btn btn_accent" router-link>К подписке</a>
+          </div>
+        </div>
+      {{else if isCanceled}}
+        <div class="payment-return__status payment-return__status_error">
+          <h1 class="payment-return__title">Оплата отменена</h1>
+          <p class="payment-return__text">
+            Платёж не был завершён. Вы можете попробовать снова.
+          </p>
+          <div class="payment-return__actions">
+            <a href="/subscription" class="btn btn_accent" router-link>Попробовать снова</a>
+          </div>
+        </div>
+      {{else if isIncomplete}}
+        <div class="payment-return__status payment-return__status_error">
+          <h1 class="payment-return__title">Оплата не завершена</h1>
+          <p class="payment-return__text">
+            Если вы отменили оплату на стороне ЮKassa, попробуйте снова. Если оплата прошла, проверьте подписку в профиле.
+          </p>
+          <div class="payment-return__actions">
+            <a href="/subscription" class="btn btn_accent" router-link>К подписке</a>
+            <a href="/profile" class="btn btn_outline" router-link>В профиль</a>
+          </div>
+        </div>
+      {{else if isTimeout}}
+        <div class="payment-return__status payment-return__status_timeout">
+          <h1 class="payment-return__title">Статус уточняется</h1>
+          <p class="payment-return__text">
+            Если оплата прошла, обновите страницу или проверьте подписку в профиле.
+          </p>
+          <div class="payment-return__actions">
+            <button type="button" class="btn btn_outline" data-action="retry-check">
+              Проверить снова
+            </button>
+            <a href="/profile" class="btn btn_accent" router-link>В профиль</a>
+          </div>
+        </div>
+      {{else}}
+        <div class="payment-return__status payment-return__status_error">
+          <h1 class="payment-return__title">Не удалось проверить оплату</h1>
+          <p class="payment-return__text">{{errorMessage}}</p>
+          <div class="payment-return__actions">
+            <a href="/subscription" class="btn btn_accent" router-link>К подписке</a>
+          </div>
+        </div>
+      {{/if}}
+    </section>
+  </main>
+</div>
