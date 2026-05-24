@@ -20,7 +20,9 @@
 
 .support-create-page--embed {
   min-height: 100%;
+  height: 100%;
   padding: 0;
+  overflow: hidden;
 }
 
 .support-create-page__inner {
@@ -32,7 +34,7 @@
 
 .support-create-page--embed .support-create-page__inner {
   width: 100%;
-  min-height: 100%;
+  height: 100%;
   gap: 0;
 }
 
@@ -55,8 +57,10 @@
 }
 
 .page_support-create--embed {
+  height: 100%;
   min-height: 100%;
   background: #090201;
+  overflow: hidden;
 }
 
 .support-create__hero--embed {
@@ -125,10 +129,11 @@
 
 .support-create__card--embed {
   min-height: 0;
-  padding: 0.85rem 1rem 1rem;
+  padding: 0.7rem 1rem 0.85rem;
   border: 0;
   border-radius: 0;
   background: #090201;
+  overflow: hidden;
 }
 
 .support-create__status {
@@ -166,7 +171,7 @@
 }
 
 .support-create__card--embed .support-create__form {
-  gap: 0.45rem;
+  gap: 0.32rem;
 }
 
 .support-create__field {
@@ -175,7 +180,13 @@
 }
 
 .support-create__card--embed .support-create__field {
-  gap: 0.35rem;
+  gap: 0.24rem;
+}
+
+.support-create__card--embed .support-create__label,
+.support-create__card--embed .support-create__hint,
+.support-create__card--embed .support-create__error {
+  font-size: 0.72rem;
 }
 
 .support-create__label {
@@ -284,7 +295,7 @@
 }
 
 .support-create__card--embed .support-create__input--textarea {
-  min-height: 5.2rem;
+  min-height: 4.35rem;
 }
 
 .support-create__input--file {

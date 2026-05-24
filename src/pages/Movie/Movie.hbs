@@ -180,19 +180,18 @@
             <span class="movie-trailer-play" aria-hidden="true">▶</span>
           </a>
         {{else}}
-          <div class="movie-trailer movie-trailer-disabled">
+          <div class="movie-trailer">
             <img
               class="movie-trailer-image"
               src="{{movie.trailerPreviewUrl}}"
-              alt="Трейлер недоступен"
+              alt="Постер фильма {{movie.title}}"
             />
-            <span class="movie-empty-overlay">Трейлер недоступен</span>
           </div>
         {{/if}}
       </section>
 
       <section class="movie-section">
-        <h2 class="movie-section-title">Актерский состав</h2>
+        <h2 class="movie-section-title">{{movie.castTitle}}</h2>
         {{#if movie.cast}}
           <div id="movie-cast-carousel"></div>
         {{else}}
@@ -202,16 +201,16 @@
 
       <div id="movie-reviews-root"></div>
 
-      <section class="movie-section">
-        <h2 class="movie-section-title">Смотреть также</h2>
-        <div class="movie-filter-row">
-          <button
-            class="movie-filter-btn is-active"
-            type="button"
-          >Похожие</button>
-        </div>
+      {{#if movie.similar}}
+        <section class="movie-section">
+          <h2 class="movie-section-title">Смотреть также</h2>
+          <div class="movie-filter-row">
+            <button
+              class="movie-filter-btn is-active"
+              type="button"
+            >Похожие</button>
+          </div>
 
-        {{#if movie.similar}}
           <div class="movie-similar-list">
             {{#each movie.similar}}
               <a
@@ -227,10 +226,8 @@
               </a>
             {{/each}}
           </div>
-        {{else}}
-          <p class="movie-empty-text">Похожие фильмы не найдены.</p>
-        {{/if}}
-      </section>
+        </section>
+      {{/if}}
     {{/if}}
   </main>
 

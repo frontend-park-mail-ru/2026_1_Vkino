@@ -173,7 +173,7 @@
 }
 
 .main-support-widget--open .main-support-widget__panel {
-  height: min(42rem, calc(100dvh - 7.5rem));
+  height: min(46rem, calc(100dvh - 3rem));
   opacity: 1;
   visibility: visible;
   transform: translateY(0) scale(1);
@@ -283,7 +283,7 @@
   }
 
   .main-support-widget--open .main-support-widget__panel {
-    height: min(38rem, calc(100dvh - 7rem));
+    height: min(46rem, calc(100dvh - 2rem));
   }
 }
 

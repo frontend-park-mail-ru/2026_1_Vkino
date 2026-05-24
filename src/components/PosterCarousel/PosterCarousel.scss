@@ -138,18 +138,27 @@
 }
 
 .poster-carousel--centered-hero .poster-carousel__slide--hero {
-  width: clamp(320px, 30vw, 800px);
-  height: clamp(300px, 33vw, 380px);
-  opacity: 0.58;
+  width: clamp(420px, 40vw, 900px);
+  height: clamp(320px, 36vw, 420px);
+  opacity: 0.44;
   filter: saturate(0.8);
-  transform: scale(0.92);
+  transform: scale(0.78);
   transform-origin: center;
   cursor: pointer;
+  transition:
+    transform 0.62s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.62s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.62s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity, filter;
+}
+
+.poster-carousel--centered-hero .poster-carousel__slide--hero.is-prev,
+.poster-carousel--centered-hero .poster-carousel__slide--hero.is-next {
+  opacity: 0.68;
+  transform: scale(0.86);
 }
 
 .poster-carousel--centered-hero .poster-carousel__slide--hero.is-active {
-  width: clamp(420px, 40vw, 900px);
-  height: clamp(320px, 36vw, 420px);
   opacity: 1;
   filter: none;
   transform: scale(1);
@@ -159,7 +168,7 @@
 .poster-carousel--centered-hero
   .poster-carousel__slide--hero:not(.is-active):hover {
   opacity: 0.78;
-  transform: scale(0.95);
+  transform: scale(0.9);
 }
 
 .poster-carousel--centered-hero
@@ -214,6 +223,12 @@
   transition:
     background 0.2s ease,
     transform 0.2s ease;
+}
+
+.poster-carousel__arrow.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .poster-carousel__arrow:hover {
@@ -274,11 +289,6 @@
   }
 
   .poster-carousel--centered-hero .poster-carousel__slide--hero {
-    width: clamp(260px, 28vw, 340px);
-    height: clamp(270px, 31vw, 340px);
-  }
-
-  .poster-carousel--centered-hero .poster-carousel__slide--hero.is-active {
     width: clamp(360px, 42vw, 500px);
     height: clamp(300px, 34vw, 380px);
   }
@@ -318,18 +328,10 @@
   }
 
   .poster-carousel--centered-hero .poster-carousel__slide--hero {
-    width: min(62vw, 320px);
-    min-width: 0;
-    max-width: 320px;
-    height: 260px;
-    transform: scale(0.94);
-  }
-
-  .poster-carousel--centered-hero .poster-carousel__slide--hero.is-active {
     width: min(80vw, 420px);
+    min-width: 0;
     max-width: 420px;
     height: 280px;
-    transform: scale(1);
   }
 
   .poster-carousel__arrow {

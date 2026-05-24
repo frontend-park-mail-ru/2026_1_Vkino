@@ -730,6 +730,7 @@ function createEmptyMovieData(movieId = "") {
     ratings: [],
     reviews: [],
     cast: [],
+    castTitle: "Актерский состав",
     similar: [],
     isFavorite: false,
   };
@@ -751,6 +752,8 @@ function mapMovieDtoToViewModel(dto) {
     normalizeEpisodePreviewUrl(dto.episodes) ||
     posterUrl ||
     fallbackMovie.trailerPreviewUrl;
+  const contentType = mapContentType(dto.content_type);
+  const isCartoon = isCartoonContentType(dto.content_type);
 
   return {
     ...fallbackMovie,
@@ -758,7 +761,7 @@ function mapMovieDtoToViewModel(dto) {
     title: normalizeString(dto.title) || fallbackMovie.title,
     description: normalizeString(dto.description) || fallbackMovie.description,
     director: normalizeString(dto.director) || fallbackMovie.director,
-    contentType: mapContentType(dto.content_type),
+    contentType,
     releaseYear: mapReleaseYear(dto.release_year),
     duration: mapDurationSeconds(dto.duration_seconds),
     age: mapAgeLimit(dto.age_limit),
@@ -773,7 +776,8 @@ function mapMovieDtoToViewModel(dto) {
     ),
     reviews: mapReviews(dto.reviews),
     episodes: mapEpisodes(dto.episodes),
-    cast: mapActors(dto.actors),
+    cast: mapActors(dto.actors, { isVoiceCast: isCartoon }),
+    castTitle: isCartoon ? "Актеры озвучки" : fallbackMovie.castTitle,
     isPaid: Boolean(dto.is_paid ?? dto.isPaid),
   };
 }
@@ -969,10 +973,13 @@ function mapGenreLinks(value) {
     });
 }
 
-function mapActors(value) {
+function mapActors(value, options = {}) {
   if (!Array.isArray(value)) {
     return [];
   }
+
+  const personRoleLabel = options.isVoiceCast ? "Актер озвучки" : "Актер";
+  const actionText = options.isVoiceCast ? "Об актере озвучки" : "Об актере";
 
   return value
     .map((actor) => {
@@ -993,7 +1000,8 @@ function mapActors(value) {
           normalizeActorImageUrl(actor.img_url) || "/img/user-avatar.webp",
         imgUrl: normalizeActorImageUrl(actor.img_url) || "/img/user-avatar.webp",
         href: `/actor/${encodeURIComponent(normalizeString(actor.id))}`,
-        actionText: "Об актере",
+        actionText,
+        personRoleLabel,
       };
     })
     .filter(Boolean);
@@ -1046,6 +1054,16 @@ function mapContentType(value) {
   }
 
   return CONTENT_TYPE_BY_KEY[normalizedValue] || normalizedValue;
+}
+
+function isCartoonContentType(value) {
+  const normalizedValue = normalizeString(value).toLowerCase();
+
+  return (
+    normalizedValue === "cartoon" ||
+    normalizedValue.includes("cartoon") ||
+    normalizedValue.includes("мульт")
+  );
 }
 
 function mapReleaseYear(value) {
