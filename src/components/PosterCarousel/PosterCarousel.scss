@@ -221,11 +221,15 @@
   transform: translateY(-50%) scale(1.03);
 }
 
-.poster-carousel__arrow span {
+.poster-carousel__arrow-icon {
+  width: 30px;
+  height: 30px;
   display: block;
-  font-size: 34px;
-  line-height: 1;
-  transform: translateY(-1px);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .poster-carousel__arrow--prev {

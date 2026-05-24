@@ -112,21 +112,16 @@
               </div>
             </dl>
 
-            <div class="movie-ratings">
-              {{#if movie.ratings}}
+            {{#if movie.ratings}}
+              <div class="movie-ratings">
                 {{#each movie.ratings}}
                   <div class="movie-rating-card">
                     <span class="movie-rating-source">{{this.source}}</span>
                     <span class="movie-rating-value">{{this.value}}</span>
                   </div>
                 {{/each}}
-              {{else}}
-                <div class="movie-rating-card">
-                  <span class="movie-rating-source">Рейтинг</span>
-                  <span class="movie-rating-value">Недоступен</span>
-                </div>
-              {{/if}}
-            </div>
+              </div>
+            {{/if}}
 
             <div class="movie-action-row">
               <button

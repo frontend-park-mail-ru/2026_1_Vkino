@@ -1,3 +1,5 @@
+const DEFAULT_DOCUMENT_TITLE = "VKino";
+
 export class Router {
   /**
    * Создает экземпляр роутера
@@ -129,6 +131,7 @@ export class Router {
       this.activePage.destroy();
     }
 
+    document.title = DEFAULT_DOCUMENT_TITLE;
     this.root.innerHTML = "";
     const page = pageBuilder(this.root);
     if (!page || typeof page.init !== "function") {

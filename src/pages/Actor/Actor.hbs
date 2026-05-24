@@ -50,8 +50,10 @@
       <div id="actor-movies-carousel"></div>
     </section>
   {{else}}
-    <section class="actor-card">
-      <h1 class="actor-card__title">Актер не найден</h1>
-    </section>
+    {{#unless isLoading}}
+      <section class="actor-card">
+        <h1 class="actor-card__title">Актер не найден</h1>
+      </section>
+    {{/unless}}
   {{/if}}
 </main>
