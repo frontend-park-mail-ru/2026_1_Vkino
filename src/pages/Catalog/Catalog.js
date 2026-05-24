@@ -118,6 +118,7 @@ export default class CatalogPage extends BasePage {
     );
 
     this._hasProvidedItems = hasProvidedItems;
+    this._isDestroyed = false;
   }
 
   init() {
@@ -129,6 +130,10 @@ export default class CatalogPage extends BasePage {
     }
 
     return this;
+  }
+
+  beforeDestroy() {
+    this._isDestroyed = true;
   }
 
   async loadContext() {
@@ -152,6 +157,11 @@ export default class CatalogPage extends BasePage {
     const selectionsResult = await movieService.getSelectionsByTitles(
       resolveRequestedSelectionTitles(this.context),
     );
+
+    if (this._isDestroyed) {
+      return;
+    }
+
     const { ok, status, resp, error } = selectionsResult;
 
     if (!ok) {
@@ -309,6 +319,10 @@ export default class CatalogPage extends BasePage {
 
     const result = await movieService.searchMovies(searchQuery);
 
+    if (this._isDestroyed) {
+      return;
+    }
+
     if (!result.ok) {
       this.refresh(
         buildCatalogContext({
@@ -349,6 +363,10 @@ export default class CatalogPage extends BasePage {
 
   async _loadGenresContext() {
     const result = await movieService.getGenres();
+
+    if (this._isDestroyed) {
+      return;
+    }
 
     if (!result.ok) {
       this.refresh(
@@ -407,6 +425,10 @@ export default class CatalogPage extends BasePage {
     }
 
     const result = await movieService.getGenreById(genreId);
+
+    if (this._isDestroyed) {
+      return;
+    }
 
     if (!result.ok || !result.resp) {
       this.refresh(

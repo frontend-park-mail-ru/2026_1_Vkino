@@ -122,6 +122,219 @@
   background: var(--input-bg-focus);
 }
 
+.settings-date {
+  position: relative;
+}
+
+.settings-date__value-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.settings-date__trigger {
+  width: 100%;
+  min-height: 2.875rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  padding: 0.75rem 0.9rem;
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease-default),
+    background-color var(--duration-fast) var(--ease-default),
+    color var(--duration-fast) var(--ease-default);
+}
+
+.settings-date__trigger:hover,
+.settings-date__trigger:focus-visible,
+.settings-date__trigger[aria-expanded="true"] {
+  outline: none;
+  border-color: var(--border-focus);
+  background: var(--input-bg-focus);
+  color: var(--text-primary);
+}
+
+.settings-date__trigger.has-value {
+  color: var(--text-primary);
+}
+
+.settings-date__trigger.is-error {
+  border-color: #ff7b6e;
+}
+
+.settings-date__value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-date__icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
+.settings-date__popup {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 20;
+  width: min(21rem, calc(100vw - 2rem));
+  min-width: min(18rem, calc(100vw - 2rem));
+  display: grid;
+  gap: var(--space-3);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  padding: var(--space-3);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.32);
+}
+
+.settings-date__popup[hidden] {
+  display: none;
+}
+
+.settings-date__header {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr) 2.25rem;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.settings-date__nav {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.settings-date__nav:hover:not(:disabled),
+.settings-date__nav:focus-visible {
+  outline: none;
+  border-color: var(--border-focus);
+  color: var(--accent);
+}
+
+.settings-date__nav:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.settings-date__nav svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.settings-date__selectors {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 5.25rem;
+  gap: var(--space-2);
+}
+
+.settings-date__select {
+  width: 100%;
+  min-height: 2.25rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--input-bg);
+  color: var(--text-primary);
+  padding: 0 0.6rem;
+}
+
+.settings-date__select:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.settings-date__weekdays,
+.settings-date__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.settings-date__weekdays span {
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.settings-date__day,
+.settings-date__day-placeholder {
+  aspect-ratio: 1;
+  min-width: 0;
+}
+
+.settings-date__day {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.settings-date__day:hover:not(:disabled),
+.settings-date__day:focus-visible {
+  outline: none;
+  border-color: rgba(255, 87, 31, 0.42);
+  color: var(--accent);
+}
+
+.settings-date__day.is-today {
+  border-color: var(--border-color);
+}
+
+.settings-date__day.is-selected {
+  background: var(--accent);
+  border-color: rgba(255, 87, 31, 0.58);
+  color: var(--text-on-accent);
+}
+
+.settings-date__day:disabled {
+  color: var(--text-secondary);
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.settings-date__clear {
+  justify-self: start;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  padding: 0;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.settings-date__clear:hover,
+.settings-date__clear:focus-visible {
+  outline: none;
+  color: var(--accent-hover);
+}
+
 .settings__input-wrapper {
   position: relative;
 }

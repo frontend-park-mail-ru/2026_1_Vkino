@@ -18,12 +18,15 @@
   <div class="poster-carousel__viewport-wrap">
     {{#if showArrows}}
       <button
-        class="poster-carousel__arrow poster-carousel__arrow--prev"
+        class="poster-carousel__arrow poster-carousel__arrow--prev{{#unless canScrollBackward}} is-hidden{{/unless}}"
         type="button"
         data-action="scroll-prev"
         aria-label="Прокрутить влево"
+        {{#unless canScrollBackward}}hidden disabled{{/unless}}
       >
-        <span>&lsaquo;</span>
+        <svg class="poster-carousel__arrow-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 6L9 12L15 18"></path>
+        </svg>
       </button>
     {{/if}}
 
@@ -47,12 +50,15 @@
 
     {{#if showArrows}}
       <button
-        class="poster-carousel__arrow poster-carousel__arrow--next"
+        class="poster-carousel__arrow poster-carousel__arrow--next{{#unless canScrollForward}} is-hidden{{/unless}}"
         type="button"
         data-action="scroll-next"
         aria-label="Прокрутить вправо"
+        {{#unless canScrollForward}}hidden disabled{{/unless}}
       >
-        <span>&rsaquo;</span>
+        <svg class="poster-carousel__arrow-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M9 6L15 12L9 18"></path>
+        </svg>
       </button>
     {{/if}}
   </div>

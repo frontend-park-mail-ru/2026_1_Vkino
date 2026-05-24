@@ -33,6 +33,7 @@ export default class ActorPage extends BasePage {
     super(
       {
         cacheMessage: "",
+        isLoading: true,
         ...context,
       },
       Handlebars.templates["Actor.hbs"],
@@ -79,6 +80,7 @@ export default class ActorPage extends BasePage {
         ...this.context,
         cacheMessage: "",
         actor: null,
+        isLoading: false,
       });
       return;
     }
@@ -100,6 +102,7 @@ export default class ActorPage extends BasePage {
     const newContext = {
       ...this.context,
       cacheMessage: getCacheFallbackNotice(actorResult, selectionsResult),
+      isLoading: false,
       actor: actorResult.ok
         ? this._mapActor(actorSource, selectionMovies)
         : null,

@@ -1,5 +1,5 @@
 <div
-  class="movie-player {{#if isOpen}}is-open{{/if}} {{#if areControlsVisible}}is-controls-visible{{/if}} {{#if isEmbedded}}movie-player--embedded{{/if}}"
+  class="movie-player {{#if isOpen}}is-open{{/if}} {{#if areControlsVisible}}is-controls-visible{{/if}} {{#if isPlaying}}is-playing{{/if}} {{#if isLoading}}is-loading{{/if}} {{#if hasError}}is-error{{/if}} {{#if isEmbedded}}movie-player--embedded{{/if}}"
   data-role="player-overlay"
   aria-hidden="{{#if isOpen}}false{{else}}true{{/if}}"
 >
@@ -53,6 +53,19 @@
                   alt="Постер {{movieTitle}}"
                 />
               {{/if}}
+            </div>
+
+            <div class="movie-player__center-controls">
+              {{#if showSeekControls}}
+                <button
+                  class="movie-player__center-seek"
+                  type="button"
+                  data-action="seek-backward"
+                  aria-label="Перемотать назад на 10 секунд"
+                >
+                  -10
+                </button>
+              {{/if}}
 
               <button
                 class="movie-player__center-play"
@@ -60,8 +73,28 @@
                 data-action="toggle-play"
                 aria-label="Запустить или остановить видео"
               >
-                ▶
+                <img
+                  class="movie-player__icon movie-player__icon--play"
+                  src="/icons/play.svg"
+                  alt=""
+                  aria-hidden="true"
+                />
+                <span class="movie-player__pause-icon" aria-hidden="true">
+                  <span></span>
+                  <span></span>
+                </span>
               </button>
+
+              {{#if showSeekControls}}
+                <button
+                  class="movie-player__center-seek"
+                  type="button"
+                  data-action="seek-forward"
+                  aria-label="Перемотать вперед на 10 секунд"
+                >
+                  +10
+                </button>
+              {{/if}}
             </div>
 
             <div
@@ -105,12 +138,13 @@
 
             <div class="movie-player__control-row">
               <div class="movie-player__control-group">
-                {{#if showSeekControls}}
+                {{#if hasEpisodes}}
                   <button
                     class="movie-player__icon-control"
                     type="button"
-                    data-action="seek-backward"
-                    aria-label="Перемотать назад на 10 секунд"
+                    data-action="previous-episode"
+                    aria-label="Перейти к предыдущей серии"
+                    {{#unless hasPreviousEpisode}}disabled{{/unless}}
                   >
                     <img src="/icons/skip_previous.svg" alt="" aria-hidden="true" />
                   </button>
@@ -134,14 +168,17 @@
                   </span>
                 </button>
 
-                <button
-                  class="movie-player__icon-control"
-                  type="button"
-                  data-action="seek-forward"
-                  aria-label="Перемотать вперед на 10 секунд"
-                >
-                  <img src="/icons/skip_next.svg" alt="" aria-hidden="true" />
-                </button>
+                {{#if hasEpisodes}}
+                  <button
+                    class="movie-player__icon-control"
+                    type="button"
+                    data-action="next-episode"
+                    aria-label="Перейти к следующей серии"
+                    {{#unless hasNextEpisode}}disabled{{/unless}}
+                  >
+                    <img src="/icons/skip_next.svg" alt="" aria-hidden="true" />
+                  </button>
+                {{/if}}
 
                 <p class="movie-player__time">
                   <span data-role="current-time">{{currentTimeLabel}}</span>
