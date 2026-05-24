@@ -121,8 +121,9 @@ export default class SubscriptionPage extends BasePage {
       plan.isCurrent =
         Boolean(currentSubscription && plan.id === currentSubscription.planId) ||
         (!currentSubscription && plan.tier === 0);
-      plan.isLowerTierThanUser = plan.tier < userTier;
-      plan.canUpgrade = !currentSubscription || plan.tier > userTier;
+      plan.isLowerTierThanUser = Boolean(currentSubscription && plan.tier < userTier);
+      plan.isSameTierAsUser = plan.tier === userTier && !plan.isCurrent;
+      plan.canUpgrade = Boolean(currentSubscription && plan.tier > userTier);
     });
   }
 
@@ -332,8 +333,8 @@ export default class SubscriptionPage extends BasePage {
       }
 
       if (plan.isLowerTierThanUser) {
-        btn.textContent = "Выбрать";
-        btn.disabled = false;
+        btn.textContent = "Входит в план";
+        btn.disabled = true;
         btn.classList.remove("btn_accent");
         btn.classList.add("btn_outline");
         return;

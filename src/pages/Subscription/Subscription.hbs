@@ -16,7 +16,7 @@
                 {{currentUserSubscription.label}}
               </span>
               {{#if currentUserSubscription.renewsAt}}
-                <span class="subscription-hero__renew">Обновление: {{currentUserSubscription.renewsAt}}</span>
+                <span class="subscription-hero__renew">Активна до: {{currentUserSubscription.renewsAt}}</span>
               {{/if}}
             </div>
             <p class="subscription-hero__message subscription-hero__message_best">
@@ -29,7 +29,7 @@
                 {{currentUserSubscription.label}}
               </span>
               {{#if currentUserSubscription.renewsAt}}
-                <span class="subscription-hero__renew">Обновление: {{currentUserSubscription.renewsAt}}</span>
+                <span class="subscription-hero__renew">Активна до: {{currentUserSubscription.renewsAt}}</span>
               {{/if}}
             </div>
             <p class="subscription-hero__message subscription-hero__message_compact">
@@ -143,18 +143,22 @@
               <button type="button" class="btn btn_outline subscription-plan-card__btn" disabled>
                 Ваш план
               </button>
-            {{else}}
-              {{#if this.isLowerTierThanUser}}
+            {{else if this.isLowerTierThanUser}}
+              <button type="button" class="btn btn_outline subscription-plan-card__btn" disabled>
+                Входит в план
+              </button>
+            {{else if this.canUpgrade}}
               <button
                 type="button"
-                class="btn btn_outline subscription-plan-card__btn"
+                class="btn btn_accent subscription-plan-card__btn"
                 data-action="select-plan"
                 data-plan-id="{{this.id}}"
                 data-plan-name="{{this.name}}"
+                data-requires-payment="true"
               >
-                Выбрать
+                Улучшить
               </button>
-              {{else}}
+            {{else}}
               <button
                 type="button"
                 class="btn {{#if this.requiresPayment}}btn_accent{{else}}btn_outline{{/if}} subscription-plan-card__btn"
@@ -163,17 +167,8 @@
                 data-plan-name="{{this.name}}"
                 {{#if this.requiresPayment}}data-requires-payment="true"{{/if}}
               >
-                {{#if this.requiresPayment}}
-                  {{#if ../currentUserSubscription}}
-                    Улучшить
-                  {{else}}
-                    Подключить
-                  {{/if}}
-                {{else}}
-                  Выбрать
-                {{/if}}
+                {{#if this.requiresPayment}}Подключить{{else}}Выбрать{{/if}}
               </button>
-              {{/if}}
             {{/if}}
           </div>
         </article>

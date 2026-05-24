@@ -1,5 +1,5 @@
 /**
- * Маппинг backend level (1=free, 2–4=paid) → UI tier (0–3).
+ * Backend level (1=free, 2–4=paid) → UI tier (0–3).
  * @param {number} level
  */
 export function backendLevelToUiTier(level) {
@@ -99,7 +99,7 @@ export function mapTariffToPlan(tariff) {
   return {
     id: code,
     productRefId: tariff.id,
-    name: getPlanDisplayName(code, tariff.title),
+    name: getPlanDisplayName(code),
     tier,
     level,
     price: Number.isFinite(priceMoney) ? `${priceMoney}₽` : null,
@@ -168,7 +168,7 @@ export function normalizeSubscriptionFromApi(raw) {
     planId: code || uiTierToBackendCode(tier),
     tier,
     level: Number.isFinite(level) ? level : tier + 1,
-    label: raw.name || raw.plan_name || getPlanDisplayName(code),
+    label: getPlanDisplayName(code || uiTierToBackendCode(tier)),
     renewsAt: activeUntil
       ? new Date(activeUntil).toLocaleDateString("ru-RU")
       : null,

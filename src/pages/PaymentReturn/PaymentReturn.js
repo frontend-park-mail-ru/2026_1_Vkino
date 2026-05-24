@@ -13,6 +13,7 @@ import { getApiErrorMessage } from "@/utils/apiError.js";
 
 const POLL_INTERVAL_MS = 2500;
 const MAX_POLL_ATTEMPTS = 30;
+const PENDING_GIVE_UP_ATTEMPTS = 6;
 
 export default class PaymentReturnPage extends BasePage {
   constructor(context = {}, parent = null, el = null) {
@@ -26,6 +27,7 @@ export default class PaymentReturnPage extends BasePage {
         isSuccess: false,
         isCanceled: false,
         isTimeout: false,
+        isIncomplete: false,
         errorMessage: "",
         subscriptionLabel: "",
         renewsAt: "",
@@ -119,6 +121,7 @@ export default class PaymentReturnPage extends BasePage {
       isSuccess: false,
       isCanceled: false,
       isTimeout: false,
+      isIncomplete: false,
       errorMessage: "",
     });
 
@@ -167,6 +170,16 @@ export default class PaymentReturnPage extends BasePage {
           ...this.context,
           isLoading: false,
           isCanceled: true,
+        });
+        return;
+      }
+
+      if (status === "pending" && attempt + 1 >= PENDING_GIVE_UP_ATTEMPTS) {
+        sessionStorage.removeItem(PENDING_PAYMENT_KEY);
+        this._updateContext({
+          ...this.context,
+          isLoading: false,
+          isIncomplete: true,
         });
         return;
       }

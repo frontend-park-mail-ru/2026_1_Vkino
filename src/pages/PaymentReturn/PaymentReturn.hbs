@@ -37,6 +37,17 @@
             <a href="/subscription" class="btn btn_accent" router-link>Попробовать снова</a>
           </div>
         </div>
+      {{else if isIncomplete}}
+        <div class="payment-return__status payment-return__status_error">
+          <h1 class="payment-return__title">Оплата не завершена</h1>
+          <p class="payment-return__text">
+            Если вы отменили оплату на стороне ЮKassa, попробуйте снова. Если оплата прошла, проверьте подписку в профиле.
+          </p>
+          <div class="payment-return__actions">
+            <a href="/subscription" class="btn btn_accent" router-link>К подписке</a>
+            <a href="/profile" class="btn btn_outline" router-link>В профиль</a>
+          </div>
+        </div>
       {{else if isTimeout}}
         <div class="payment-return__status payment-return__status_timeout">
           <h1 class="payment-return__title">Статус уточняется</h1>
