@@ -210,7 +210,7 @@
       <div class="modal__body modal_payment__body">
         <p class="modal_payment__methods-title">Способ оплаты</p>
         <p class="modal_payment__yookassa-note">
-          Карта, ЮMoney, СБП и другие методы выбираются на стороне ЮKassa.
+          Карта, ЮMoney, СБП и другие методы доступны для оплаты.
         </p>
         <button type="button" class="btn btn_outline modal_payment__coins-btn" disabled title="Скоро">
           Оплатить VKino coins (скоро)
@@ -252,6 +252,24 @@
       <div class="modal__footer modal_downgrade__footer">
         <button class="btn btn_accent" data-action="close-modal">Понятно</button>
       </div>
+    </div>
+  </dialog>
+
+  <dialog class="modal modal_payment-result" id="paymentResultModal" data-role="payment-result-modal">
+    <div class="modal__content modal_payment-result__content">
+      <button type="button" class="subscription-modal-dismiss" data-action="close-modal" aria-label="Закрыть">
+        <span class="subscription-modal-dismiss__icon" aria-hidden="true">
+          <span class="subscription-modal-dismiss__line"></span>
+          <span class="subscription-modal-dismiss__line"></span>
+        </span>
+      </button>
+      <div class="modal_payment-result__body">
+        <div class="modal_payment-result__spinner" data-role="result-spinner" hidden aria-hidden="true"></div>
+        <h3 class="modal_payment-result__title" data-role="result-title"></h3>
+        <p class="modal_payment-result__text" data-role="result-text"></p>
+        <p class="modal_payment-result__meta" data-role="result-meta" hidden></p>
+      </div>
+      <div class="modal__footer modal_payment-result__footer" data-role="result-actions"></div>
     </div>
   </dialog>
 </div>
