@@ -12,6 +12,7 @@ import SupportCreatePage from "./pages/SupportCreate/SupportCreate.js";
 import SupportTicketsPage from "./pages/SupportTickets/SupportTickets.js";
 import FriendsPage from "./pages/Friends/Friends.js";
 import SubscriptionPage from "./pages/Subscription/Subscription.js";
+import NotFoundPage from "./pages/NotFound/NotFound.js";
 
 import "./css/index.scss";
 
@@ -52,10 +53,26 @@ async function start() {
     .registerRoute("/profile", (root) => new ProfilePage({}, null, root))
     .registerRoute("/settings", (root) => new SettingsPage({}, null, root))
     .registerRoute("/subscription", (root) => new SubscriptionPage({}, null, root))
-    .registerRoute("/payments/return", (root) => new SubscriptionPage({}, null, root))
+      .registerRoute("/payments/return", (root) => new SubscriptionPage({}, null, root))
     .registerRoute(
       "/genres",
       (root) => new CatalogPage({ catalogKey: "genres" }, null, root),
+    )
+    .registerRoute(
+      "/genre/:id",
+      (root) => new CatalogPage({ catalogKey: "genre" }, null, root),
+    )
+    .registerRoute(
+      "/search",
+      (root) =>
+        new CatalogPage(
+          {
+            catalogKey: "search",
+            basePath: "/search",
+          },
+          null,
+          root,
+        ),
     )
     .registerRoute(
       "/movies",
@@ -120,6 +137,14 @@ async function start() {
       (root) => new CatalogPage({ catalogKey: "selection" }, null, root),
     )
     .registerRoute("/watch-party", (root) => new WatchPartyPage({}, null, root))
+    .registerRoute(
+      "/watch-party/join/:inviteCode",
+      (root) => new WatchPartyPage({}, null, root),
+    )
+    .registerRoute(
+      "/watch-party/:roomId",
+      (root) => new WatchPartyPage({}, null, root),
+    )
     .registerRoute("/support", (root) => new SupportTicketsPage({}, null, root))
     .registerRoute(
       "/admin/support",
@@ -130,7 +155,8 @@ async function start() {
       (root) => new SupportCreatePage({}, null, root),
     )
     .registerRoute("/movie/:id", (root) => new MoviePage({}, null, root))
-    .registerRoute("/actor/:id", (root) => new ActorPage({}, null, root));
+    .registerRoute("/actor/:id", (root) => new ActorPage({}, null, root))
+    .registerRoute("/404", (root) => new NotFoundPage({}, null, root));
 
   router.init();
 }
