@@ -1068,6 +1068,7 @@
   inset: 0;
   margin: auto;
   width: min(420px, calc(100vw - var(--space-8)));
+  height: fit-content;
   max-height: min(90vh, 520px);
   overflow: hidden;
   display: flex;
@@ -1089,8 +1090,6 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
   padding: 0;
 }
 
@@ -1098,6 +1097,7 @@
   padding: var(--space-6) var(--space-5) var(--space-4);
   padding-right: 3.75rem;
   text-align: center;
+  overflow-wrap: break-word;
 }
 
 .modal_payment-result__spinner {
@@ -1138,8 +1138,8 @@
 }
 
 .modal_payment-result__footer {
-  margin-top: auto;
-  padding: var(--space-4) var(--space-5);
+  display: flex;
+  padding: var(--space-4) var(--space-5) 0;
   border-top: 1px solid rgba(217, 104, 45, 0.15);
   background: rgba(6, 3, 1, 0.42);
   justify-content: stretch;
@@ -1594,13 +1594,21 @@
     border-radius: var(--radius-lg);
   }
 
+  .modal_payment-result .modal__content {
+    padding-bottom: var(--space-6);
+  }
+
   .modal_payment-result__body,
   .modal_payment-result__footer {
     padding-inline: var(--space-4);
   }
 
   .modal_payment-result__body {
-    padding-right: 3.25rem;
+    padding: 3.25rem var(--space-4) var(--space-3);
+  }
+
+  .modal_payment-result__title {
+    font-size: var(--text-lg);
   }
 
   .modal_payment-result__footer {
