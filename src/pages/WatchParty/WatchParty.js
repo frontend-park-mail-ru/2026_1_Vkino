@@ -580,9 +580,12 @@ export default class WatchPartyPage extends BasePage {
       return;
     }
 
-    this._refreshView({
+    this._uiState = {
+      ...this._uiState,
+      ...this._readLobbyDrafts(),
       isVisibilityMenuOpen: !this._uiState.isVisibilityMenuOpen,
-    });
+    };
+    this._applyLobbyVisibilityMenuState();
   }
 
   _selectRoomVisibility(value, label = "") {
@@ -605,11 +608,15 @@ export default class WatchPartyPage extends BasePage {
       })),
     };
 
-    this._refreshView({
+    this._uiState = {
+      ...this._uiState,
+      ...this._readLobbyDrafts(),
       isVisibilityMenuOpen: false,
       visibilitySelectedValue: normalizedValue,
       visibilitySelectedLabel: normalizedLabel,
-    });
+    };
+    this._applyLobbyVisibilitySelection();
+    this._applyLobbyVisibilityMenuState();
   }
 
   async _handleJoinRoom(form) {
@@ -1292,8 +1299,12 @@ export default class WatchPartyPage extends BasePage {
       this._captureRoomPlayerSnapshot();
     }
 
+    const lobbyDrafts =
+      this._mode === "lobby" ? this._readLobbyDrafts() : {};
+
     this._uiState = {
       ...this._uiState,
+      ...lobbyDrafts,
       ...overrides,
     };
 
@@ -1305,6 +1316,57 @@ export default class WatchPartyPage extends BasePage {
         uiState: this._uiState,
       }),
     );
+  }
+
+  _readLobbyDrafts() {
+    if (this._mode !== "lobby" || !this.el) {
+      return {};
+    }
+
+    const roomNameInput = this.el.querySelector('input[name="roomName"]');
+    const inviteLinkInput = this.el.querySelector('input[name="inviteLink"]');
+
+    return {
+      roomNameDraft:
+        roomNameInput instanceof HTMLInputElement ? roomNameInput.value : "",
+      inviteLinkDraft:
+        inviteLinkInput instanceof HTMLInputElement ? inviteLinkInput.value : "",
+    };
+  }
+
+  _applyLobbyVisibilityMenuState() {
+    if (this._mode !== "lobby" || !this.el) {
+      return;
+    }
+
+    const category = this.el.querySelector('[data-role="watch-party-visibility"]');
+    const trigger = this.el.querySelector('[data-action="toggle-room-visibility-menu"]');
+    const menu = this.el.querySelector("#watch-party-visibility-menu");
+    const isOpen = Boolean(this._uiState.isVisibilityMenuOpen);
+
+    category?.classList.toggle("is-open", isOpen);
+    trigger?.setAttribute("aria-expanded", String(isOpen));
+
+    if (menu instanceof HTMLElement) {
+      menu.hidden = !isOpen;
+    }
+  }
+
+  _applyLobbyVisibilitySelection() {
+    if (this._mode !== "lobby" || !this.el) {
+      return;
+    }
+
+    const hiddenInput = this.el.querySelector('input[name="visibility"]');
+    const label = this.el.querySelector(".watch-party__category-trigger-label");
+
+    if (hiddenInput instanceof HTMLInputElement) {
+      hiddenInput.value = this._uiState.visibilitySelectedValue || "";
+    }
+
+    if (label) {
+      label.textContent = this._uiState.visibilitySelectedLabel || "";
+    }
   }
 
   _refreshRoomChat(overrides = {}) {
@@ -1334,13 +1396,17 @@ export default class WatchPartyPage extends BasePage {
   _bindWatchPartyImageFallbacks() {
     this._watchPartyImageElements = Array.from(
       this.el.querySelectorAll(
-        ".watch-party__poster-card img, .watch-party__room-media img, .watch-party__my-room-thumb",
+        ".watch-party__poster-card img, .watch-party__room-media img, .watch-party__my-room-thumb, .watch-room-selection__thumb",
       ),
     );
 
     this._watchPartyImageElements.forEach((image) => {
       if (image instanceof HTMLImageElement) {
         image.addEventListener("error", this._onWatchPartyImageError);
+
+        if (image.complete && image.naturalWidth === 0) {
+          this._onWatchPartyImageError({ currentTarget: image });
+        }
       }
     });
   }
@@ -2239,6 +2305,8 @@ function buildLobbyContext(pageData, uiState) {
       uiState.visibilitySelectedValue || selectedVisibilityOption.value,
     visibilitySelectedLabel:
       uiState.visibilitySelectedLabel || selectedVisibilityOption.label,
+    roomNameDraft: uiState.roomNameDraft || "",
+    inviteLinkDraft: uiState.inviteLinkDraft || "",
     featuredRoomsOnlineLabel: `${pageData.featuredRooms.length} ${pluralizeRooms(pageData.featuredRooms.length)} онлайн`,
     featuredRoomsUnavailableText: "Список комнат пуст.",
     myRoomsCountLabel: `${pageData.myRooms.length} ${pluralizeRooms(pageData.myRooms.length)}`,
@@ -3448,11 +3516,13 @@ function mapMyRooms(items) {
     return {
       id: roomId,
       title: normalizeText(item?.title || item?.name) || `Комната ${roomId}`,
-      statusLabel:
-        resolveLiveLabel(
-          item?.status || item?.live || item?.playback?.status,
-          "",
-        ) || "Ожидает",
+      statusLabel: resolveLiveLabel(
+        item?.status || item?.live || item?.playback?.status,
+        "",
+      ),
+      showStatusBadge: Boolean(
+        resolveLiveLabel(item?.status || item?.live || item?.playback?.status, ""),
+      ),
       statusTone:
         resolveLiveLabel(
           item?.status || item?.live || item?.playback?.status,
@@ -3472,9 +3542,9 @@ function mapMyRooms(items) {
             item?.joinUrl ||
             item?.join_url ||
             item?.inviteLink ||
-            item?.invite_link,
+          item?.invite_link,
         ) || "",
-      imageUrl: resolveImageUrl(item, "/img/65.jpg"),
+      imageUrl: resolveImageUrl(item, WATCH_PARTY_CARD_FALLBACK_SRC),
     };
   });
 }
@@ -3936,6 +4006,8 @@ function createInitialLobbyUiState() {
     isVisibilityMenuOpen: false,
     visibilitySelectedValue: "",
     visibilitySelectedLabel: "",
+    roomNameDraft: "",
+    inviteLinkDraft: "",
   };
 }
 

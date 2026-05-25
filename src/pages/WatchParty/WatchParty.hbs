@@ -470,6 +470,7 @@
                     class="watch-party__input"
                     name="roomName"
                     type="text"
+                    value="{{roomNameDraft}}"
                     placeholder="Например, Пятничный кинопросмотр"
                   />
                 </label>
@@ -540,6 +541,7 @@
                     class="watch-party__input"
                     name="inviteLink"
                     type="text"
+                    value="{{inviteLinkDraft}}"
                     placeholder="https://vkino.tech/watch-party/join/<invite-code>"
                   />
                 </label>
@@ -646,11 +648,13 @@
                   />
 
                   <div class="watch-party__my-room-content">
-                    <span
-                      class="watch-party__state-badge watch-party__state-badge--{{this.statusTone}}"
-                    >
-                      {{this.statusLabel}}
-                    </span>
+                    {{#if this.showStatusBadge}}
+                      <span
+                        class="watch-party__state-badge watch-party__state-badge--{{this.statusTone}}"
+                      >
+                        {{this.statusLabel}}
+                      </span>
+                    {{/if}}
                     <h3>{{this.title}}</h3>
                     <p>{{this.meta}}</p>
 
