@@ -53,7 +53,7 @@ async function start() {
     .registerRoute("/profile", (root) => new ProfilePage({}, null, root))
     .registerRoute("/settings", (root) => new SettingsPage({}, null, root))
     .registerRoute("/subscription", (root) => new SubscriptionPage({}, null, root))
-
+      .registerRoute("/payments/return", (root) => new SubscriptionPage({}, null, root))
     .registerRoute(
       "/genres",
       (root) => new CatalogPage({ catalogKey: "genres" }, null, root),
@@ -148,7 +148,7 @@ async function start() {
     .registerRoute("/support", (root) => new SupportTicketsPage({}, null, root))
     .registerRoute(
       "/admin/support",
-      (root) => new SupportCreatePage({}, null, root),
+      (root) => new SupportTicketsPage({}, null, root),
     )
     .registerRoute(
       "/support/new",
