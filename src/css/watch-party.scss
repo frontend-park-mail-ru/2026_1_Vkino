@@ -225,6 +225,8 @@
   padding: clamp(1.25rem, 2vw, 1.75rem);
   display: grid;
   grid-template-rows: auto 1fr;
+  align-items: center;
+  align-content: center;
   justify-content: center;
   gap: var(--space-4);
   background:
@@ -248,7 +250,7 @@
   color: var(--accent);
   font-size: 1.5rem;
   font-weight: 700;
-  align-self: start;
+  align-self: center;
 }
 
 .watch-party__poster-card-create__title {
@@ -301,7 +303,7 @@
 }
 
 .watch-party__poster-cta {
-  align-self: flex-start;
+  align-self: center;
   min-height: 2.5rem;
   padding: 0.7rem 1rem;
   border: 1px solid rgba(255, 87, 31, 0.4);
@@ -703,22 +705,35 @@
 
 .watch-party__my-rooms {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
   align-items: start;
 }
 
 .watch-party__my-room-card {
   display: grid;
-  grid-template-columns: 104px minmax(0, 1fr);
+  grid-template-columns: 112px minmax(0, 1fr);
+  min-height: 168px;
 }
 
 .watch-party__my-room-thumb {
+  width: 100%;
   min-height: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .watch-party__state-badge {
   padding: 0.32rem 0.65rem;
+}
+
+.watch-party__my-room-content {
+  justify-content: center;
+  padding: var(--space-3);
+}
+
+.watch-party__my-room-content .watch-party__room-actions {
+  margin-top: auto;
 }
 
 .watch-party__state-badge--waiting {
@@ -1396,6 +1411,7 @@
   aspect-ratio: 3 / 4;
   border-radius: var(--radius-lg);
   object-fit: cover;
+  background: rgba(230, 204, 171, 0.05);
 }
 
 .watch-room-selection__body {
@@ -1417,8 +1433,16 @@
 .watch-room-selection__choose {
   min-height: 2.75rem;
   padding: 0 1rem;
-  background: rgba(255, 87, 31, 0.14);
-  border-color: rgba(255, 87, 31, 0.28);
+  background: var(--accent);
+  border-color: rgba(255, 87, 31, 0.42);
+  color: var(--text-on-accent);
+}
+
+.watch-room-selection__choose:hover,
+.watch-room-selection__choose:focus-visible {
+  background: var(--accent-hover);
+  border-color: rgba(255, 87, 31, 0.58);
+  outline: none;
 }
 
 .watch-room-shell:fullscreen {

@@ -330,6 +330,15 @@
   display: none;
 }
 
+.movie-player__state--loading {
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  justify-content: center;
+  width: max-content;
+  max-width: calc(100% - 48px);
+  text-align: center;
+}
+
 .movie-player__state--error,
 .movie-player__state--empty {
   align-items: flex-start;
