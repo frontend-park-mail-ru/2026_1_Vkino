@@ -5,11 +5,7 @@
     <section class="subscription-hero">
       <div class="subscription-hero__content">
         <h1 class="subscription-hero__title">Выберите свой план</h1>
-        <p class="subscription-hero__subtitle">
-          Получайте больше возможностей с подпиской VKino 
-        </p>
         {{#if currentUserSubscription}}
-          {{#if currentUserSubscription.isHighestTier}}
             <div class="subscription-hero__current subscription-hero__current_wrap">
               <span class="subscription-hero__current-label">Ваш текущий план:</span>
               <span class="subscription-hero__current-tier subscription-tier--{{currentUserSubscription.tier}}">
@@ -19,19 +15,11 @@
                 <span class="subscription-hero__renew">Активна до: {{currentUserSubscription.renewsAt}}</span>
               {{/if}}
             </div>
+          {{#if currentUserSubscription.isHighestTier}}
             <p class="subscription-hero__message subscription-hero__message_best">
               У вас подключён лучший тариф подписки — доступны все возможности платформы.
             </p>
           {{else}}
-            <div class="subscription-hero__current subscription-hero__current_wrap">
-              <span class="subscription-hero__current-label">Ваш текущий план:</span>
-              <span class="subscription-hero__current-tier subscription-tier--{{currentUserSubscription.tier}}">
-                {{currentUserSubscription.label}}
-              </span>
-              {{#if currentUserSubscription.renewsAt}}
-                <span class="subscription-hero__renew">Активна до: {{currentUserSubscription.renewsAt}}</span>
-              {{/if}}
-            </div>
             <p class="subscription-hero__message subscription-hero__message_compact">
               Доступные тарифы и переход на более высокий уровень — в блоке планов ниже.
             </p>
