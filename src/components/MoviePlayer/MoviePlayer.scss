@@ -621,6 +621,30 @@
   background: rgba(255, 108, 47, 0.24);
 }
 
+.movie-player__icon-control--favorite {
+  color: #fff4e4;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.movie-player__icon-control--favorite:hover,
+.movie-player__icon-control--favorite:focus-visible {
+  color: #ff7b6e;
+  background: rgba(255, 123, 110, 0.16);
+  border-color: rgba(255, 123, 110, 0.34);
+}
+
+.movie-player__icon-control--favorite.is-favorite {
+  color: #ff7b6e;
+  background: rgba(255, 123, 110, 0.18);
+  border-color: rgba(255, 123, 110, 0.42);
+}
+
+.movie-player__favorite-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .movie-player__time {
   color: rgba(255, 248, 238, 0.92);
   font-size: 0.84rem;

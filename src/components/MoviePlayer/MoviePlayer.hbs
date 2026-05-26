@@ -192,6 +192,19 @@
               </div>
 
               <div class="movie-player__control-group">
+                {{#if showFavoriteControl}}
+                  <button
+                    class="movie-player__icon-control movie-player__icon-control--favorite {{#if isFavorite}}is-favorite{{/if}}"
+                    type="button"
+                    data-action="toggle-favorite"
+                    aria-label="{{#if isFavorite}}Убрать из избранного{{else}}Добавить в избранное{{/if}}"
+                    title="{{#if isFavorite}}Убрать из избранного{{else}}В избранное{{/if}}"
+                    {{#if isFavoriteUpdating}}disabled{{/if}}
+                  >
+                    <span class="movie-player__favorite-icon" aria-hidden="true">♥</span>
+                  </button>
+                {{/if}}
+
                 {{#if showEpisodeMenuButton}}
                   <div
                     class="movie-player__episode-menu{{#if isEpisodeMenuOpen}} is-open{{/if}}"

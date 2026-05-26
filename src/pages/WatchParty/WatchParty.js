@@ -41,7 +41,29 @@ const HERO_COPY = {
 const WATCH_PARTY_WS_RECONNECT_DELAY_MS = 3000;
 const WATCH_PARTY_ROOM_POLL_INTERVAL_MS = 2000;
 const WATCH_PARTY_ROOM_STATUS_AUTO_HIDE_MS = 3000;
+const WATCH_PARTY_EMPTY_ROOM_TTL_MS = 10 * 60 * 1000;
 const WATCH_PARTY_CARD_FALLBACK_SRC = "/img/card-fallback.webp";
+const WATCH_PARTY_REACTIONS_HIDDEN_KEY = "vkino_watch_party_reactions_hidden";
+const WATCH_PARTY_FLOATING_REACTION_LIFETIME_MS = 2200;
+const WATCH_PARTY_REACTIONS = [
+  { value: "👍", label: "Нравится" },
+  { value: "🔥", label: "Огонь" },
+  { value: "😂", label: "Смешно" },
+  { value: "😮", label: "Вау" },
+  { value: "❤️", label: "Люблю" },
+];
+const WATCH_PARTY_OVERVIEW_ROOM_KEYS = [
+  "featuredRooms",
+  "featured_rooms",
+  "onlineRooms",
+  "online_rooms",
+  "active_rooms",
+  "rooms",
+  "myRooms",
+  "my_rooms",
+  "ownedRooms",
+  "owned_rooms",
+];
 
 export default class WatchPartyPage extends BasePage {
   constructor(context = {}, parent = null, el = null) {
@@ -93,6 +115,7 @@ export default class WatchPartyPage extends BasePage {
     this._roomStatePollInFlight = false;
     this._roomSubscriptionReady = false;
     this._roomStatusAutoHideTimerId = 0;
+    this._floatingReactionMessageIds = new Set();
     this._watchPartyImageElements = [];
   }
 
@@ -283,6 +306,14 @@ export default class WatchPartyPage extends BasePage {
         event.preventDefault();
         this._toggleBetComposer();
         break;
+      case "toggle-room-reactions":
+        event.preventDefault();
+        this._toggleRoomReactions();
+        break;
+      case "send-room-reaction":
+        event.preventDefault();
+        await this._handleSendRoomReaction(actionTarget.dataset.reaction || "");
+        break;
       case "close-bet-composer":
         event.preventDefault();
         this._clearRoomChatBetComposerDraft();
@@ -367,10 +398,12 @@ export default class WatchPartyPage extends BasePage {
       });
     }
 
-    this._overviewData = mapOverviewToPageData(
-      ok ? extractWatchPartyOverview(resp) : {},
-      fallbackData,
-    );
+    const overviewPayload = ok ? extractWatchPartyOverview(resp) : {};
+    const cleanedOverviewPayload = ok
+      ? await cleanupIdleEmptyRoomsFromOverview(overviewPayload)
+      : {};
+
+    this._overviewData = mapOverviewToPageData(cleanedOverviewPayload, fallbackData);
     this._contextLoaded = true;
 
     this._refreshView({
@@ -691,6 +724,47 @@ export default class WatchPartyPage extends BasePage {
       activePanel: "chat",
       roomStatusMessage: "",
     });
+  }
+
+  async _handleSendRoomReaction(reaction) {
+    if (this._mode !== "room") {
+      return;
+    }
+
+    const reactionText = normalizeReactionText(reaction);
+
+    if (!reactionText) {
+      return;
+    }
+
+    const roomId = normalizeText(this._roomData.id);
+    const result = await watchPartyService.sendRoomReaction(roomId, reactionText);
+
+    if (!result.ok) {
+      this._setRoomStatus(
+        result.error || "Не удалось отправить реакцию.",
+        "error",
+      );
+      return;
+    }
+
+    const messageItem = mapRoomMessages([result.resp?.message || result.resp]).at(0);
+
+    if (!messageItem) {
+      this._setRoomStatus("Сервер не вернул отправленную реакцию.", "error");
+      return;
+    }
+
+    this._roomData = {
+      ...this._roomData,
+      messages: upsertRoomFeedItem(this._roomData.messages, messageItem),
+    };
+    saveLocalWatchPartyRoom(this._roomData);
+    this._refreshRoomChat({
+      activePanel: this._uiState.activePanel,
+      roomStatusMessage: "",
+    });
+    this._spawnFloatingReactionFromMessage(messageItem);
   }
 
   async _handleCreateBet(form) {
@@ -1395,6 +1469,93 @@ export default class WatchPartyPage extends BasePage {
     this._setLobbyStatus(`Скопируйте ссылку вручную: ${link}`, "info");
   }
 
+  _toggleRoomReactions() {
+    if (this._mode !== "room") {
+      return;
+    }
+
+    const nextHidden = !this._uiState.areRoomReactionsHidden;
+
+    this._uiState = {
+      ...this._uiState,
+      areRoomReactionsHidden: nextHidden,
+    };
+    saveRoomReactionsHidden(nextHidden);
+    this._syncRoomReactionsControls();
+  }
+
+  _syncRoomReactionsControls() {
+    if (this._mode !== "room" || !this.el) {
+      return;
+    }
+
+    const isHidden = Boolean(this._uiState.areRoomReactionsHidden);
+    const toggle = this.el.querySelector('[data-action="toggle-room-reactions"]');
+    const layer = this.el.querySelector("[data-role='watch-party-reactions-layer']");
+
+    if (toggle) {
+      toggle.textContent = isHidden ? "Показать реакции" : "Скрыть реакции";
+      toggle.classList.toggle("is-active", !isHidden);
+      toggle.setAttribute("aria-pressed", String(!isHidden));
+    }
+
+    if (layer instanceof HTMLElement) {
+      layer.hidden = isHidden;
+    }
+  }
+
+  _spawnFloatingReactionFromMessage(message) {
+    const reactionText = resolveFloatingReactionText(message);
+
+    if (!reactionText) {
+      return;
+    }
+
+    const messageId = normalizeText(message?.id);
+
+    if (messageId && this._floatingReactionMessageIds.has(messageId)) {
+      return;
+    }
+
+    this._rememberFloatingReactionMessage(messageId);
+    this._spawnFloatingReaction(reactionText);
+  }
+
+  _rememberFloatingReactionMessage(messageId) {
+    if (!messageId) {
+      return;
+    }
+
+    this._floatingReactionMessageIds.add(messageId);
+    window.setTimeout(() => {
+      this._floatingReactionMessageIds.delete(messageId);
+    }, WATCH_PARTY_FLOATING_REACTION_LIFETIME_MS * 2);
+  }
+
+  _spawnFloatingReaction(reactionText) {
+    if (this._mode !== "room" || this._uiState.areRoomReactionsHidden) {
+      return;
+    }
+
+    const layer = this.el?.querySelector("[data-role='watch-party-reactions-layer']");
+
+    if (!(layer instanceof HTMLElement)) {
+      return;
+    }
+
+    const reactionNode = document.createElement("span");
+    const offset = Math.round(Math.random() * 48 - 24);
+
+    reactionNode.className = "watch-room-reactions__item";
+    reactionNode.textContent = reactionText;
+    reactionNode.style.setProperty("--reaction-offset", `${offset}px`);
+    layer.append(reactionNode);
+
+    window.setTimeout(() => {
+      reactionNode.remove();
+    }, WATCH_PARTY_FLOATING_REACTION_LIFETIME_MS);
+  }
+
   _scrollToSection(targetId) {
     const section = this.el.querySelector(`#${targetId}`);
 
@@ -1558,6 +1719,7 @@ export default class WatchPartyPage extends BasePage {
     }
 
     this._syncRoomStatus();
+    this._syncRoomReactionsControls();
   }
 
   _syncRoomStatus() {
@@ -1813,11 +1975,6 @@ export default class WatchPartyPage extends BasePage {
     this._roomSubscriptionReconnectTimerId = 0;
     this._roomSubscriptionReady = true;
     this._stopRoomStatePolling();
-
-    this._setTemporaryRoomStatus(
-      "Подключение к событиям комнаты активно.",
-      "success",
-    );
   };
 
   _onRoomSubscriptionMessage = (event) => {
@@ -2090,9 +2247,10 @@ export default class WatchPartyPage extends BasePage {
     };
     saveLocalWatchPartyRoom(this._roomData);
     this._refreshRoomChat({
-      activePanel: "chat",
+      activePanel: this._uiState.activePanel,
       roomStatusMessage: "",
     });
+    this._spawnFloatingReactionFromMessage(messageItem);
   }
 
   _applyPollEvent(payload) {
@@ -2454,6 +2612,10 @@ function buildRoomContext(roomData, uiState) {
     errorText: uiState.errorText || "",
     roomStatusMessage: uiState.roomStatusMessage || "",
     roomStatusTone: uiState.roomStatusTone || "info",
+    areRoomReactionsHidden: Boolean(uiState.areRoomReactionsHidden),
+    roomReactionsToggleLabel: uiState.areRoomReactionsHidden
+      ? "Показать реакции"
+      : "Скрыть реакции",
     isRoomPanelOpen: Boolean(uiState.activePanel),
     isMembersPanel: uiState.activePanel === "members",
     isChatPanel: uiState.activePanel === "chat",
@@ -2502,6 +2664,7 @@ function buildRoomChatContext(roomData, uiState) {
     roomBetComposerOptions: buildComposerOptions(
       uiState.betComposerOptionCount,
     ),
+    quickReactions: WATCH_PARTY_REACTIONS,
     roomMessages: roomMessages.map((message) => {
       return decorateRoomMessage(message);
     }),
@@ -2649,6 +2812,153 @@ function mapOverviewToPageData(overview, fallbackData) {
       ]),
     ),
   };
+}
+
+async function cleanupIdleEmptyRoomsFromOverview(overview) {
+  const normalizedOverview =
+    overview && typeof overview === "object" && !Array.isArray(overview)
+      ? overview
+      : {};
+  const staleRoomIds = collectIdleEmptyRoomIds(normalizedOverview);
+
+  if (!staleRoomIds.length) {
+    return overview;
+  }
+
+  const deleteResults = await Promise.all(
+    staleRoomIds.map(async (roomId) => ({
+      roomId,
+      result: await watchPartyService.deleteRoom(roomId),
+    })),
+  );
+  const deletedRoomIds = deleteResults
+    .filter(({ result }) => result.ok)
+    .map(({ roomId }) => roomId);
+
+  deleteResults
+    .filter(({ result }) => !result.ok)
+    .forEach(({ roomId, result }) => {
+      console.warn("WatchPartyPage: не удалось удалить пустую комнату", {
+        roomId,
+        status: result.status,
+        error: result.error,
+      });
+    });
+
+  return removeRoomsFromOverviewPayload(normalizedOverview, deletedRoomIds);
+}
+
+function collectIdleEmptyRoomIds(overview) {
+  const roomIds = new Set();
+
+  WATCH_PARTY_OVERVIEW_ROOM_KEYS.forEach((key) => {
+    const rooms = Array.isArray(overview?.[key]) ? overview[key] : [];
+
+    rooms.forEach((room) => {
+      const roomId = normalizeText(room?.id || room?.roomId || room?.room_id);
+
+      if (roomId && isIdleEmptyRoom(room)) {
+        roomIds.add(roomId);
+      }
+    });
+  });
+
+  return Array.from(roomIds);
+}
+
+function isIdleEmptyRoom(room) {
+  if (!room || typeof room !== "object" || Array.isArray(room)) {
+    return false;
+  }
+
+  if (!isRoomEmpty(room)) {
+    return false;
+  }
+
+  const activityTimestamp = resolveRoomActivityTimestamp(room);
+
+  if (!Number.isFinite(activityTimestamp)) {
+    return false;
+  }
+
+  return Date.now() - activityTimestamp >= WATCH_PARTY_EMPTY_ROOM_TTL_MS;
+}
+
+function isRoomEmpty(room) {
+  const participantCollections = [
+    room.members,
+    room.participants,
+    room.users,
+    room.viewers,
+  ].filter(Array.isArray);
+
+  if (participantCollections.some((collection) => collection.length > 0)) {
+    return false;
+  }
+
+  if (participantCollections.length > 0) {
+    return true;
+  }
+
+  const countValue =
+    room.participantsCount ??
+    room.participants_count ??
+    room.membersCount ??
+    room.members_count ??
+    room.viewersCount ??
+    room.viewers_count ??
+    room.onlineCount ??
+    room.online_count;
+
+  if (countValue === undefined || countValue === null || countValue === "") {
+    return false;
+  }
+
+  return normalizeCount(countValue) === 0;
+}
+
+function resolveRoomActivityTimestamp(room) {
+  const timestampValue =
+    room.emptySince ||
+    room.empty_since ||
+    room.lastActivityAt ||
+    room.last_activity_at ||
+    room.lastActiveAt ||
+    room.last_active_at ||
+    room.lastSeenAt ||
+    room.last_seen_at ||
+    room.updatedAt ||
+    room.updated_at ||
+    room.createdAt ||
+    room.created_at;
+  const timestamp = Date.parse(normalizeText(timestampValue));
+
+  return Number.isFinite(timestamp) ? timestamp : NaN;
+}
+
+function removeRoomsFromOverviewPayload(overview, roomIds) {
+  const removedRoomIds = new Set(roomIds.map((roomId) => normalizeText(roomId)));
+
+  if (!removedRoomIds.size) {
+    return overview;
+  }
+
+  return WATCH_PARTY_OVERVIEW_ROOM_KEYS.reduce(
+    (nextOverview, key) => {
+      if (!Array.isArray(nextOverview[key])) {
+        return nextOverview;
+      }
+
+      return {
+        ...nextOverview,
+        [key]: nextOverview[key].filter((room) => {
+          const roomId = normalizeText(room?.id || room?.roomId || room?.room_id);
+          return !removedRoomIds.has(roomId);
+        }),
+      };
+    },
+    { ...overview },
+  );
 }
 
 function mapRoomDtoToViewModel(roomDto, fallbackRoom, viewer) {
@@ -3857,6 +4167,18 @@ function mapRoomMessages(items) {
       };
     }
 
+    const text =
+      normalizeText(item?.text || item?.message || item?.body || item?.content) ||
+      "";
+    const reactionText =
+      normalizeReactionText(
+        item?.reactionText ||
+          item?.reaction_text ||
+          item?.reaction ||
+          item?.reactionEmoji ||
+          item?.reaction_emoji,
+      ) || normalizeReactionText(text);
+
     return {
       id: normalizeText(item?.id) || `message-${index + 1}`,
       isBet: false,
@@ -3868,11 +4190,9 @@ function mapRoomMessages(items) {
         normalizeText(item?.timeLabel || item?.time_label) ||
         formatEventTimeLabel(item?.created_at || item?.sent_at) ||
         formatTimeLabel(),
-      text:
-        normalizeText(item?.text || item?.message || item?.body || item?.content) ||
-        "",
-      reactionText:
-        normalizeText(item?.reactionText || item?.reaction_text) || "",
+      text,
+      reactionText,
+      isReactionOnly: Boolean(reactionText && text === reactionText),
     };
   });
 }
@@ -4164,6 +4484,7 @@ function createInitialRoomUiState() {
     errorText: "",
     roomStatusMessage: "",
     roomStatusTone: "info",
+    areRoomReactionsHidden: readRoomReactionsHidden(),
     activePanel: "",
     topMovieCandidatesLoading: false,
     topMovieCandidatesError: "",
@@ -4183,6 +4504,38 @@ function createInitialRoomUiState() {
     betVoteOptionLabel: "",
     betVoteCoinsAmount: "",
   };
+}
+
+function readRoomReactionsHidden() {
+  try {
+    return localStorage.getItem(WATCH_PARTY_REACTIONS_HIDDEN_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function saveRoomReactionsHidden(isHidden) {
+  try {
+    localStorage.setItem(WATCH_PARTY_REACTIONS_HIDDEN_KEY, String(Boolean(isHidden)));
+  } catch {
+    // UI preference persistence is optional.
+  }
+}
+
+function normalizeReactionText(value) {
+  const normalizedValue = normalizeText(value);
+  const reaction = WATCH_PARTY_REACTIONS.find((item) => {
+    return item.value === normalizedValue;
+  });
+
+  return reaction?.value || "";
+}
+
+function resolveFloatingReactionText(message) {
+  return (
+    normalizeReactionText(message?.reactionText) ||
+    normalizeReactionText(message?.text)
+  );
 }
 
 function normalizeInviteFriends(items = []) {

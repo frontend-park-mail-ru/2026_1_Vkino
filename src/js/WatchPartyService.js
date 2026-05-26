@@ -155,6 +155,23 @@ export class WatchPartyService {
     );
   }
 
+  async sendRoomReaction(roomId, reaction) {
+    const normalizedReaction = normalizeText(reaction);
+
+    if (!normalizedReaction) {
+      return {
+        ok: false,
+        status: 0,
+        resp: null,
+        error: "WatchPartyService: не передана реакция",
+      };
+    }
+
+    return this.sendRoomMessage(roomId, {
+      content: normalizedReaction,
+    });
+  }
+
   async createRoomPoll(roomId, payload) {
     const normalizedRoomId = normalizeRoomId(roomId);
 

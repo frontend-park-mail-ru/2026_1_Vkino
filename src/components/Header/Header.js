@@ -11,6 +11,7 @@ import { VKINO_COIN_ICON_SRC } from "@/utils/coinsDisplay.js";
 
 const PENDING_SCROLL_TARGET_KEY = "vkino_pending_scroll_target";
 const SEARCH_DEBOUNCE_MS = 500;
+const SEARCH_MIN_QUERY_LENGTH = 2;
 const SEARCH_MOVIE_LIMIT = 4;
 const SEARCH_GENRE_LIMIT = 3;
 const SEARCH_ACTOR_LIMIT = 3;
@@ -223,8 +224,11 @@ export default class HeaderComponent extends BaseComponent {
         isSearchOpen: true,
       });
 
+      const shouldUseRemoteSearch = query.length >= SEARCH_MIN_QUERY_LENGTH;
       const [movieResult, discoveryIndex] = await Promise.all([
-        movieService.searchMovies(query),
+        shouldUseRemoteSearch
+          ? movieService.searchMovies(query)
+          : Promise.resolve({ ok: false, resp: null }),
         getSearchDiscoveryIndex(),
       ]);
 
@@ -243,7 +247,7 @@ export default class HeaderComponent extends BaseComponent {
         SEARCH_GENRE_LIMIT,
       );
       const actors = (
-        movieResult.ok
+        movieResult.ok && shouldUseRemoteSearch
           ? normalizeSearchActors(movieResult.resp?.actors, discoveryIndex)
           : filterSearchActors(discoveryIndex.actors, query)
       ).slice(0, SEARCH_ACTOR_LIMIT);
@@ -638,16 +642,33 @@ function extractSelectionMovies(selection = {}) {
 }
 
 function normalizeDiscoveryMovie(movie = {}) {
-  const id = normalizeText(movie.id);
-  const title = normalizeText(movie.title || movie.name);
+  const id = normalizeText(
+    movie.id || movie.ID || movie.movie_id || movie.MovieID,
+  );
+  const title = normalizeText(
+    movie.title || movie.Title || movie.name || movie.Name,
+  );
   const imageUrl = normalizeText(
-    movie.img_url || movie.poster_url || movie.posterUrl || "",
+    movie.img_url ||
+      movie.poster_url ||
+      movie.posterUrl ||
+      movie.picture_file_key ||
+      movie.PictureFileKey ||
+      "",
   );
   const year = normalizeText(
-    movie.release_year || movie.year || movie.releaseYear || movie.production_year,
+    movie.release_year ||
+      movie.ReleaseYear ||
+      movie.year ||
+      movie.releaseYear ||
+      movie.production_year,
   );
   const country = normalizeText(
-    movie.country || movie.country_name || movie.countryLabel || movie.country_label,
+    movie.country ||
+      movie.Country ||
+      movie.country_name ||
+      movie.countryLabel ||
+      movie.country_label,
   );
 
   return {
@@ -662,7 +683,14 @@ function normalizeDiscoveryMovie(movie = {}) {
 function extractMovieActors(movie = {}) {
   const people = [];
 
-  [movie.actors, movie.cast].forEach((collection) => {
+  [
+    movie.actors,
+    movie.Actors,
+    movie.cast,
+    movie.Cast,
+    movie.persons,
+    movie.Persons,
+  ].forEach((collection) => {
     if (!Array.isArray(collection)) {
       return;
     }
@@ -673,22 +701,34 @@ function extractMovieActors(movie = {}) {
       }
 
       people.push({
-        id: normalizeText(person.id || person.actor_id || person.ActorID),
+        id: normalizeText(
+          person.id || person.ID || person.actor_id || person.ActorID,
+        ),
         name: normalizeText(
           person.full_name ||
+            person.FullName ||
             person.fullName ||
             person.name ||
+            person.Name ||
             person.actor_name ||
             [person.first_name, person.last_name].filter(Boolean).join(" "),
         ),
         imageUrl: normalizeText(
-          person.img_url || person.picture || person.picture_src || person.avatar,
+          person.img_url ||
+            person.image_url ||
+            person.picture_file_key ||
+            person.PictureFileKey ||
+            person.picture ||
+            person.picture_src ||
+            person.avatar,
         ),
       });
     });
   });
 
-  const singleActorName = normalizeText(movie.actor_name || movie.actor || movie.Actor);
+  const singleActorName = normalizeText(
+    movie.actor_name || movie.ActorName || movie.actor || movie.Actor,
+  );
 
   if (singleActorName) {
     people.push({
@@ -755,9 +795,17 @@ function normalizeSearchActors(actors = [], discoveryIndex = {}) {
 
   return actors
     .map((actor, index) => {
-      const actorId = normalizeText(actor?.id) || `search-actor-${index}`;
+      const actorId =
+        normalizeText(
+          actor?.id || actor?.ID || actor?.actor_id || actor?.ActorID,
+        ) || `search-actor-${index}`;
       const title = normalizeText(
-        actor?.full_name || actor?.fullName || actor?.name,
+        actor?.full_name ||
+          actor?.FullName ||
+          actor?.fullName ||
+          actor?.name ||
+          actor?.Name ||
+          [actor?.first_name, actor?.last_name].filter(Boolean).join(" "),
       );
       const fallback =
         discoveryIndex.actors?.find(
@@ -773,18 +821,58 @@ function normalizeSearchActors(actors = [], discoveryIndex = {}) {
       return {
         id: actorId,
         title,
-        count: Number.isFinite(Number(actor?.movies_count))
-          ? Number(actor.movies_count)
-          : Number.isFinite(Number(fallback?.count))
-            ? Number(fallback.count)
-            : 0,
+        count: getActorMovieCount(actor, fallback),
         imageUrl: normalizeText(
-          actor?.img_url || actor?.image_url || fallback?.imageUrl,
+          actor?.img_url ||
+            actor?.image_url ||
+            actor?.picture_file_key ||
+            actor?.PictureFileKey ||
+            actor?.picture_src ||
+            actor?.picture ||
+            actor?.avatar ||
+            fallback?.imageUrl,
         ),
         href: `/actor/${encodeURIComponent(actorId)}`,
       };
     })
     .filter(Boolean);
+}
+
+function getActorMovieCount(actor = {}, fallback = null) {
+  const explicitCount = [
+    actor?.movies_count,
+    actor?.MoviesCount,
+    actor?.moviesCount,
+    actor?.movie_count,
+    actor?.MovieCount,
+    actor?.films_count,
+    actor?.FilmsCount,
+    actor?.filmsCount,
+    actor?.titles_count,
+    actor?.TitlesCount,
+    actor?.projects_count,
+    actor?.ProjectsCount,
+    actor?.count,
+  ].find((value) => Number.isFinite(Number(value)));
+
+  if (explicitCount !== undefined) {
+    return Number(explicitCount);
+  }
+
+  const movieCollection = [
+    actor?.movies,
+    actor?.Movies,
+    actor?.filmography,
+    actor?.films,
+    actor?.titles,
+    actor?.projects,
+  ].find((value) => Array.isArray(value));
+
+  if (Array.isArray(movieCollection)) {
+    return movieCollection.length;
+  }
+
+  return Number.isFinite(Number(fallback?.count)) ? Number(fallback.count) : 0;
 }
 
 function normalizeGenres(genres) {

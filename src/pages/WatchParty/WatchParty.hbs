@@ -25,6 +25,13 @@
               {{roomStatusMessage}}
             </div>
 
+            <div
+              class="watch-room-reactions"
+              data-role="watch-party-reactions-layer"
+              {{#if areRoomReactionsHidden}}hidden{{/if}}
+              aria-hidden="true"
+            ></div>
+
             <div class="watch-room-shell__layout">
               <div class="watch-room-shell__main">
                 <section class="watch-room-player-slot">
@@ -119,8 +126,23 @@
                     </div>
                   </div>
 
-                  {{#if canInviteFriends}}
-                    <div class="watch-room-topbar__actions">
+                  <div class="watch-room-topbar__actions">
+                    <button
+                      class="watch-room-topbar__action"
+                      type="button"
+                      data-action="open-room-chat"
+                    >
+                      Чат
+                    </button>
+                    <button
+                      class="watch-room-topbar__action watch-room-topbar__action_reactions{{#unless areRoomReactionsHidden}} is-active{{/unless}}"
+                      type="button"
+                      data-action="toggle-room-reactions"
+                      aria-pressed="{{#unless areRoomReactionsHidden}}true{{else}}false{{/unless}}"
+                    >
+                      {{roomReactionsToggleLabel}}
+                    </button>
+                    {{#if canInviteFriends}}
                       <button
                         class="watch-room-topbar__action watch-room-topbar__action_copy"
                         type="button"
@@ -128,8 +150,8 @@
                       >
                         Пригласить
                       </button>
-                    </div>
-                  {{/if}}
+                    {{/if}}
+                  </div>
                 </div>
               </div>
             </div>
@@ -604,7 +626,7 @@
                           data-action="copy-link"
                           data-link="{{this.roomHref}}"
                         >
-                          Копировать ссылку
+                          Сссылка
                         </button>
                       {{else}}
                         <button
