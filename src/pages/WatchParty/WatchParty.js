@@ -299,12 +299,16 @@ export default class WatchPartyPage extends BasePage {
         event.preventDefault();
         this._removeBetOption(actionTarget);
         break;
-      case "select-bet-option":
+      case "open-bet-vote-modal":
         event.preventDefault();
-        await this._selectBetOption(
+        this._openBetVoteModal(
           actionTarget.dataset.messageId || "",
           actionTarget.dataset.optionId || "",
         );
+        break;
+      case "close-bet-vote-modal":
+        event.preventDefault();
+        this._closeBetVoteModal();
         break;
       default:
         break;
@@ -334,6 +338,10 @@ export default class WatchPartyPage extends BasePage {
       case "create-bet":
         event.preventDefault();
         await this._handleCreateBet(actionTarget);
+        break;
+      case "submit-bet-vote":
+        event.preventDefault();
+        await this._handleSubmitBetVote(actionTarget);
         break;
       default:
         break;
@@ -890,7 +898,7 @@ export default class WatchPartyPage extends BasePage {
     };
   }
 
-  async _selectBetOption(messageId, optionId) {
+  _openBetVoteModal(messageId, optionId) {
     if (this._mode !== "room") {
       return;
     }
@@ -902,16 +910,112 @@ export default class WatchPartyPage extends BasePage {
       return;
     }
 
+    const pollItem = Array.isArray(this._roomData.messages)
+      ? this._roomData.messages.find((message) => {
+          return (
+            message?.isBet &&
+            normalizeText(message.id) === normalizedMessageId
+          );
+        })
+      : null;
+    const option = Array.isArray(pollItem?.options)
+      ? pollItem.options.find((item) => {
+          return normalizeText(item?.id) === normalizedOptionId;
+        })
+      : null;
+
+    if (!pollItem || !option) {
+      return;
+    }
+
+    this._refreshRoomChat({
+      activePanel: "chat",
+      isBetVoteModalOpen: true,
+      betVotePollId: normalizedMessageId,
+      betVoteOptionId: normalizedOptionId,
+      betVoteOptionLabel: option.label,
+      betVoteCoinsAmount: "",
+    });
+  }
+
+  _closeBetVoteModal() {
+    if (this._mode !== "room") {
+      return;
+    }
+
+    this._refreshRoomChat({
+      isBetVoteModalOpen: false,
+      betVotePollId: "",
+      betVoteOptionId: "",
+      betVoteOptionLabel: "",
+      betVoteCoinsAmount: "",
+    });
+  }
+
+  async _handleSubmitBetVote(form) {
+    if (this._mode !== "room") {
+      return;
+    }
+
+    const formData = new FormData(form);
+    const normalizedMessageId = normalizeText(formData.get("messageId"));
+    const normalizedOptionId = normalizeText(formData.get("optionId"));
+    const coinsAmountRaw = normalizeText(formData.get("coinsAmount"));
+    const coinsAmount = normalizePositiveInteger(coinsAmountRaw);
+    const existingPollItem = Array.isArray(this._roomData.messages)
+      ? this._roomData.messages.find((message) => {
+          return (
+            message?.isBet &&
+            normalizeText(message.id) === normalizedMessageId
+          );
+        })
+      : null;
+    const optionLabel =
+      normalizeText(
+        existingPollItem?.options?.find((option) => {
+          return normalizeText(option?.id) === normalizedOptionId;
+        })?.label,
+      ) || this._uiState.betVoteOptionLabel || "Вариант";
+
+    if (!normalizedMessageId || !normalizedOptionId) {
+      this._setRoomStatus("Не удалось определить выбранный вариант.", "error");
+      return;
+    }
+
+    if (coinsAmount === null) {
+      this._refreshRoomChat({
+        activePanel: "chat",
+        isBetVoteModalOpen: true,
+        betVotePollId: normalizedMessageId,
+        betVoteOptionId: normalizedOptionId,
+        betVoteOptionLabel: optionLabel,
+        betVoteCoinsAmount: coinsAmountRaw,
+      });
+      this._setRoomStatus("Введите количество VKino coins больше нуля.", "warning");
+      return;
+    }
+
     const roomId = normalizeText(this._roomData.id);
     const result = await watchPartyService.voteRoomPoll(
       roomId,
       normalizedMessageId,
-      { option_id: normalizeNumericIdentifier(normalizedOptionId) },
+      {
+        option_id: normalizeNumericIdentifier(normalizedOptionId),
+        coins_amount: coinsAmount,
+      },
     );
 
     if (!result.ok) {
+      this._refreshRoomChat({
+        activePanel: "chat",
+        isBetVoteModalOpen: true,
+        betVotePollId: normalizedMessageId,
+        betVoteOptionId: normalizedOptionId,
+        betVoteOptionLabel: optionLabel,
+        betVoteCoinsAmount: String(coinsAmount),
+      });
       this._setRoomStatus(
-        result.error || "Не удалось отправить голос.",
+        result.error || "Не удалось отправить ставку.",
         "error",
       );
       return;
@@ -924,10 +1028,18 @@ export default class WatchPartyPage extends BasePage {
     }
 
     const selectedPollItem = markPollSelection(
-      {
-        ...pollItem,
-        id: normalizedMessageId,
-      },
+      applyPollVoteCount(
+        {
+          ...pollItem,
+          id: normalizedMessageId,
+        },
+        normalizedOptionId,
+        this._roomData.messages,
+        {
+          incrementLocalCount: false,
+          localCoinsAmount: coinsAmount,
+        },
+      ),
       normalizedOptionId,
     );
 
@@ -938,7 +1050,12 @@ export default class WatchPartyPage extends BasePage {
     saveLocalWatchPartyRoom(this._roomData);
     this._refreshRoomChat({
       activePanel: "chat",
-      roomStatusMessage: "Голос в ставке принят.",
+      isBetVoteModalOpen: false,
+      betVotePollId: "",
+      betVoteOptionId: "",
+      betVoteOptionLabel: "",
+      betVoteCoinsAmount: "",
+      roomStatusMessage: "Ставка принята.",
       roomStatusTone: "success",
     });
   }
@@ -2008,7 +2125,11 @@ export default class WatchPartyPage extends BasePage {
           pollItem,
           selectedOptionId,
           this._roomData.messages,
-          { incrementLocalCount: !voteBelongsToViewer },
+          {
+            incrementLocalCount: !voteBelongsToViewer,
+            localCoinsAmount:
+              payload?.vote?.coins_amount ?? payload?.vote?.coinsAmount,
+          },
         )
       : pollItem;
     const nextPoll = voteBelongsToViewer
@@ -2373,6 +2494,11 @@ function buildRoomChatContext(roomData, uiState) {
 
   return {
     isBetComposerOpen: Boolean(uiState.isBetComposerOpen),
+    isBetVoteModalOpen: Boolean(uiState.isBetVoteModalOpen),
+    betVotePollId: uiState.betVotePollId || "",
+    betVoteOptionId: uiState.betVoteOptionId || "",
+    betVoteOptionLabel: uiState.betVoteOptionLabel || "Вариант",
+    betVoteCoinsAmount: uiState.betVoteCoinsAmount || "",
     roomBetComposerOptions: buildComposerOptions(
       uiState.betComposerOptionCount,
     ),
@@ -3076,9 +3202,10 @@ function applyPollVoteCount(
   pollItem,
   optionId,
   previousItems,
-  { incrementLocalCount = true } = {},
+  { incrementLocalCount = true, localCoinsAmount = 0 } = {},
 ) {
   const normalizedOptionId = normalizeText(optionId);
+  const normalizedCoinsAmount = Math.max(0, normalizeCount(localCoinsAmount));
 
   if (!pollItem?.isBet || !normalizedOptionId) {
     return pollItem;
@@ -3096,15 +3223,21 @@ function applyPollVoteCount(
         );
         const serverVotes = normalizeCount(option.votes);
         const previousVotes = normalizeCount(previousOption?.votes);
+        const serverCoinsTotal = normalizeCount(option.coinsTotal);
+        const previousCoinsTotal = normalizeCount(previousOption?.coinsTotal);
         const optimisticVotes = isVotedOption
           ? incrementLocalCount
             ? previousVotes + 1
             : Math.max(previousVotes, 1)
           : previousVotes;
+        const optimisticCoinsTotal = isVotedOption
+          ? previousCoinsTotal + normalizedCoinsAmount
+          : previousCoinsTotal;
 
         return {
           ...option,
           votes: Math.max(serverVotes, optimisticVotes),
+          coinsTotal: Math.max(serverCoinsTotal, optimisticCoinsTotal),
         };
       })
     : [];
@@ -3689,6 +3822,12 @@ function mapRoomMessages(items) {
                 option?.count ??
                 option?.value,
             ),
+            coinsTotal: normalizeCount(
+              option?.coins_total ??
+                option?.coinsTotal ??
+                option?.coins_amount_total ??
+                option?.coinsAmountTotal,
+            ),
             isSelected: normalizeText(optionId) === selectedOptionId,
           };
         })
@@ -3786,6 +3925,12 @@ function mapRoomPolls(items, roomMembers = []) {
             option?.vote_count ??
             option?.voteCount ??
             option?.count,
+        ),
+        coinsTotal: normalizeCount(
+          option?.coins_total ??
+            option?.coinsTotal ??
+            option?.coins_amount_total ??
+            option?.coinsAmountTotal,
         ),
         isSelected: normalizeText(optionId) === selectedOptionId,
       };
@@ -4032,6 +4177,11 @@ function createInitialRoomUiState() {
     inviteRequestInFlightIds: [],
     isBetComposerOpen: false,
     betComposerOptionCount: 2,
+    isBetVoteModalOpen: false,
+    betVotePollId: "",
+    betVoteOptionId: "",
+    betVoteOptionLabel: "",
+    betVoteCoinsAmount: "",
   };
 }
 
@@ -4154,15 +4304,22 @@ function decorateRoomMessage(message) {
   );
   const options = normalizedOptions.map((option) => {
     const votes = normalizeCount(option.votes);
+    const coinsTotal = normalizeCount(option.coinsTotal);
     const percent = voteCount > 0 ? Math.round((votes / voteCount) * 100) : 0;
 
     return {
       ...option,
       widthStyle: `width: ${percent}%`,
       percentLabel: `${percent}%`,
+      coinsTotalLabel: formatCoinsLabel(coinsTotal),
+      resultLabel:
+        coinsTotal > 0
+          ? `${percent}% · ${formatCoinsLabel(coinsTotal)}`
+          : `${percent}%`,
     };
   });
   const hasSelectedOption = options.some((option) => option.isSelected);
+  const totalCoins = sumOptionCoins(normalizedOptions);
 
   return {
     ...message,
@@ -4171,8 +4328,8 @@ function decorateRoomMessage(message) {
     hasSelectedOption,
     metaText:
       resolvePollMetaText(message, voteCount) ||
-      `Создал ${message.authorName} · ${voteCount} голосов`,
-    votersText: formatVotersText(voteCount),
+      `Создал ${message.authorName} · ${voteCount} голосов · ${formatCoinsLabel(totalCoins)}`,
+    votersText: `${formatVotersText(voteCount)} · ${formatCoinsLabel(totalCoins)}`,
     selectionText:
       normalizeText(message.selectionText) ||
       resolveSelectedOptionLabel(message.options) ||
@@ -4822,6 +4979,32 @@ function sumOptionVotes(options = []) {
   return options.reduce((accumulator, option) => {
     return accumulator + normalizeCount(option.votes);
   }, 0);
+}
+
+function sumOptionCoins(options = []) {
+  if (!Array.isArray(options)) {
+    return 0;
+  }
+
+  return options.reduce((accumulator, option) => {
+    return accumulator + normalizeCount(option.coinsTotal);
+  }, 0);
+}
+
+function formatCoinsLabel(count) {
+  return `${normalizeCount(count)} VKino coins`;
+}
+
+function normalizePositiveInteger(value) {
+  const normalizedValue = normalizeText(value);
+
+  if (!/^\d+$/.test(normalizedValue)) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(normalizedValue, 10);
+
+  return parsed > 0 ? parsed : null;
 }
 
 function buildInitial(value) {
