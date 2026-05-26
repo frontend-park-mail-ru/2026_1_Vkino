@@ -25,18 +25,20 @@
       <div class="movie-review-form__grid">
         <label class="movie-review-form__field movie-review-form__field_rating">
           <span>Оценка</span>
-          <input
+          <select
             class="movie-review-form__input"
-            type="number"
             name="rating"
-            min="0"
-            max="10"
-            step="0.5"
-            inputmode="decimal"
-            placeholder="8.5"
-            value="{{formRatingValue}}"
             {{#if formControlsDisabled}}disabled{{/if}}
-          />
+          >
+            {{#each ratingOptions}}
+              <option
+                value="{{this.value}}"
+                {{#if this.selected}}selected{{/if}}
+              >
+                {{this.label}}
+              </option>
+            {{/each}}
+          </select>
         </label>
 
         <label class="movie-review-form__field">

@@ -65,7 +65,9 @@
             <span class="watch-room-chat__time">{{this.timeLabel}}</span>
           </div>
 
-          <div class="watch-room-chat__text">{{this.text}}</div>
+          {{#unless this.isReactionOnly}}
+            <div class="watch-room-chat__text">{{this.text}}</div>
+          {{/unless}}
 
           {{#if this.reactionText}}
             <div class="watch-room-chat__reaction">{{this.reactionText}}</div>
@@ -195,6 +197,20 @@
     </div>
   </form>
 {{/if}}
+
+<div class="watch-room-chat__quick-reactions" aria-label="Быстрые реакции">
+  {{#each quickReactions}}
+    <button
+      class="watch-room-chat__reaction-button"
+      type="button"
+      data-action="send-room-reaction"
+      data-reaction="{{this.value}}"
+      aria-label="{{this.label}}"
+    >
+      {{this.value}}
+    </button>
+  {{/each}}
+</div>
 
 <form class="watch-room-chat__form" data-action="send-chat-message">
   <button

@@ -173,7 +173,7 @@
 }
 
 .main-support-widget--open .main-support-widget__panel {
-  height: min(46rem, calc(100dvh - 3rem));
+  height: min(40rem, calc(100dvh - 3rem));
   opacity: 1;
   visibility: visible;
   transform: translateY(0) scale(1);

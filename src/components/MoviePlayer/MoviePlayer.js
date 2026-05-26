@@ -3,6 +3,8 @@ import "./MoviePlayer.precompiled.js";
 import MoviePlayerVolumeComponent from "@/components/MoviePlayerVolume/MoviePlayerVolume.js";
 import { authStore } from "@/store/authStore.js";
 import { playerService } from "@/js/PlayerService.js";
+import { userService } from "@/js/UserService.js";
+import { router } from "@/router/index.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
 
 const CONTROLS_HIDE_DELAY_MS = 2200;
@@ -764,6 +766,9 @@ export default class MoviePlayerComponent extends BaseComponent {
     const fullscreenButtons = this.el.querySelectorAll(
       '[data-action="toggle-fullscreen"]',
     );
+    const favoriteButtons = this.el.querySelectorAll(
+      '[data-action="toggle-favorite"]',
+    );
     const titleEl = this.el.querySelector(".movie-player__title");
     const descriptionEl = this.el.querySelector(".movie-player__description");
     const posterLayer = this.el.querySelector('[data-role="poster-layer"]');
@@ -815,6 +820,21 @@ export default class MoviePlayerComponent extends BaseComponent {
       button.classList.toggle(
         "is-fullscreen",
         this.context.isFullscreen || this.context.isFullscreenFallback,
+      );
+    });
+
+    favoriteButtons.forEach((button) => {
+      const isFavorite = Boolean(this.context.isFavorite);
+
+      button.classList.toggle("is-favorite", isFavorite);
+      button.toggleAttribute("disabled", Boolean(this.context.isFavoriteUpdating));
+      button.setAttribute(
+        "aria-label",
+        isFavorite ? "Убрать из избранного" : "Добавить в избранное",
+      );
+      button.setAttribute(
+        "title",
+        isFavorite ? "Убрать из избранного" : "В избранное",
       );
     });
 
@@ -963,6 +983,11 @@ export default class MoviePlayerComponent extends BaseComponent {
       this._onToggleFullscreenClick,
       true,
     );
+    this._bindAction(
+      '[data-action="toggle-favorite"]',
+      this._onToggleFavoriteClick,
+      true,
+    );
     this._bindAction('[data-action="open-chat"]', this._onOpenChatClick, true);
     this._bindAction(
       '[data-action="select-episode"]',
@@ -1018,6 +1043,11 @@ export default class MoviePlayerComponent extends BaseComponent {
     this._unbindAction(
       '[data-action="toggle-fullscreen"]',
       this._onToggleFullscreenClick,
+      true,
+    );
+    this._unbindAction(
+      '[data-action="toggle-favorite"]',
+      this._onToggleFavoriteClick,
       true,
     );
     this._unbindAction(
@@ -1292,6 +1322,52 @@ export default class MoviePlayerComponent extends BaseComponent {
   _onToggleFullscreenClick = async (event) => {
     event.preventDefault();
     await this.toggleFullscreen();
+  };
+
+  _onToggleFavoriteClick = async (event) => {
+    event.preventDefault();
+
+    const movieId = normalizeString(this.context.movieId);
+
+    if (!movieId || this.context.isFavoriteUpdating) {
+      return;
+    }
+
+    if (!authStore.getState().user) {
+      const returnTo = encodeURIComponent(
+        window.location.pathname + window.location.search,
+      );
+      router.go(`/sign-in?return_to=${returnTo}`);
+      return;
+    }
+
+    const wasFavorite = Boolean(this.context.isFavorite);
+
+    this.context = {
+      ...this.context,
+      isFavorite: !wasFavorite,
+      isFavoriteUpdating: true,
+    };
+    this.updateUI();
+
+    const result = await userService.toggleFavorite(movieId);
+
+    if (result.ok) {
+      this.context = {
+        ...this.context,
+        isFavorite: resolveFavoriteFlag(result.resp, !wasFavorite),
+        isFavoriteUpdating: false,
+      };
+      this.updateUI();
+      return;
+    }
+
+    this.context = {
+      ...this.context,
+      isFavorite: wasFavorite,
+      isFavoriteUpdating: false,
+    };
+    this.updateUI();
   };
 
   _onOpenChatClick = (event) => {
@@ -1680,6 +1756,7 @@ function createInitialContext() {
     showSeekControls: true,
     showMuteControl: true,
     showFullscreenControl: true,
+    showFavoriteControl: false,
     showChatControl: false,
     fullscreenTargetSelector: "",
     onChatRequested: null,
@@ -1697,6 +1774,8 @@ function createInitialContext() {
     isFullscreenFallback: false,
     isAuthenticated: false,
     movieId: "",
+    isFavorite: false,
+    isFavoriteUpdating: false,
     movieTitle: "Плеер",
     movieDescription: "",
     contentType: "",
@@ -1748,6 +1827,8 @@ function buildOpenContext(movieData, activeEpisodeId) {
     areControlsVisible: true,
     isPlaying: false,
     movieId: movieData.id,
+    isFavorite: Boolean(movieData.isFavorite),
+    isFavoriteUpdating: false,
     movieTitle: movieData.title,
     movieDescription: movieData.description,
     contentType: movieData.contentType,
@@ -1757,6 +1838,7 @@ function buildOpenContext(movieData, activeEpisodeId) {
     episodes,
     hasEpisodes: episodes.length > 1,
     ...episodeNavigationState,
+    showFavoriteControl: Boolean(movieData.id),
     showEpisodeMenuButton: shouldShowEpisodeMenu,
     isEpisodeMenuOpen: false,
     episodesCountLabel: `${episodes.length} ${pluralizeEpisodes(episodes.length)}`,
@@ -1791,6 +1873,7 @@ function normalizeMovieData(movieData = {}) {
 
   return {
     id: normalizeString(movieData.id),
+    isFavorite: resolveFavoriteFlag(movieData, false),
     title: normalizeString(movieData.title) || "Видео",
     description: normalizeString(movieData.description),
     contentType: normalizeString(
@@ -1802,6 +1885,26 @@ function normalizeMovieData(movieData = {}) {
     ),
     episodes,
   };
+}
+
+function resolveFavoriteFlag(source = {}, fallback = false) {
+  if (!source || typeof source !== "object") {
+    return Boolean(fallback);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(source, "is_favorite")) {
+    return Boolean(source.is_favorite);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(source, "isFavorite")) {
+    return Boolean(source.isFavorite);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(source, "favorite")) {
+    return Boolean(source.favorite);
+  }
+
+  return Boolean(fallback);
 }
 
 function normalizeEpisodeData(episode = {}, index = 0) {

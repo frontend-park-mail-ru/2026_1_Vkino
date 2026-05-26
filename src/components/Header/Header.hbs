@@ -82,7 +82,6 @@
                         </div>
                         <div class="vk-header__search-copy">
                           <div class="vk-header__search-item-title">{{title}}</div>
-                          <div class="vk-header__search-item-meta">Фильмов на платформе: {{count}}</div>
                         </div>
                       </a>
                     {{/each}}
@@ -220,7 +219,7 @@
       Совместный просмотр
     </a>
     <a href="/" router-link data-action="close-all-menus">Главная</a>
-    <a href="/" data-action="scroll-to-section" data-scroll-target="Новинки">Новинки</a>
+    <a href="/selection/Новинки" router-link data-action="close-all-menus">Новинки</a>
     <a href="/movies" router-link data-action="close-all-menus">Фильмы</a>
     <a href="/cartoons" router-link data-action="close-all-menus">Мультфильмы</a>
     <a href="/serials" router-link data-action="close-all-menus">Сериалы</a>

@@ -300,6 +300,7 @@ function buildReviewsContext(context = {}, uiState = {}) {
     formTitle: ownReview ? "Ваш отзыв" : "Оставить отзыв",
     formSubmitLabel: ownReview ? "Сохранить изменения" : "Опубликовать",
     formRatingValue,
+    ratingOptions: buildRatingOptions(formRatingValue),
     formMessageValue,
     formError: uiState.formError || "",
     reactionError: uiState.reactionError || "",
@@ -307,6 +308,25 @@ function buildReviewsContext(context = {}, uiState = {}) {
     isDeleting: Boolean(uiState.isDeleting),
     formControlsDisabled: Boolean(uiState.isSaving || uiState.isDeleting),
   };
+}
+
+function buildRatingOptions(selectedValue = "") {
+  const normalizedSelectedValue = normalizeString(selectedValue);
+  const options = [];
+
+  for (let rating = 10; rating >= 1; rating -= 1) {
+    const value = String(rating);
+
+    options.push({
+      value,
+      label: value,
+      selected: normalizedSelectedValue
+        ? normalizedSelectedValue === value
+        : rating === 10,
+    });
+  }
+
+  return options;
 }
 
 function normalizeReviews(reviews, currentUserId, uiState = {}) {

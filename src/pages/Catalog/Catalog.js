@@ -10,6 +10,7 @@ import { getCacheFallbackNotice } from "@/utils/apiMeta.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
 
 const DEFAULT_PAGE_SIZE = 12;
+const SEARCH_MIN_QUERY_LENGTH = 2;
 const GENRE_IMAGE_BY_SLUG = {
   adventure: "/img/genres/adventure.png",
   bio: "/img/genres/bio.png",
@@ -302,6 +303,22 @@ export default class CatalogPage extends BasePage {
     const searchQuery = normalizeString(this.context.searchQuery);
 
     if (!searchQuery) {
+      this.refresh(
+        buildCatalogContext({
+          ...this.context,
+          isLoading: false,
+          hasError: false,
+          errorMessage: "",
+          cacheMessage: "",
+          items: [],
+          totalPages: 1,
+        }),
+      );
+      applyCatalogDocumentTitle(this.context.catalogKey, this.context.title);
+      return;
+    }
+
+    if (searchQuery.length < SEARCH_MIN_QUERY_LENGTH) {
       this.refresh(
         buildCatalogContext({
           ...this.context,
