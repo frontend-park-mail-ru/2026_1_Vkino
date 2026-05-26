@@ -57,6 +57,10 @@ export function mapApiErrorMessage(
     return "Запрашиваемый ресурс не найден.";
   }
 
+  if (raw.includes("insufficient vkino coins")) {
+    return "Недостаточно VKino coins.";
+  }
+
   if (
     raw.includes("payload too large") ||
     raw.includes("request entity too large")

@@ -23,7 +23,7 @@
             <button
               class="watch-room-chat__bet-option{{#if this.isSelected}} is-selected{{/if}}{{#if ../hasSelectedOption}} is-locked{{/if}}"
               type="button"
-              data-action="select-bet-option"
+              data-action="open-bet-vote-modal"
               data-message-id="{{../id}}"
               data-option-id="{{this.id}}"
               {{#if ../hasSelectedOption}}disabled{{/if}}
@@ -38,7 +38,7 @@
                   {{#if this.isSelected}}
                     <span class="watch-room-chat__bet-option-picked">Выбор</span>
                   {{/if}}
-                  <span class="watch-room-chat__bet-option-percent">{{this.percentLabel}}</span>
+                  <span class="watch-room-chat__bet-option-percent">{{this.resultLabel}}</span>
                 </span>
               </span>
             </button>
@@ -75,6 +75,69 @@
     {{/if}}
   {{/each}}
 </div>
+
+{{#if isBetVoteModalOpen}}
+  <div class="watch-room-chat__vote-modal">
+    <button
+      class="watch-room-chat__vote-modal-backdrop"
+      type="button"
+      data-action="close-bet-vote-modal"
+      aria-label="Закрыть окно ставки"
+    ></button>
+
+    <form
+      class="watch-room-chat__vote-modal-dialog"
+      data-action="submit-bet-vote"
+    >
+      <div class="watch-room-chat__vote-modal-header">
+        <div>
+          <div class="watch-room-chat__vote-modal-kicker">Ставка на вариант</div>
+          <div class="watch-room-chat__vote-modal-title">{{betVoteOptionLabel}}</div>
+        </div>
+
+        <button
+          class="watch-room-chat__vote-modal-close"
+          type="button"
+          data-action="close-bet-vote-modal"
+          aria-label="Закрыть окно ставки"
+        >
+          ×
+        </button>
+      </div>
+
+      <input type="hidden" name="messageId" value="{{betVotePollId}}" />
+      <input type="hidden" name="optionId" value="{{betVoteOptionId}}" />
+
+      <label class="watch-room-chat__vote-modal-field">
+        <span>Количество VKino coins</span>
+        <input
+          class="watch-room-chat__composer-input"
+          type="number"
+          name="coinsAmount"
+          value="{{betVoteCoinsAmount}}"
+          min="1"
+          step="1"
+          inputmode="numeric"
+          placeholder="Например, 25"
+          autofocus
+        />
+      </label>
+
+      <div class="watch-room-chat__vote-modal-actions">
+        <button
+          class="watch-room-chat__attach watch-room-chat__attach_secondary"
+          type="button"
+          data-action="close-bet-vote-modal"
+        >
+          Отмена
+        </button>
+        <button class="watch-room-chat__attach watch-room-chat__attach_accent" type="submit">
+          Поставить
+        </button>
+      </div>
+    </form>
+  </div>
+{{/if}}
 
 {{#if isBetComposerOpen}}
   <form class="watch-room-chat__bet-composer" data-action="create-bet">
