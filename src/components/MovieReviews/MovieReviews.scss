@@ -103,6 +103,29 @@
   min-height: 46px;
 }
 
+.movie-review-form__field_rating {
+  position: relative;
+}
+
+.movie-review-form__field_rating::after {
+  content: "";
+  position: absolute;
+  right: var(--space-3);
+  bottom: 18px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  pointer-events: none;
+  transform: rotate(45deg);
+}
+
+select.movie-review-form__input {
+  appearance: none;
+  padding-right: calc(var(--space-5) + var(--space-2));
+  cursor: pointer;
+}
+
 .movie-review-form__textarea {
   min-height: 116px;
   resize: vertical;
