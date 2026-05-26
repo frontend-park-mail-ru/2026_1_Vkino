@@ -1,0 +1,80 @@
+.vk-coins-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 106, 42, 0.55);
+  background: rgba(255, 87, 31, 0.12);
+  color: #ff6a2a;
+  font-size: 0.76rem;
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  cursor: pointer;
+  box-shadow:
+    0 0 0 1px rgba(255, 106, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition:
+    color var(--duration-fast) var(--ease-default),
+    border-color var(--duration-fast) var(--ease-default),
+    background var(--duration-fast) var(--ease-default),
+    box-shadow var(--duration-fast) var(--ease-default),
+    transform var(--duration-fast) var(--ease-default);
+}
+
+.vk-coins-info:hover,
+.vk-coins-info:focus-visible {
+  color: #ff8a4a;
+  border-color: rgba(255, 106, 42, 0.85);
+  background: rgba(255, 87, 31, 0.22);
+  box-shadow:
+    0 0 14px rgba(255, 87, 31, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.vk-coins-info_compact {
+  width: 18px;
+  height: 18px;
+  font-size: 0.68rem;
+}
+
+.vk-coins-info-popover {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid rgba(255, 106, 42, 0.28);
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    180deg,
+    rgba(22, 12, 7, 0.98) 0%,
+    rgba(15, 8, 4, 0.96) 100%
+  );
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  max-width: 100%;
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 106, 42, 0.1);
+}
+
+.settings__coins-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  flex-shrink: 0;
+}
+
+.settings__coins-history-header .settings__coins-history-title {
+  margin-bottom: 0;
+}

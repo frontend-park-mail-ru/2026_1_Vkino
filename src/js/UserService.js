@@ -4,6 +4,11 @@ import {
   buildPlansFromTariffs,
   normalizeCapabilitiesFromApi,
 } from "@/utils/subscriptionDisplay.js";
+// import {
+//   buildMockCoinsHistoryResponse,
+//   MOCK_COINS_BALANCE,
+//   USE_COINS_DEV_MOCKS,
+// } from "@/dev/coinsDevMocks.js";
 
 /**
  * Сервис авторизации. Надстройка нам ApiService
@@ -110,7 +115,19 @@ export class UserService {
    * @returns {Promise<Object>} результат запроса с данными пользователя
    */
   async me() {
-    return this.api.get("/me");
+    const result = await this.api.get("/me");
+
+    // if (USE_COINS_DEV_MOCKS && result.ok && result.resp) {
+    //   result.resp = {
+    //     ...result.resp,
+    //     vkino_coins_count:
+    //       result.resp.vkino_coins_count ??
+    //       result.resp.vkino_coins_balance ??
+    //       MOCK_COINS_BALANCE,
+    //   };
+    // }
+
+    return result;
   }
 
   /**
@@ -443,6 +460,25 @@ export class UserService {
    */
   async deleteFriend(userId) {
     return this.api.delete(`/friends/${userId}`);
+  }
+
+  /**
+   * Возвращает историю операций VKino coins.
+   * @async
+   * @param {{limit?: number, offset?: number}} [options={}] параметры пагинации.
+   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
+   */
+  async getCoinsHistory({ limit = 50, offset = 0 } = {}) {
+    // if (USE_COINS_DEV_MOCKS) {
+    //   return {
+    //     ok: true,
+    //     status: 200,
+    //     resp: buildMockCoinsHistoryResponse({ limit, offset }),
+    //     error: null,
+    //   };
+    // }
+
+    return this.api.get("/coins/history", { query: { limit, offset } });
   }
 }
 

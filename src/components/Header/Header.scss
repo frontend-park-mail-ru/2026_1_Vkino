@@ -316,6 +316,44 @@
   font-weight: 700;
 }
 
+.vk-header__coins {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(217, 104, 45, 0.18);
+  background: rgba(39, 20, 11, 0.72);
+  color: #efe0c9;
+  text-decoration: none;
+  transition:
+    transform var(--duration-fast) var(--ease-default),
+    background var(--duration-fast) var(--ease-default),
+    border-color var(--duration-fast) var(--ease-default);
+}
+
+.vk-header__coins:hover {
+  color: #ff6a2a;
+  background: rgba(52, 27, 15, 0.9);
+  border-color: rgba(217, 104, 45, 0.35);
+  transform: translateY(-1px);
+}
+
+.vk-header__coins-icon {
+  display: block;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.vk-header__coins-value {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
 .vk-header__avatar-button {
   display: inline-flex;
   align-items: center;
@@ -513,6 +551,10 @@
 
   .vk-header__end {
     gap: 18px;
+  }
+
+  .vk-header__coins {
+    padding: 0 8px;
   }
 
   .vk-header__auth-link {

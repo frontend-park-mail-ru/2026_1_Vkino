@@ -144,6 +144,23 @@
 
     <div class="vk-header__end">
       {{#if isAuthorized}}
+        {{#if showCoinsBalance}}
+          <a
+            href="/settings"
+            class="vk-header__coins"
+            router-link
+            title="История VKino coins"
+          >
+            <img
+              src="{{coinsIconSrc}}"
+              alt=""
+              class="vk-header__coins-icon"
+              width="18"
+              height="18"
+            />
+            <span class="vk-header__coins-value">{{coinsBalance}}</span>
+          </a>
+        {{/if}}
         <button
           class="vk-header__avatar-button"
           type="button"

@@ -104,8 +104,14 @@
           </div>
 
           <div class="subscription-plan-card__coins">
-            <span class="coins-icon" aria-hidden="true">🪙</span>
             <span class="coins-amount">{{this.dailyCoins}}</span>
+            <img
+              class="coins-icon"
+              src="{{@root.coinsIconSrc}}"
+              alt=""
+              width="22"
+              height="22"
+            />
             <span class="coins-label">VKino coins в день</span>
           </div>
 
@@ -188,21 +194,68 @@
       </button>
       <div class="modal_payment__header">
         <h3 class="modal_payment__title">Оформление подписки</h3>
-        <p class="modal_payment__subtitle">Вы будете перенаправлены на защищённую страницу оплаты ЮKassa.</p>
-      </div>
-      <div class="modal_payment__plan-card">
-        <span class="modal_payment__plan-label">Выбранный план</span>
-        <p class="modal_payment__plan-name" data-role="modal-plan-name"></p>
-        <p class="modal_payment__plan-price" data-role="modal-plan-price"></p>
-      </div>
-      <div class="modal__body modal_payment__body">
-        <p class="modal_payment__methods-title">Способ оплаты</p>
-        <p class="modal_payment__yookassa-note">
-          Карта, ЮMoney, СБП и другие методы выбираются на стороне ЮKassa.
+        <p class="modal_payment__subtitle" data-role="modal-payment-subtitle">
+          Выберите способ оплаты и подтвердите покупку.
         </p>
-        <button type="button" class="btn btn_outline modal_payment__coins-btn" disabled title="Скоро">
-          Оплатить VKino coins (скоро)
-        </button>
+      </div>
+      <div class="modal_payment__main">
+        <div class="modal_payment__plan-card">
+          <span class="modal_payment__plan-label">Выбранный план</span>
+          <p class="modal_payment__plan-name" data-role="modal-plan-name"></p>
+          <p class="modal_payment__plan-price" data-role="modal-plan-price"></p>
+        </div>
+        <div class="modal__body modal_payment__body">
+          <p class="modal_payment__methods-title">Способ оплаты</p>
+          <div class="modal__payment-methods" role="radiogroup" aria-label="Способ оплаты">
+            <label class="payment-method payment-method_active" data-payment-method="yookassa">
+              <input
+                type="radio"
+                name="subscription-payment-method"
+                value="yookassa"
+                checked
+              />
+              <span class="payment-method__body">
+                <span class="payment-method__label">ЮKassa</span>
+                <span class="modal_payment__method-hint">
+                  Карта, ЮMoney, СБП и другие методы
+                </span>
+              </span>
+            </label>
+            <label
+              class="payment-method payment-method_coins"
+              data-payment-method="vkino_coins"
+              hidden
+            >
+              <input
+                type="radio"
+                name="subscription-payment-method"
+                value="vkino_coins"
+              />
+              <img
+                class="payment-method__coin-icon"
+                src="{{coinsIconSrc}}"
+                alt=""
+                width="20"
+                height="20"
+              />
+              <span class="payment-method__body">
+                <span class="payment-method__label">VKino coins</span>
+                <span class="modal_payment__method-hint" data-role="modal-coins-hint"></span>
+              </span>
+            </label>
+          </div>
+          <p class="modal_payment__coins-balance" data-role="modal-coins-balance-wrap" hidden>
+            Ваш баланс:
+            <strong data-role="modal-coins-balance"></strong>
+            <img
+              class="modal_payment__coins-balance-icon"
+              src="{{coinsIconSrc}}"
+              alt=""
+              width="14"
+              height="14"
+            />
+          </p>
+        </div>
       </div>
       <div class="modal__footer modal_payment__footer">
         <button type="button" class="btn btn_outline" data-action="cancel-payment">Отмена</button>

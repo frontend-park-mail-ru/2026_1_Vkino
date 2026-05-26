@@ -42,6 +42,38 @@ const FREE_CAPABILITIES_DEFAULTS = {
 
 const TARIFF_LOADING_STUB_CODES = ["level_2", "level_3", "level_4"];
 
+/** Цены в coins (миграция 000015), пока GET /payments/tariffs не отдаёт price_vkino_coins. */
+const DEFAULT_TARIFF_COINS_PRICES = Object.freeze({
+  level_2: 20,
+  level_3: 50,
+  level_4: 150,
+});
+
+function resolveTariffCoinsPrice(tariff, code) {
+  const fromApi = toOptionalFiniteNumber(tariff.price_vkino_coins);
+  if (fromApi != null) {
+    return fromApi;
+  }
+
+  return DEFAULT_TARIFF_COINS_PRICES[code] ?? null;
+}
+
+function resolveCoinsPaymentAvailable(tariff, code, priceCoins) {
+  if (tariff.is_coins_payment_available === false) {
+    return false;
+  }
+
+  if (priceCoins == null || priceCoins <= 0 || code === "free") {
+    return false;
+  }
+
+  if (tariff.is_coins_payment_available === true) {
+    return true;
+  }
+
+  return true;
+}
+
 function toOptionalFiniteNumber(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
@@ -126,7 +158,12 @@ export function mapTariffToPlan(tariff) {
   const level = Number(tariff.level);
   const tier = backendLevelToUiTier(level);
   const priceMoney = Number(tariff.price_money);
-  const priceCoins = toOptionalFiniteNumber(tariff.price_vkino_coins);
+  const priceCoins = resolveTariffCoinsPrice(tariff, code);
+  const isCoinsPaymentAvailable = resolveCoinsPaymentAvailable(
+    tariff,
+    code,
+    priceCoins,
+  );
 
   return {
     id: code,
@@ -137,6 +174,7 @@ export function mapTariffToPlan(tariff) {
     price: Number.isFinite(priceMoney) ? `${priceMoney}₽` : null,
     priceMoney: Number.isFinite(priceMoney) ? priceMoney : null,
     priceCoins,
+    isCoinsPaymentAvailable,
     durationDays: toOptionalPositiveInt(tariff.duration_days),
     dailyCoins: getDailyCoinsLabel(code),
     isPopular: code === "level_3",
@@ -162,6 +200,7 @@ export function getFreePlan() {
     price: "0₽",
     priceMoney: 0,
     priceCoins: null,
+    isCoinsPaymentAvailable: false,
     durationDays: 365,
     dailyCoins: "3",
     isPopular: false,
@@ -185,6 +224,7 @@ function buildLoadingStubPlan(code) {
     price: null,
     priceMoney: null,
     priceCoins: null,
+    isCoinsPaymentAvailable: false,
     durationDays: null,
     dailyCoins: getDailyCoinsLabel(code),
     isPopular: code === "level_3",

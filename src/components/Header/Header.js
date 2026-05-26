@@ -6,6 +6,7 @@ import { movieService } from "@/js/MovieService.js";
 import { resolveAvatarUrl } from "@/utils/avatar.js";
 import { getDisplayNameFromEmail } from "@/utils/user.js";
 import { canManageSupportTicketStatus } from "@/utils/support.js";
+import { VKINO_COIN_ICON_SRC } from "@/utils/coinsDisplay.js";
 
 
 const PENDING_SCROLL_TARGET_KEY = "vkino_pending_scroll_target";
@@ -56,7 +57,8 @@ export default class HeaderComponent extends BaseComponent {
   init() {
     this.context = this._buildContext(authStore.getState(), this.context);
 
-    return super.init();
+    const result = super.init();
+    return result;
   }
 
   /**
@@ -356,11 +358,15 @@ export default class HeaderComponent extends BaseComponent {
       state.user?.role,
     );
     const currentPath = window.location.pathname;
+    const rawBalance = state.user?.coinsBalance;
     const nextContext = {
       ...currentContext,
       isAuthorized,
       userName: getDisplayNameFromEmail(state.user?.email),
       avatarUrl,
+      coinsBalance: rawBalance ?? 0,
+      showCoinsBalance: isAuthorized && rawBalance != null,
+      coinsIconSrc: VKINO_COIN_ICON_SRC,
       favoritesHref: isAuthorized ? "/profile" : "/sign-in",
       supportTicketsHref: "/support",
       supportTicketsLabel: canManageSupportTickets

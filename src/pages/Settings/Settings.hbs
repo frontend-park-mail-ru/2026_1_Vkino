@@ -184,17 +184,47 @@
           </div>
         </div>
       </div>
+
       <div class="settings__coins-history">
-        <h3 class="settings__coins-history-title">История начисления VKino coins</h3>
-        <div class="settings__coins-history-list">
+        <div class="settings__coins-history-header">
+          <h3 class="settings__coins-history-title">История VKino coins</h3>
+          <button
+            type="button"
+            class="vk-coins-info"
+            data-action="toggle-coins-info"
+            aria-label="Что такое VKino coins"
+            aria-expanded="false"
+          >
+            ?
+          </button>
+        </div>
+        <div class="vk-coins-info-popover" hidden>{{coinsInfoText}}</div>
+        <div class="settings__coins-history-scroll">
+          <div class="settings__coins-history-list">
           {{#if coinHistory.length}}
             {{#each coinHistory}}
               <div class="settings__coins-history-item">
-                <div class="settings__coins-history-date">{{this.date}}</div>
-                <div class="settings__coins-history-action">{{this.action}}</div>
-                <div class="settings__coins-history-amount {{#if this.isPositive}}settings__coins-history-amount_positive{{else}}settings__coins-history-amount_negative{{/if}}">
-                  {{this.amount}}
+                <div class="settings__coins-history-item-top">
+                  <time class="settings__coins-history-date">{{this.date}}</time>
+                  <span class="settings__coins-history-amount-wrap">
+                    <span class="settings__coins-history-amount settings__coins-history-amount_{{#if this.isPositive}}positive{{else}}negative{{/if}}">
+                      {{this.amount}}
+                    </span>
+                    <img
+                      class="settings__coins-history-coin-icon"
+                      src="{{@root.coinsIconSrc}}"
+                      alt=""
+                      width="16"
+                      height="16"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </span>
                 </div>
+                <div class="settings__coins-history-type">{{this.operationLabel}}</div>
+                {{#if this.description}}
+                  <p class="settings__coins-history-description" title="{{this.description}}">{{this.description}}</p>
+                {{/if}}
               </div>
             {{/each}}
           {{else}}
@@ -203,6 +233,7 @@
               <p class="settings__coins-history-empty-description">{{emptyCoinsDescription}}</p>
             </div>
           {{/if}}
+          </div>
         </div>
       </div>
     </div>

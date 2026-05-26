@@ -1,0 +1,121 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="gold" cx="35%" cy="25%" r="75%">
+      <stop offset="0%" stop-color="#fff1a6"/>
+      <stop offset="28%" stop-color="#ffd45a"/>
+      <stop offset="55%" stop-color="#d99a18"/>
+      <stop offset="78%" stop-color="#a86508"/>
+      <stop offset="100%" stop-color="#f0bd38"/>
+    </radialGradient>
+
+    <radialGradient id="darkBlue" cx="42%" cy="32%" r="70%">
+      <stop offset="0%" stop-color="#253f68"/>
+      <stop offset="55%" stop-color="#0e223a"/>
+      <stop offset="100%" stop-color="#061426"/>
+    </radialGradient>
+
+    <linearGradient id="blueGlow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#18b8ff"/>
+      <stop offset="55%" stop-color="#0074ff"/>
+      <stop offset="100%" stop-color="#003b9f"/>
+    </linearGradient>
+
+    <linearGradient id="goldLetter" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fff4aa"/>
+      <stop offset="35%" stop-color="#ffd158"/>
+      <stop offset="70%" stop-color="#c88712"/>
+      <stop offset="100%" stop-color="#f6c74a"/>
+    </linearGradient>
+
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Coin shadow -->
+  <ellipse cx="512" cy="848" rx="342" ry="55" fill="#000" opacity="0.13"/>
+
+  <!-- Outer coin -->
+  <circle cx="512" cy="512" r="430" fill="url(#gold)" filter="url(#shadow)"/>
+  <circle cx="512" cy="512" r="404" fill="none" stroke="#7f4b06" stroke-width="8" opacity="0.45"/>
+  <circle cx="512" cy="512" r="372" fill="none" stroke="#fff0a0" stroke-width="8" opacity="0.85"/>
+
+  <!-- Decorative rim cuts -->
+  <g fill="#875408" opacity="0.65">
+    <g transform="translate(512 512)">
+      <rect x="-13" y="-398" width="26" height="54" rx="8"/>
+      <rect x="-13" y="344" width="26" height="54" rx="8"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(15)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(30)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(45)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(60)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(75)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(105)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(120)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(135)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(150)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(165)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(195)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(210)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(225)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(240)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(255)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(285)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(300)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(315)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(330)"/>
+      <rect x="-13" y="-398" width="26" height="54" rx="8" transform="rotate(345)"/>
+    </g>
+  </g>
+
+  <!-- Inner disk -->
+  <circle cx="512" cy="512" r="302" fill="url(#darkBlue)"/>
+  <circle cx="512" cy="512" r="318" fill="none" stroke="url(#blueGlow)" stroke-width="16"/>
+  <circle cx="512" cy="512" r="285" fill="none" stroke="#3f5c84" stroke-width="2" opacity="0.5"/>
+  <circle cx="512" cy="512" r="250" fill="none" stroke="#3f5c84" stroke-width="2" opacity="0.34"/>
+  <circle cx="512" cy="512" r="215" fill="none" stroke="#3f5c84" stroke-width="2" opacity="0.22"/>
+
+  <!-- Stars -->
+  <g fill="#8c5708" opacity="0.9">
+    <text x="512" y="170" text-anchor="middle" font-size="52" font-family="Arial, sans-serif">★ ★ ★</text>
+    <text x="512" y="888" text-anchor="middle" font-size="52" font-family="Arial, sans-serif">★ ★ ★</text>
+  </g>
+
+  <!-- VKino monogram, original VK-like shape -->
+  <g filter="url(#shadow)">
+    <!-- V / film strip -->
+    <path d="M248 326 L355 326 L458 705 L352 705 Z" fill="url(#goldLetter)" stroke="#fff2a6" stroke-width="7" stroke-linejoin="round"/>
+    <path d="M330 326 L424 326 L500 705 L408 705 Z" fill="#b8790e" opacity="0.45"/>
+
+    <!-- Film holes -->
+    <g fill="#07172a" opacity="0.9">
+      <rect x="286" y="358" width="42" height="28" rx="6"/>
+      <rect x="304" y="422" width="42" height="28" rx="6"/>
+      <rect x="322" y="486" width="42" height="28" rx="6"/>
+      <rect x="340" y="550" width="42" height="28" rx="6"/>
+      <rect x="358" y="614" width="42" height="28" rx="6"/>
+    </g>
+
+    <!-- Center vertical -->
+    <path d="M462 326 L572 326 L572 705 L462 705 Z" fill="url(#goldLetter)" stroke="#fff2a6" stroke-width="7" stroke-linejoin="round"/>
+
+    <!-- K right arm -->
+    <path d="M572 515 L740 326 L862 326 L682 515 L870 705 L746 705 Z" fill="url(#goldLetter)" stroke="#fff2a6" stroke-width="7" stroke-linejoin="round"/>
+
+    <!-- Play button -->
+    <path d="M514 432 Q514 408 536 421 L657 494 Q684 512 657 530 L536 603 Q514 616 514 592 Z"
+          fill="url(#blueGlow)" stroke="#ffd45a" stroke-width="12" filter="url(#softGlow)"/>
+  </g>
+
+  <!-- Highlights -->
+  <path d="M206 258 C300 132 511 84 685 150" fill="none" stroke="#ffffff" stroke-width="12" opacity="0.42" stroke-linecap="round"/>
+  <path d="M250 230 C340 150 502 112 650 150" fill="none" stroke="#ffffff" stroke-width="4" opacity="0.6" stroke-linecap="round"/>
+</svg>

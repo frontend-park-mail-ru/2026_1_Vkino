@@ -6,6 +6,7 @@ import HeaderComponent from "@/components/Header/Header.js";
 import {
   paymentService,
   PENDING_PAYMENT_KEY,
+  PAYMENT_METHOD,
 } from "@/js/PaymentService.js";
 import { userService } from "@/js/UserService.js";
 import { router } from "@/router/index.js";
@@ -20,6 +21,7 @@ import {
   normalizeSubscriptionFromApi,
 } from "@/utils/subscriptionDisplay.js";
 import { SUBSCRIPTION_FAQ_ITEMS } from "./subscriptionFaq.js";
+import { VKINO_COIN_ICON_SRC } from "@/utils/coinsDisplay.js";
 
 export default class SubscriptionPage extends BasePage {
   constructor(context = {}, parent = null, el = null) {
@@ -36,6 +38,7 @@ export default class SubscriptionPage extends BasePage {
         subscriptionTier: 0,
         plans: [],
         subscriptionFaq: SUBSCRIPTION_FAQ_ITEMS,
+        coinsIconSrc: VKINO_COIN_ICON_SRC,
         ...context,
       },
       Handlebars.templates["Subscription.hbs"],
@@ -45,6 +48,7 @@ export default class SubscriptionPage extends BasePage {
     );
 
     this._selectedPlan = null;
+    this._selectedPaymentMethod = PAYMENT_METHOD.YOOKASSA;
     this._subscriptionHydrated = false;
     this._authUnsubscribe = null;
     this._buttonHandlers = new Map();
@@ -186,6 +190,23 @@ export default class SubscriptionPage extends BasePage {
           return;
         }
 
+        if (modal === paymentModal) {
+          const methodOption = e.target.closest("[data-payment-method]");
+          if (
+            methodOption &&
+            !methodOption.hidden &&
+            !methodOption.classList.contains("payment-method_disabled")
+          ) {
+            const method = methodOption.dataset.paymentMethod;
+            const radio = methodOption.querySelector('input[type="radio"]');
+            if (method && radio && !radio.disabled) {
+              radio.checked = true;
+              this._setPaymentMethod(method);
+            }
+          }
+          return;
+        }
+
         if (modal !== resultModal) return;
 
         const actionBtn = e.target.closest("[data-action]");
@@ -259,10 +280,7 @@ export default class SubscriptionPage extends BasePage {
     this._selectedPlan = plan;
 
     modal.querySelector('[data-role="modal-plan-name"]').textContent = plan.name;
-    modal.querySelector('[data-role="modal-plan-price"]').textContent =
-      plan.priceCoins != null
-        ? `${plan.price || ""} или ${plan.priceCoins} coins`
-        : String(plan.price || "");
+    this._configurePaymentModal(plan);
 
     if (typeof modal.showModal === "function") {
       modal.showModal();
@@ -270,6 +288,109 @@ export default class SubscriptionPage extends BasePage {
       modal.setAttribute("open", "open");
     }
     this._lockBodyScroll();
+  }
+
+  _setPaymentMethod(method) {
+    this._selectedPaymentMethod =
+      method === PAYMENT_METHOD.VKINO_COINS
+        ? PAYMENT_METHOD.VKINO_COINS
+        : PAYMENT_METHOD.YOOKASSA;
+    this._updatePaymentModalUi();
+  }
+
+  _configurePaymentModal(plan) {
+    const modal = this.el.querySelector("#paymentModal");
+    if (!modal) return;
+
+    this._selectedPaymentMethod = PAYMENT_METHOD.YOOKASSA;
+
+    const canPayWithCoins = Boolean(
+      plan.isCoinsPaymentAvailable && plan.priceCoins > 0,
+    );
+    const coinsOption = modal.querySelector('[data-payment-method="vkino_coins"]');
+    const coinsHint = modal.querySelector('[data-role="modal-coins-hint"]');
+    const balanceWrap = modal.querySelector('[data-role="modal-coins-balance-wrap"]');
+    const balanceEl = modal.querySelector('[data-role="modal-coins-balance"]');
+    const coinsRadio = coinsOption?.querySelector('input[type="radio"]');
+    const yookassaRadio = modal.querySelector(
+      '[data-payment-method="yookassa"] input',
+    );
+
+    if (yookassaRadio) {
+      yookassaRadio.checked = true;
+    }
+
+    if (coinsOption) {
+      coinsOption.hidden = !canPayWithCoins;
+
+      if (canPayWithCoins) {
+        if (coinsHint) {
+          coinsHint.textContent = `${plan.priceCoins} VKino coins`;
+        }
+
+        const balance = authStore.getState().user?.coinsBalance ?? 0;
+        if (balanceEl) {
+          balanceEl.textContent = String(balance);
+        }
+        if (balanceWrap) {
+          balanceWrap.hidden = false;
+        }
+
+        const insufficient = balance < plan.priceCoins;
+        coinsOption.classList.toggle("payment-method_disabled", insufficient);
+        if (coinsRadio) {
+          coinsRadio.disabled = insufficient;
+        }
+      } else if (balanceWrap) {
+        balanceWrap.hidden = true;
+      }
+    }
+
+    const priceEl = modal.querySelector('[data-role="modal-plan-price"]');
+    if (priceEl) {
+      if (canPayWithCoins && plan.price) {
+        priceEl.innerHTML = `<span class="modal_payment__plan-price-money">${plan.price}</span><span class="modal_payment__plan-price-alt">или ${plan.priceCoins} VKino coins</span>`;
+      } else {
+        priceEl.textContent = String(plan.price || "");
+      }
+    }
+
+    this._updatePaymentModalUi();
+    this._resetConfirmPaymentButton();
+  }
+
+  _updatePaymentModalUi() {
+    const modal = this.el.querySelector("#paymentModal");
+    if (!modal) return;
+
+    const isCoins = this._selectedPaymentMethod === PAYMENT_METHOD.VKINO_COINS;
+
+    modal.querySelectorAll("[data-payment-method]").forEach((option) => {
+      option.classList.toggle(
+        "payment-method_active",
+        option.dataset.paymentMethod === this._selectedPaymentMethod,
+      );
+    });
+
+    const subtitle = modal.querySelector('[data-role="modal-payment-subtitle"]');
+    if (subtitle) {
+      subtitle.textContent = isCoins
+        ? "Coins спишутся с баланса сразу после подтверждения."
+        : "Вы будете перенаправлены на защищённую страницу оплаты ЮKassa.";
+    }
+
+    const confirmBtn = modal.querySelector("#confirmPaymentBtn");
+    if (confirmBtn && !confirmBtn.disabled) {
+      confirmBtn.textContent = isCoins ? "Оплатить coins" : "Перейти к оплате";
+    }
+  }
+
+  _resetConfirmPaymentButton() {
+    const btn = this.el.querySelector("#confirmPaymentBtn");
+    if (!btn) return;
+
+    btn.disabled = false;
+    this._updatePaymentModalUi();
   }
 
   _openDowngradeModal(plan) {
@@ -517,24 +638,29 @@ export default class SubscriptionPage extends BasePage {
     ) {
       return;
     }
+
     const selectedPlan = this._selectedPlan;
+    const paymentMethod = this._selectedPaymentMethod;
 
     const btn = this.el.querySelector("#confirmPaymentBtn");
     if (btn) {
       btn.disabled = true;
-      btn.textContent = "Перенаправление...";
+      btn.textContent =
+        paymentMethod === PAYMENT_METHOD.VKINO_COINS
+          ? "Списание coins…"
+          : "Перенаправление…";
     }
 
     const result = await paymentService.createSubscriptionPayment(
       selectedPlan.productRefId,
+      paymentMethod,
     );
 
-    if (result.ok && result.resp?.confirmation_url) {
-      sessionStorage.setItem(
-        PENDING_PAYMENT_KEY,
-        String(result.resp.payment_id),
-      );
-      window.location.href = result.resp.confirmation_url;
+    if (result.ok) {
+      await this._handlePaymentCreateResult(result);
+      if (btn) {
+        this._resetConfirmPaymentButton();
+      }
       return;
     }
 
@@ -546,9 +672,48 @@ export default class SubscriptionPage extends BasePage {
     });
 
     if (btn) {
-      btn.disabled = false;
-      btn.textContent = "Перейти к оплате";
+      this._resetConfirmPaymentButton();
     }
+  }
+
+  async _handlePaymentCreateResult(result) {
+    const paymentId = result.resp?.payment_id;
+    const status = String(result.resp?.status ?? "").toLowerCase();
+    const confirmationUrl = result.resp?.confirmation_url;
+
+    if (confirmationUrl && paymentId) {
+      sessionStorage.setItem(PENDING_PAYMENT_KEY, String(paymentId));
+      window.location.href = confirmationUrl;
+      return;
+    }
+
+    if (!paymentId) {
+      this.refresh({
+        ...this.context,
+        errorMessage: getApiErrorMessage(result, {
+          fallback: "Не удалось начать оплату. Попробуйте позже.",
+        }),
+      });
+      return;
+    }
+
+    this._closeModal(this.el.querySelector("#paymentModal"));
+
+    if (status === "succeeded") {
+      await authStore.refreshAfterPayment();
+      await this.loadContext();
+      this._openPaymentResultModal();
+      const subscription = authStore.getState().user?.subscription;
+      this._setPaymentResultView({
+        kind: "success",
+        subscriptionLabel: subscription?.label ?? "",
+        renewsAt: subscription?.renewsAt ?? "",
+      });
+      return;
+    }
+
+    sessionStorage.setItem(PENDING_PAYMENT_KEY, String(paymentId));
+    await this._runPaymentStatusPoll(paymentId);
   }
 
   _resetPlanButtons() {
