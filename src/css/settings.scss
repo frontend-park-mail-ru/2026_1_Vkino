@@ -1,3 +1,5 @@
+@use "components/vk-coins-info";
+
 .page_settings {
   background-color: var(--bg-page);
   min-height: 100vh;
@@ -13,6 +15,7 @@
   display: grid;
   grid-template-columns: 1fr 320px;
   gap: var(--space-6);
+  align-items: start;
 }
 
 .settings-main {
@@ -27,6 +30,17 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: var(--space-6);
+}
+
+.settings__coins-history {
+  align-self: start;
+  width: 100%;
+  position: sticky;
+  top: calc(72px + var(--space-4));
+  max-height: calc(100dvh - 72px - 2 * var(--space-4));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .settings__title,
@@ -445,6 +459,46 @@
   border-color: rgba(255, 87, 31, 0.58);
 }
 
+.settings__coins-history-scroll {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  padding-bottom: var(--space-2);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(230, 204, 171, 0.28) transparent;
+}
+
+.settings__coins-history-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.settings__coins-history-scroll::-webkit-scrollbar-thumb {
+  background: rgba(230, 204, 171, 0.28);
+  border-radius: 999px;
+}
+
+.settings__coins-history-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings__coins-history-scroll:has(.settings__coins-history-item)::after {
+  content: "";
+  position: sticky;
+  bottom: 0;
+  display: block;
+  height: 28px;
+  margin-top: -28px;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0%,
+    color-mix(in srgb, var(--bg-surface) 92%, transparent) 100%
+  );
+}
+
 .settings__coins-history-list {
   display: flex;
   flex-direction: column;
@@ -454,7 +508,7 @@
 .settings__coins-history-empty {
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-3);
+  padding: var(--space-4);
   border: 1px dashed var(--border-color);
   border-radius: var(--radius-md);
   background: rgba(230, 204, 171, 0.06);
@@ -473,16 +527,42 @@
 }
 
 .settings__coins-history-item {
-  display: grid;
-  grid-template-columns: 1.2fr 1.4fr auto;
-  align-items: center;
-  gap: var(--space-3);
-  border-bottom: 1px solid var(--border-color);
-  padding: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid rgba(230, 204, 171, 0.08);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg-surface) 92%, transparent);
+  transition: background var(--duration-fast) var(--ease-default);
 }
 
-.settings__coins-history-item:last-child {
-  border-bottom: none;
+.settings__coins-history-item:hover {
+  background: rgba(230, 204, 171, 0.04);
+}
+
+.settings__coins-history-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.settings__coins-history-type {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.settings__coins-history-description {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .settings__coins-history-date {
@@ -490,9 +570,26 @@
   font-size: var(--text-sm);
 }
 
+.settings__coins-history-amount-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .settings__coins-history-amount {
   font-weight: var(--weight-bold);
-  text-align: right;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings__coins-history-coin-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 .settings__coins-history-amount_positive {
@@ -536,19 +633,29 @@
 
   .settings__coins-history {
     order: 2;
+    position: static;
+    max-height: none;
+    overflow: visible;
   }
 
   .settings-main {
     order: 1;
   }
 
-  .settings__coins-history-item {
-    grid-template-columns: 1fr;
-    gap: 0.15rem;
+  .settings__coins-history-scroll {
+    max-height: min(420px, 55dvh);
   }
 
-  .settings__coins-history-amount {
-    text-align: left;
+  .settings__coins-history-item {
+    gap: 0.35rem;
+  }
+
+  .settings__coins-history-item-top {
+    flex-wrap: wrap;
+  }
+
+  .settings__coins-history-amount-wrap {
+    margin-left: auto;
   }
 
   .settings__avatar-block {

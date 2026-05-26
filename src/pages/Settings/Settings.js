@@ -17,6 +17,12 @@ import {
   markPlansForPreview,
   getDefaultSubscriptionPlansPreview,
 } from "@/utils/subscriptionDisplay.js";
+import {
+  normalizeCoinsHistoryResponse,
+  VKINO_COINS_INFO_TEXT,
+  VKINO_COIN_ICON_SRC,
+} from "@/utils/coinsDisplay.js";
+import { initCoinsInfoPopover } from "@/js/coinsInfoPopover.js";
 
 const BIRTHDATE_MIN_YEAR = 1900;
 const BIRTHDATE_MONTH_NAMES = [
@@ -56,22 +62,11 @@ export default class SettingsPage extends BasePage {
       );
     }
 
-    const mockCoinHistory = [
-      // { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
-      // { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
-      // { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
-      // { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
-      // { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
-      // { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
-      // { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
-      // { date: "13-10-2026", action: "Начисление", amount: "+3", isPositive: true },
-      // { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
-      // { date: "14-10-2026", action: "Списание", amount: "-3", isPositive: false },
-    ];
-
     const finalContext = {
       userData: { email: "", birthDate: "", avatarUrl: "" }, // временно
-      coinHistory: mockCoinHistory,
+      coinHistory: [],
+      coinsIconSrc: VKINO_COIN_ICON_SRC,
+      coinsInfoText: VKINO_COINS_INFO_TEXT,
       emptyCoinsTitle: "Пока здесь пусто",
       emptyCoinsDescription:
         "Смотрите фильмы и участвуйте в активностях VKino, чтобы начать зарабатывать Vkino coins.",
@@ -104,6 +99,8 @@ export default class SettingsPage extends BasePage {
     this._authUnsubscribe = null;
     /** Чтобы refresh → init не запускали _loadSubscriptionSection снова (бесконечный цикл). */
     this._settingsSubscriptionHydrated = false;
+    this._settingsCoinsHydrated = false;
+    this._destroyCoinsInfoPopover = null;
 
     this.context.userData = this._buildUserDataFromStore(authStore.getState());
   }
@@ -124,6 +121,7 @@ export default class SettingsPage extends BasePage {
         this._authUnsubscribe = null;
 
         this._settingsSubscriptionHydrated = false;
+        this._settingsCoinsHydrated = false;
         this.refresh({
           ...this.context,
           userData: this._buildUserDataFromStore(newState),
@@ -142,6 +140,9 @@ export default class SettingsPage extends BasePage {
     super.init();
     if (!this._settingsSubscriptionHydrated) {
       void this._loadSubscriptionSection();
+    }
+    if (!this._settingsCoinsHydrated) {
+      void this._loadCoinsHistory();
     }
     this._scrollSubscriptionIntoViewIfNeeded();
     return this;
@@ -214,6 +215,19 @@ export default class SettingsPage extends BasePage {
     this._scrollSubscriptionIntoViewIfNeeded();
   }
 
+  async _loadCoinsHistory() {
+    const historyRes = await userService.getCoinsHistory({ limit: 50, offset: 0 });
+    const coinHistory = historyRes.ok
+      ? normalizeCoinsHistoryResponse(historyRes.resp).items
+      : [];
+
+    this._settingsCoinsHydrated = true;
+    this.refresh({
+      ...this.context,
+      coinHistory,
+    });
+  }
+
   _buildUsageSummary(usage, capabilities) {
     if (!usage) return null;
 
@@ -243,6 +257,7 @@ export default class SettingsPage extends BasePage {
 
   addEventListeners() {
     this._destroyPasswordToggle = initPasswordToggle(this.el);
+    this._destroyCoinsInfoPopover = initCoinsInfoPopover(this.el);
     this._setupEditableFields();
     this._setupBirthdateCalendar();
     this._setupAvatarUpload();
@@ -1072,6 +1087,11 @@ export default class SettingsPage extends BasePage {
     if (this._destroyPasswordToggle) {
       this._destroyPasswordToggle();
       this._destroyPasswordToggle = null;
+    }
+
+    if (this._destroyCoinsInfoPopover) {
+      this._destroyCoinsInfoPopover();
+      this._destroyCoinsInfoPopover = null;
     }
 
     const saveBtn = this.el.querySelector('[data-action="save-profile"]');

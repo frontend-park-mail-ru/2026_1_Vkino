@@ -2,6 +2,7 @@ import { createStore } from "./createStore.js";
 import { userService } from "@/js/UserService.js";
 import { getApiErrorMessage } from "@/utils/apiError.js";
 import { extractProfile } from "@/utils/apiResponse.js";
+import { extractCoinsBalanceFromProfile } from "@/utils/coinsDisplay.js";
 import {
   normalizeCapabilitiesFromApi,
   normalizeSubscriptionFromApi,
@@ -115,6 +116,33 @@ class AuthStore {
       user: this._mergeSubscriptionIntoUser(state.user, result.resp),
     });
     return true;
+  }
+
+  /**
+   * Обновляет профиль пользователя с сервера (баланс coins, email и т.д.).
+   * @returns {Promise<boolean>}
+   */
+  async refreshUserProfile() {
+    const state = this.getState();
+    if (state.status !== "authenticated" || !state.user) {
+      return false;
+    }
+
+    const result = await userService.me();
+    if (!result.ok) {
+      return false;
+    }
+
+    this.updateUserProfile(result.resp);
+    return true;
+  }
+
+  /**
+   * После успешной оплаты обновляет подписку и профиль.
+   * @returns {Promise<void>}
+   */
+  async refreshAfterPayment() {
+    await Promise.all([this.refreshSubscription(), this.refreshUserProfile()]);
   }
 
   async _hydrateAuthenticatedUser(profile) {
@@ -348,6 +376,19 @@ class AuthStore {
       },
     });
   }
+
+  /**
+   * Обновляет баланс VKino coins локально.
+   * @param {number} coinsBalance
+   */
+  updateUserCoinsBalance(coinsBalance) {
+    const balance = Number(coinsBalance);
+    if (!Number.isFinite(balance)) {
+      return;
+    }
+
+    this.updateUserProfile({ vkino_coins_count: balance });
+  }
 }
 
 function normalizeAuthUser(user = {}, { roleFallback = "user" } = {}) {
@@ -358,10 +399,12 @@ function normalizeAuthUser(user = {}, { roleFallback = "user" } = {}) {
   }
 
   const role = String(user.role || roleFallback || "user").trim() || "user";
+  const coinsBalance = extractCoinsBalanceFromProfile(user);
 
   return {
     ...user,
     role,
+    coinsBalance,
   };
 }
 

@@ -2,13 +2,18 @@ import { apiService } from "./api.js";
 
 export const PENDING_PAYMENT_KEY = "vkino_pending_payment_id";
 
+export const PAYMENT_METHOD = Object.freeze({
+  YOOKASSA: "yookassa",
+  VKINO_COINS: "vkino_coins",
+});
+
 export class PaymentService {
   constructor(apiServiceInstance) {
     this.api = apiServiceInstance.withNamespace("/payments");
   }
 
   /**
-   * Список тарифов, доступных для оплаты рублями.
+   * Список тарифов, доступных для оплаты.
    * @returns {Promise<{ok: boolean, resp: {tariffs: Array}}>}
    */
   async getTariffs() {
@@ -16,10 +21,14 @@ export class PaymentService {
   }
 
   /**
-   * Создаёт платёж за подписку и возвращает URL для редиректа на ЮKassa.
+   * Создаёт платёж за подписку.
    * @param {number} productRefId — id тарифа из GET /tariffs
+   * @param {string} [paymentMethod="yookassa"] — yookassa | vkino_coins
    */
-  async createSubscriptionPayment(productRefId) {
+  async createSubscriptionPayment(
+    productRefId,
+    paymentMethod = PAYMENT_METHOD.YOOKASSA,
+  ) {
     const id = Number(productRefId);
     if (!Number.isFinite(id) || id <= 0) {
       return {
@@ -29,9 +38,12 @@ export class PaymentService {
       };
     }
 
+    const normalizedMethod = String(paymentMethod || PAYMENT_METHOD.YOOKASSA).trim();
+
     return this.api.post("", {
       product_type: "subscription",
       product_ref_id: id,
+      payment_method: normalizedMethod,
     });
   }
 

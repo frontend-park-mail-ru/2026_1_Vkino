@@ -56,7 +56,7 @@ export async function pollPaymentStatus(paymentId, { signal } = {}) {
 
     if (status === "succeeded") {
       sessionStorage.removeItem(PENDING_PAYMENT_KEY);
-      await authStore.refreshSubscription();
+      await authStore.refreshAfterPayment();
 
       const subscription = authStore.getState().user?.subscription;
 
