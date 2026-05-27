@@ -45,6 +45,7 @@ const WATCH_PARTY_EMPTY_ROOM_TTL_MS = 10 * 60 * 1000;
 const WATCH_PARTY_CARD_FALLBACK_SRC = "/img/card-fallback.webp";
 const WATCH_PARTY_REACTIONS_HIDDEN_KEY = "vkino_watch_party_reactions_hidden";
 const WATCH_PARTY_FLOATING_REACTION_LIFETIME_MS = 2200;
+const WATCH_PARTY_FEED_MONKEY_DURATION_MS = 2700;
 const WATCH_PARTY_REACTIONS = [
   { value: "👍", label: "Нравится" },
   { value: "🔥", label: "Огонь" },
@@ -115,6 +116,7 @@ export default class WatchPartyPage extends BasePage {
     this._roomStatePollInFlight = false;
     this._roomSubscriptionReady = false;
     this._roomStatusAutoHideTimerId = 0;
+    this._feedMonkeyTimerId = 0;
     this._floatingReactionMessageIds = new Set();
     this._watchPartyImageElements = [];
   }
@@ -309,6 +311,18 @@ export default class WatchPartyPage extends BasePage {
       case "toggle-room-reactions":
         event.preventDefault();
         this._toggleRoomReactions();
+        break;
+      case "open-feed-monkey-modal":
+        event.preventDefault();
+        await this._openFeedMonkeyModal();
+        break;
+      case "close-feed-monkey-modal":
+        event.preventDefault();
+        this._closeFeedMonkeyModal();
+        break;
+      case "feed-monkey":
+        event.preventDefault();
+        await this._handleFeedMonkey();
         break;
       case "send-room-reaction":
         event.preventDefault();
@@ -1360,6 +1374,105 @@ export default class WatchPartyPage extends BasePage {
       isInviteModalOpen: false,
       inviteFriendsError: "",
     });
+  }
+
+  async _openFeedMonkeyModal() {
+    if (this._mode !== "room") {
+      return;
+    }
+
+    this._refreshView({
+      isFeedMonkeyModalOpen: true,
+    });
+
+    await new Promise((resolve) => {
+      window.requestAnimationFrame(resolve);
+    });
+    await this._handleFeedMonkey();
+  }
+
+  _closeFeedMonkeyModal() {
+    if (this._mode !== "room" || !this._uiState.isFeedMonkeyModalOpen) {
+      return;
+    }
+
+    this._stopFeedMonkeyAnimation();
+    this._refreshView({
+      isFeedMonkeyModalOpen: false,
+    });
+  }
+
+  _handleFeedMonkey() {
+    if (this._mode !== "room") {
+      return;
+    }
+
+    const widget = this.el.querySelector("[data-role='feed-monkey-widget']");
+
+    if (widget instanceof HTMLElement && widget.classList.contains("is-feeding")) {
+      return;
+    }
+
+    this._startFeedMonkeyAnimation();
+  }
+
+  _startFeedMonkeyAnimation() {
+    if (this._mode !== "room") {
+      return;
+    }
+
+    const widget = this.el.querySelector("[data-role='feed-monkey-widget']");
+    const button = this.el.querySelector("[data-action='feed-monkey']");
+
+    if (!(widget instanceof HTMLElement)) {
+      return;
+    }
+
+    if (widget.classList.contains("is-feeding")) {
+      return;
+    }
+
+    this._clearFeedMonkeyTimer();
+    widget.classList.remove("is-feeding");
+    void widget.offsetWidth;
+    widget.classList.add("is-feeding");
+
+    if (button instanceof HTMLButtonElement) {
+      button.disabled = true;
+    }
+
+    this._feedMonkeyTimerId = window.setTimeout(() => {
+      this._feedMonkeyTimerId = 0;
+      widget.classList.remove("is-feeding");
+
+      if (button instanceof HTMLButtonElement) {
+        button.disabled = false;
+      }
+    }, WATCH_PARTY_FEED_MONKEY_DURATION_MS);
+  }
+
+  _stopFeedMonkeyAnimation() {
+    this._clearFeedMonkeyTimer();
+
+    const widget = this.el.querySelector("[data-role='feed-monkey-widget']");
+    const button = this.el.querySelector("[data-action='feed-monkey']");
+
+    if (widget instanceof HTMLElement) {
+      widget.classList.remove("is-feeding");
+    }
+
+    if (button instanceof HTMLButtonElement) {
+      button.disabled = false;
+    }
+  }
+
+  _clearFeedMonkeyTimer() {
+    if (!this._feedMonkeyTimerId) {
+      return;
+    }
+
+    window.clearTimeout(this._feedMonkeyTimerId);
+    this._feedMonkeyTimerId = 0;
   }
 
   async _ensureInviteFriendsLoaded({ force = false } = {}) {
@@ -2788,6 +2901,7 @@ function buildRoomContext(roomData, uiState) {
     inviteLink,
     canInviteFriends,
     isInviteModalOpen: Boolean(uiState.isInviteModalOpen),
+    isFeedMonkeyModalOpen: Boolean(uiState.isFeedMonkeyModalOpen),
     inviteFriendsLoading: Boolean(uiState.inviteFriendsLoading),
     inviteFriendsError: uiState.inviteFriendsError || "",
     inviteFriends: buildInviteFriendsViewModels(
@@ -4784,6 +4898,7 @@ function createInitialRoomUiState() {
     topMovieCandidatesError: "",
     topMovieCandidates: [],
     isInviteModalOpen: false,
+    isFeedMonkeyModalOpen: false,
     inviteFriendsLoading: false,
     inviteFriendsLoaded: false,
     inviteFriendsError: "",

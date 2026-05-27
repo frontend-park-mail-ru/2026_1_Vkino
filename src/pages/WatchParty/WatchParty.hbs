@@ -142,6 +142,13 @@
                     >
                       {{roomReactionsToggleLabel}}
                     </button>
+                    <button
+                      class="watch-room-topbar__action watch-room-topbar__action_feed"
+                      type="button"
+                      data-action="open-feed-monkey-modal"
+                    >
+                      Покормить обезьяну · 1 VKino coin
+                    </button>
                     {{#if canInviteFriends}}
                       <button
                         class="watch-room-topbar__action watch-room-topbar__action_copy"
@@ -240,6 +247,187 @@
                 {{#unless isChatPanel}}hidden{{/unless}}
               ></section>
             </aside>
+
+            {{#if isFeedMonkeyModalOpen}}
+              <div class="watch-room-feed">
+                <button
+                  class="watch-room-feed__backdrop"
+                  type="button"
+                  data-action="close-feed-monkey-modal"
+                  aria-label="Закрыть окно кормления"
+                ></button>
+
+                <section
+                  class="watch-room-feed__dialog"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="watch-room-feed-title"
+                >
+                  <div class="watch-room-feed__header">
+                    <h2 class="watch-room-feed__title" id="watch-room-feed-title">
+                      Покормить обезьяну · 1 VKino coin
+                    </h2>
+                    <button
+                      class="watch-room-feed__close"
+                      type="button"
+                      data-action="close-feed-monkey-modal"
+                      aria-label="Закрыть окно кормления"
+                    >
+                      <span></span>
+                      <span></span>
+                    </button>
+                  </div>
+
+                  <div
+                    class="monkey-widget"
+                    data-role="feed-monkey-widget"
+                  >
+                    <div class="monkey-stage">
+                      <div class="banana" aria-hidden="true">
+                        <svg viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg">
+                          <defs>
+                            <linearGradient id="watch-room-banana-grad" x1="0" y1="0" x2="1" y2="1">
+                              <stop offset="0%" stop-color="#fde047" />
+                              <stop offset="60%" stop-color="#facc15" />
+                              <stop offset="100%" stop-color="#ca8a04" />
+                            </linearGradient>
+                          </defs>
+                          <path
+                            d="M 15 8 Q 8 35 18 60 Q 28 75 48 70 Q 52 68 50 64 Q 35 68 28 55 Q 20 38 25 18 Q 26 12 22 9 Q 18 7 15 8 Z"
+                            fill="url(#watch-room-banana-grad)"
+                            stroke="#854d0e"
+                            stroke-width="1.5"
+                            stroke-linejoin="round"
+                          />
+                          <path
+                            d="M 15 8 Q 14 4 18 3 Q 22 4 22 9"
+                            fill="#365314"
+                            stroke="#1a2e05"
+                            stroke-width="1"
+                          />
+                          <path
+                            d="M 20 18 Q 16 35 22 55"
+                            stroke="rgba(255,255,255,0.45)"
+                            stroke-width="2"
+                            fill="none"
+                            stroke-linecap="round"
+                          />
+                        </svg>
+                      </div>
+
+                      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-label="Обезьянка">
+                        <defs>
+                          <radialGradient id="watch-room-fur-grad" cx="0.4" cy="0.35" r="0.7">
+                            <stop offset="0%" stop-color="#a16d3f" />
+                            <stop offset="100%" stop-color="#6b4423" />
+                          </radialGradient>
+                          <radialGradient id="watch-room-belly-grad" cx="0.5" cy="0.4" r="0.6">
+                            <stop offset="0%" stop-color="#f5d4a8" />
+                            <stop offset="100%" stop-color="#d4a574" />
+                          </radialGradient>
+                          <radialGradient id="watch-room-face-grad" cx="0.5" cy="0.55" r="0.55">
+                            <stop offset="0%" stop-color="#f5d4a8" />
+                            <stop offset="100%" stop-color="#c8956d" />
+                          </radialGradient>
+                        </defs>
+
+                        <g class="monkey-body">
+                          <path
+                            d="M 145 160 Q 175 155 178 130 Q 180 110 165 108"
+                            stroke="#6b4423"
+                            stroke-width="9"
+                            fill="none"
+                            stroke-linecap="round"
+                          />
+                          <path
+                            d="M 145 160 Q 175 155 178 130 Q 180 110 165 108"
+                            stroke="#8b5a2b"
+                            stroke-width="5"
+                            fill="none"
+                            stroke-linecap="round"
+                          />
+
+                          <ellipse cx="82" cy="178" rx="14" ry="10" fill="#6b4423" />
+                          <ellipse cx="118" cy="178" rx="14" ry="10" fill="#6b4423" />
+                          <ellipse cx="82" cy="178" rx="9" ry="6" fill="#d4a574" />
+                          <ellipse cx="118" cy="178" rx="9" ry="6" fill="#d4a574" />
+
+                          <ellipse cx="100" cy="150" rx="38" ry="32" fill="url(#watch-room-fur-grad)" />
+                          <ellipse cx="100" cy="155" rx="22" ry="20" fill="url(#watch-room-belly-grad)" />
+
+                          <g class="arm-left">
+                            <path
+                              d="M 70 135 Q 55 150 58 168"
+                              stroke="#6b4423"
+                              stroke-width="14"
+                              fill="none"
+                              stroke-linecap="round"
+                            />
+                            <circle cx="58" cy="170" r="9" fill="#8b5a2b" />
+                            <circle cx="58" cy="170" r="6" fill="#d4a574" />
+                          </g>
+                          <g class="arm-right">
+                            <path
+                              d="M 130 135 Q 145 150 142 168"
+                              stroke="#6b4423"
+                              stroke-width="14"
+                              fill="none"
+                              stroke-linecap="round"
+                            />
+                            <circle cx="142" cy="170" r="9" fill="#8b5a2b" />
+                            <circle cx="142" cy="170" r="6" fill="#d4a574" />
+                          </g>
+
+                          <g class="monkey-head">
+                            <circle cx="62" cy="85" r="14" fill="#6b4423" />
+                            <circle cx="138" cy="85" r="14" fill="#6b4423" />
+                            <circle cx="62" cy="85" r="8" fill="#d4a574" />
+                            <circle cx="138" cy="85" r="8" fill="#d4a574" />
+
+                            <circle cx="100" cy="85" r="42" fill="url(#watch-room-fur-grad)" />
+                            <ellipse cx="100" cy="98" rx="30" ry="28" fill="url(#watch-room-face-grad)" />
+                            <path
+                              d="M 65 70 Q 80 58 100 60 Q 120 58 135 70 Q 125 75 100 73 Q 75 75 65 70 Z"
+                              fill="#5d3a1f"
+                            />
+
+                            <circle class="monkey-cheek" cx="80" cy="105" r="6" fill="#ec7c7c" opacity="0" />
+                            <circle class="monkey-cheek" cx="120" cy="105" r="6" fill="#ec7c7c" opacity="0" />
+
+                            <g class="monkey-eye">
+                              <ellipse cx="88" cy="90" rx="4.5" ry="5.5" fill="#2a1810" />
+                              <ellipse cx="112" cy="90" rx="4.5" ry="5.5" fill="#2a1810" />
+                              <circle cx="89" cy="88" r="1.5" fill="#fff" />
+                              <circle cx="113" cy="88" r="1.5" fill="#fff" />
+                            </g>
+
+                            <ellipse cx="100" cy="100" rx="2.5" ry="1.8" fill="#5d3a1f" />
+                            <path
+                              class="monkey-mouth"
+                              d="M 92 108 Q 100 114 108 108"
+                              stroke="#5d3a1f"
+                              stroke-width="2"
+                              fill="#8b3a1f"
+                              stroke-linecap="round"
+                            />
+                          </g>
+                        </g>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div class="watch-room-feed__actions">
+                    <button
+                      class="feed-btn"
+                      type="button"
+                      data-action="feed-monkey"
+                    >
+                      Покормить ещё · 1 VKino coin
+                    </button>
+                  </div>
+                </section>
+              </div>
+            {{/if}}
 
             {{#if canInviteFriends}}
               {{#if isInviteModalOpen}}
