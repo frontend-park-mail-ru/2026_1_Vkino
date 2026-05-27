@@ -21,12 +21,13 @@
         <div class="watch-room-chat__bet-options">
           {{#each this.options}}
             <button
-              class="watch-room-chat__bet-option{{#if this.isSelected}} is-selected{{/if}}{{#if ../hasSelectedOption}} is-locked{{/if}}"
+              class="watch-room-chat__bet-option{{#if this.isSelected}} is-selected{{/if}}{{#if this.isCorrect}} is-correct{{/if}}{{#if this.isIncorrect}} is-incorrect{{/if}}{{#if ../hasSelectedOption}} is-locked{{/if}}{{#if ../isResolved}} is-locked{{/if}}"
               type="button"
               data-action="open-bet-vote-modal"
               data-message-id="{{../id}}"
               data-option-id="{{this.id}}"
               {{#if ../hasSelectedOption}}disabled{{/if}}
+              {{#if ../isResolved}}disabled{{/if}}
             >
               <span
                 class="watch-room-chat__bet-option-bg"
@@ -49,6 +50,19 @@
           <span>{{this.votersText}}</span>
           <span>{{this.selectionText}}</span>
         </div>
+
+        {{#if this.canResolve}}
+          <div class="watch-room-chat__bet-actions">
+            <button
+              class="watch-room-chat__attach watch-room-chat__attach_secondary"
+              type="button"
+              data-action="open-bet-resolve-modal"
+              data-message-id="{{this.id}}"
+            >
+              Выбрать ответ
+            </button>
+          </div>
+        {{/if}}
       </article>
     {{else}}
       <div class="watch-room-chat__message">
@@ -135,6 +149,67 @@
         </button>
         <button class="watch-room-chat__attach watch-room-chat__attach_accent" type="submit">
           Поставить
+        </button>
+      </div>
+    </form>
+  </div>
+{{/if}}
+
+{{#if isBetResolveModalOpen}}
+  <div class="watch-room-chat__vote-modal">
+    <button
+      class="watch-room-chat__vote-modal-backdrop"
+      type="button"
+      data-action="close-bet-resolve-modal"
+      aria-label="Закрыть окно выбора ответа"
+    ></button>
+
+    <form
+      class="watch-room-chat__vote-modal-dialog"
+      data-action="submit-bet-resolve"
+    >
+      <div class="watch-room-chat__vote-modal-header">
+        <div>
+          <div class="watch-room-chat__vote-modal-kicker">Правильный ответ</div>
+          <div class="watch-room-chat__vote-modal-title">{{betResolveQuestion}}</div>
+        </div>
+
+        <button
+          class="watch-room-chat__vote-modal-close"
+          type="button"
+          data-action="close-bet-resolve-modal"
+          aria-label="Закрыть окно выбора ответа"
+        >
+          ×
+        </button>
+      </div>
+
+      <input type="hidden" name="messageId" value="{{betResolvePollId}}" />
+
+      <div class="watch-room-chat__resolve-options">
+        {{#each betResolveOptions}}
+          <label class="watch-room-chat__resolve-option">
+            <input
+              type="radio"
+              name="optionId"
+              value="{{this.id}}"
+              {{#if this.isSelected}}checked{{/if}}
+            />
+            <span>{{this.label}}</span>
+          </label>
+        {{/each}}
+      </div>
+
+      <div class="watch-room-chat__vote-modal-actions">
+        <button
+          class="watch-room-chat__attach watch-room-chat__attach_secondary"
+          type="button"
+          data-action="close-bet-resolve-modal"
+        >
+          Отмена
+        </button>
+        <button class="watch-room-chat__attach watch-room-chat__attach_accent" type="submit">
+          Выбрать
         </button>
       </div>
     </form>

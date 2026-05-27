@@ -9,8 +9,10 @@ export const VKINO_COINS_INFO_TEXT =
 
 const OPERATION_TYPE_META = Object.freeze({
   daily: { label: "Ежедневное начисление", isPositive: true },
+  signup_bonus: { label: "Бонус за регистрацию", isPositive: true },
   bet_win: { label: "Победа в ставке", isPositive: true },
   bet_lose: { label: "Проигрыш в ставке", isPositive: false },
+  bet_place: { label: "Ставка в комнате", isPositive: false },
   purchase: { label: "Покупка", isPositive: false },
 });
 
@@ -30,9 +32,11 @@ export function extractCoinsBalanceFromProfile(profile = {}) {
 }
 
 export function getCoinsOperationMeta(operationType) {
+  const normalizedType = String(operationType || "").trim();
+
   return (
-    OPERATION_TYPE_META[operationType] ?? {
-      label: operationType || "Операция",
+    OPERATION_TYPE_META[normalizedType] ?? {
+      label: normalizedType || "Операция",
       isPositive: true,
     }
   );
@@ -73,6 +77,8 @@ export function normalizeCoinsHistoryItem(raw) {
     id: raw.id,
     date: formatCoinsHistoryDate(raw.created_at),
     operationLabel: label,
+    directionLabel: isPositive ? "Начисление" : "Списание",
+    directionTone: isPositive ? "positive" : "negative",
     description: description || null,
     amount: formatCoinsAmount(count, isPositive),
     isPositive,

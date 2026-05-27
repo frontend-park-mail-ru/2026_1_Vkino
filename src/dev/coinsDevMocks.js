@@ -20,7 +20,7 @@ export const MOCK_COINS_HISTORY = Object.freeze([
   {
     id: 10,
     vkino_coins_count: 5,
-    operation_type: "bet_lose",
+    operation_type: "bet_place",
     description: "Ставка «Кто умрёт в следующей серии?»",
     created_at: "2026-10-12T20:05:00Z",
   },
