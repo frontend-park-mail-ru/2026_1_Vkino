@@ -13,6 +13,7 @@ const OPERATION_TYPE_META = Object.freeze({
   bet_win: { label: "Победа в ставке", isPositive: true },
   bet_lose: { label: "Проигрыш в ставке", isPositive: false },
   bet_place: { label: "Ставка в комнате", isPositive: false },
+  feed_monkey: { label: "Кормление обезьяны", isPositive: false },
   purchase: { label: "Покупка", isPositive: false },
 });
 
