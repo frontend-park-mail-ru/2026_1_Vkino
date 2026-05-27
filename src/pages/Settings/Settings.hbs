@@ -221,7 +221,12 @@
                     />
                   </span>
                 </div>
-                <div class="settings__coins-history-type">{{this.operationLabel}}</div>
+                <div class="settings__coins-history-meta">
+                  <span class="settings__coins-history-direction settings__coins-history-direction_{{this.directionTone}}">
+                    {{this.directionLabel}}
+                  </span>
+                  <span class="settings__coins-history-type">{{this.operationLabel}}</span>
+                </div>
                 {{#if this.description}}
                   <p class="settings__coins-history-description" title="{{this.description}}">{{this.description}}</p>
                 {{/if}}

@@ -209,6 +209,25 @@ export class WatchPartyService {
     );
   }
 
+  async resolveRoomPoll(roomId, pollId, payload) {
+    const normalizedRoomId = normalizeRoomId(roomId);
+    const normalizedPollId = normalizeText(pollId);
+
+    if (!normalizedRoomId || !normalizedPollId) {
+      return {
+        ok: false,
+        status: 0,
+        resp: null,
+        error: "WatchPartyService: не переданы id комнаты или poll",
+      };
+    }
+
+    return this.api.post(
+      `/rooms/${encodeURIComponent(normalizedRoomId)}/polls/${encodeURIComponent(normalizedPollId)}/resolve`,
+      payload,
+    );
+  }
+
   async inviteFriendToRoom(friendId, roomId) {
     const normalizedFriendId = normalizeText(friendId);
     const normalizedRoomId = normalizeRoomId(roomId);
