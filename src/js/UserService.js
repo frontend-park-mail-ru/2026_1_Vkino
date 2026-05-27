@@ -480,14 +480,6 @@ export class UserService {
 
     return this.api.get("/coins/history", { query: { limit, offset } });
   }
-
-  /**
-   * Списывает 1 VKino coin за кормление обезьяны в комнате совместного просмотра.
-   * @returns {Promise<{ok: boolean, resp: Object}>} результат запроса.
-   */
-  async feedMonkey() {
-    return this.api.post("/coins/feed-monkey");
-  }
 }
 
 /**

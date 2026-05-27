@@ -45,7 +45,6 @@ const WATCH_PARTY_EMPTY_ROOM_TTL_MS = 10 * 60 * 1000;
 const WATCH_PARTY_CARD_FALLBACK_SRC = "/img/card-fallback.webp";
 const WATCH_PARTY_REACTIONS_HIDDEN_KEY = "vkino_watch_party_reactions_hidden";
 const WATCH_PARTY_FLOATING_REACTION_LIFETIME_MS = 2200;
-const WATCH_PARTY_FEED_MONKEY_COST = 1;
 const WATCH_PARTY_FEED_MONKEY_DURATION_MS = 2700;
 const WATCH_PARTY_REACTIONS = [
   { value: "👍", label: "Нравится" },
@@ -118,7 +117,6 @@ export default class WatchPartyPage extends BasePage {
     this._roomSubscriptionReady = false;
     this._roomStatusAutoHideTimerId = 0;
     this._feedMonkeyTimerId = 0;
-    this._feedMonkeySpendInFlight = false;
     this._floatingReactionMessageIds = new Set();
     this._watchPartyImageElements = [];
   }
@@ -1404,8 +1402,8 @@ export default class WatchPartyPage extends BasePage {
     });
   }
 
-  async _handleFeedMonkey() {
-    if (this._mode !== "room" || this._feedMonkeySpendInFlight) {
+  _handleFeedMonkey() {
+    if (this._mode !== "room") {
       return;
     }
 
@@ -1413,41 +1411,6 @@ export default class WatchPartyPage extends BasePage {
 
     if (widget instanceof HTMLElement && widget.classList.contains("is-feeding")) {
       return;
-    }
-
-    const currentBalance = authStore.getState().user?.coinsBalance;
-
-    if (
-      Number.isFinite(Number(currentBalance)) &&
-      Number(currentBalance) < WATCH_PARTY_FEED_MONKEY_COST
-    ) {
-      this._setTemporaryRoomStatus("Недостаточно VKino coins.", "warning");
-      return;
-    }
-
-    this._feedMonkeySpendInFlight = true;
-    this._setFeedMonkeyButtonPending(true);
-
-    const result = await userService.feedMonkey();
-
-    this._feedMonkeySpendInFlight = false;
-    this._setFeedMonkeyButtonPending(false);
-
-    if (!result.ok) {
-      this._setTemporaryRoomStatus(
-        result.error || "Не удалось списать VKino coin.",
-        "error",
-      );
-      return;
-    }
-
-    const nextBalance =
-      result.resp?.vkino_coins_balance ?? result.resp?.vkinoCoinsBalance;
-
-    if (nextBalance !== undefined && nextBalance !== null) {
-      authStore.updateUserCoinsBalance(nextBalance);
-    } else {
-      void authStore.refreshUserProfile();
     }
 
     this._startFeedMonkeyAnimation();
@@ -1486,19 +1449,6 @@ export default class WatchPartyPage extends BasePage {
         button.disabled = false;
       }
     }, WATCH_PARTY_FEED_MONKEY_DURATION_MS);
-  }
-
-  _setFeedMonkeyButtonPending(isPending) {
-    const button = this.el.querySelector("[data-action='feed-monkey']");
-
-    if (!(button instanceof HTMLButtonElement)) {
-      return;
-    }
-
-    button.disabled = Boolean(isPending);
-    button.textContent = isPending
-      ? "Списываем..."
-      : `Покормить ещё · ${WATCH_PARTY_FEED_MONKEY_COST} VKino coin`;
   }
 
   _stopFeedMonkeyAnimation() {
