@@ -6,6 +6,9 @@ import HeaderComponent from "@/components/Header/Header.js";
 import {
   paymentService,
   PENDING_PAYMENT_KEY,
+  PENDING_PAYMENT_CONTEXT_KEY,
+  PAYMENT_CONTEXT_COINS,
+  PAYMENT_CONTEXT_SUBSCRIPTION,
   PAYMENT_METHOD,
 } from "@/js/PaymentService.js";
 import { userService } from "@/js/UserService.js";
@@ -597,6 +600,18 @@ export default class SubscriptionPage extends BasePage {
       params.get("payment_id") || params.get("paymentId") || params.get("orderId"),
     );
     const paymentId = resolvePaymentId();
+    const paymentContext = sessionStorage.getItem(PENDING_PAYMENT_CONTEXT_KEY);
+
+    if (paymentContext === PAYMENT_CONTEXT_COINS) {
+      if (onReturnPath || hasUrlPaymentId) {
+        this._paymentReturnHandled = true;
+        router.go(`/payments/return${window.location.search}`);
+        return;
+      }
+      sessionStorage.removeItem(PENDING_PAYMENT_KEY);
+      sessionStorage.removeItem(PENDING_PAYMENT_CONTEXT_KEY);
+      return;
+    }
 
     if (!paymentId) {
       if (onReturnPath) {
@@ -683,6 +698,10 @@ export default class SubscriptionPage extends BasePage {
 
     if (confirmationUrl && paymentId) {
       sessionStorage.setItem(PENDING_PAYMENT_KEY, String(paymentId));
+      sessionStorage.setItem(
+        PENDING_PAYMENT_CONTEXT_KEY,
+        PAYMENT_CONTEXT_SUBSCRIPTION,
+      );
       window.location.href = confirmationUrl;
       return;
     }
@@ -713,6 +732,10 @@ export default class SubscriptionPage extends BasePage {
     }
 
     sessionStorage.setItem(PENDING_PAYMENT_KEY, String(paymentId));
+    sessionStorage.setItem(
+      PENDING_PAYMENT_CONTEXT_KEY,
+      PAYMENT_CONTEXT_SUBSCRIPTION,
+    );
     await this._runPaymentStatusPoll(paymentId);
   }
 

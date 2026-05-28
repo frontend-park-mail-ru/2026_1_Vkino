@@ -5,7 +5,7 @@ export const VKINO_COIN_ICON_SRC = `data:image/svg+xml;charset=utf-8,${encodeURI
 )}`;
 
 export const VKINO_COINS_INFO_TEXT =
-  "VKino coins — внутренняя валюта платформы. Они начисляются ежедневно, лимит зависит от уровня подписки. Монеты можно тратить на ставки в комнатах совместного просмотра и покупку подписки на платформе.";
+  "Начисляются ежедневно, количество начисляемых Vkino coins зависит от уровня подписки. Можно тратить на ставки в комнатах и оплату подписки. Vkino coins можно купить за рубли.";
 
 const OPERATION_TYPE_META = Object.freeze({
   daily: { label: "Ежедневное начисление", isPositive: true },
@@ -14,7 +14,8 @@ const OPERATION_TYPE_META = Object.freeze({
   bet_lose: { label: "Проигрыш в ставке", isPositive: false },
   bet_place: { label: "Ставка в комнате", isPositive: false },
   feed_monkey: { label: "Кормление обезьяны", isPositive: false },
-  purchase: { label: "Покупка", isPositive: false },
+  purchase: { label: "Покупка подписки", isPositive: false },
+  coins_purchase: { label: "Покупка", isPositive: true },
 });
 
 export function extractCoinsBalanceFromProfile(profile = {}) {

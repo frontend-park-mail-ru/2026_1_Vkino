@@ -17,6 +17,10 @@ import NotFoundPage from "./pages/NotFound/NotFound.js";
 import "./css/index.scss";
 
 import { authStore } from "./store/authStore.js";
+import {
+  PENDING_PAYMENT_CONTEXT_KEY,
+  PAYMENT_CONTEXT_COINS,
+} from "./js/PaymentService.js";
 
 /**
  * Инициализирует приложение, поднимает сессию пользователя и регистрирует роуты.
@@ -53,7 +57,13 @@ async function start() {
     .registerRoute("/profile", (root) => new ProfilePage({}, null, root))
     .registerRoute("/settings", (root) => new SettingsPage({}, null, root))
     .registerRoute("/subscription", (root) => new SubscriptionPage({}, null, root))
-      .registerRoute("/payments/return", (root) => new SubscriptionPage({}, null, root))
+    .registerRoute("/payments/return", (root) => {
+      const paymentContext = sessionStorage.getItem(PENDING_PAYMENT_CONTEXT_KEY);
+      if (paymentContext === PAYMENT_CONTEXT_COINS) {
+        return new SettingsPage({}, null, root);
+      }
+      return new SubscriptionPage({}, null, root);
+    })
     .registerRoute(
       "/genres",
       (root) => new CatalogPage({ catalogKey: "genres" }, null, root),

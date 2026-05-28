@@ -185,9 +185,9 @@
         </div>
       </div>
 
-      <div class="settings__coins-history">
+      <div class="settings__coins-history" id="buy-coins">
         <div class="settings__coins-history-header">
-          <h3 class="settings__coins-history-title">История VKino coins</h3>
+          <h3 class="settings__coins-history-title">VKino coins</h3>
           <button
             type="button"
             class="vk-coins-info"
@@ -199,6 +199,31 @@
           </button>
         </div>
         <div class="vk-coins-info-popover" hidden>{{coinsInfoText}}</div>
+        <div class="settings__coins-balance-row">
+          <div class="settings__coins-balance">
+            <span class="settings__coins-balance-label">Баланс</span>
+            <span class="settings__coins-balance-value-wrap">
+              <img
+                class="settings__coins-balance-icon"
+                src="{{coinsIconSrc}}"
+                alt=""
+                width="22"
+                height="22"
+              />
+              <strong class="settings__coins-balance-value" data-role="settings-coins-balance">
+                {{coinsBalance}}
+              </strong>
+            </span>
+          </div>
+          <button
+            type="button"
+            class="btn btn_accent settings__coins-buy-btn"
+            data-action="open-buy-coins-modal"
+          >
+            Купить
+          </button>
+        </div>
+        <p class="settings__coins-history-subtitle">История</p>
         <div class="settings__coins-history-scroll">
           <div class="settings__coins-history-list">
           {{#if coinHistory.length}}
@@ -243,4 +268,89 @@
       </div>
     </div>
   </main>
+
+  <dialog class="modal modal_payment modal_buy-coins" id="buyCoinsModal" data-role="buy-coins-modal">
+    <div class="modal__content modal_payment__content">
+      <button type="button" class="subscription-modal-dismiss" data-action="close-buy-coins-modal" aria-label="Закрыть">
+        <span class="subscription-modal-dismiss__icon" aria-hidden="true">
+          <span class="subscription-modal-dismiss__line"></span>
+          <span class="subscription-modal-dismiss__line"></span>
+        </span>
+      </button>
+      <div class="modal_payment__header">
+        <h3 class="modal_payment__title">Покупка VKino coins</h3>
+        <p class="modal_payment__subtitle">
+          Выберите пакет и перейдите к оплате через ЮKassa.
+        </p>
+      </div>
+      <div class="modal_payment__main">
+        <div class="modal__body modal_payment__body">
+          <p class="modal_payment__methods-title">Пакет</p>
+          <div class="modal__payment-methods" data-role="coins-packs-list" role="radiogroup" aria-label="Пакеты VKino coins">
+          {{#if coinsPacks.length}}
+            {{#each coinsPacks}}
+              <label
+                class="payment-method{{#if @first}} payment-method_active{{/if}}"
+                data-role="coins-pack-option"
+              >
+                <input
+                  type="radio"
+                  name="coins-pack"
+                  value="{{this.id}}"
+                  data-pack-id="{{this.id}}"
+                  {{#if @first}}checked{{/if}}
+                />
+                <img
+                  class="payment-method__coin-icon"
+                  src="{{@root.coinsIconSrc}}"
+                  alt=""
+                  width="20"
+                  height="20"
+                />
+                <span class="payment-method__body">
+                  <span class="payment-method__label">{{this.title}}</span>
+                  <span class="modal_payment__method-hint">{{this.priceLabel}}</span>
+                </span>
+              </label>
+            {{/each}}
+          {{else}}
+            <p class="settings__coins-packs-empty" data-role="coins-packs-empty">
+              {{coinsPacksError}}
+            </p>
+          {{/if}}
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer modal_payment__footer">
+        <button type="button" class="btn btn_outline" data-action="close-buy-coins-modal">Отмена</button>
+        <button
+          type="button"
+          class="btn btn_accent"
+          data-action="confirm-buy-coins"
+          id="confirmBuyCoinsBtn"
+          {{#unless coinsPacks.length}}disabled{{/unless}}
+        >
+          Перейти к оплате
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="modal modal_payment-result" id="buyCoinsResultModal" data-role="buy-coins-result-modal">
+    <div class="modal__content modal_payment-result__content">
+      <button type="button" class="subscription-modal-dismiss" data-action="close-buy-coins-result" aria-label="Закрыть">
+        <span class="subscription-modal-dismiss__icon" aria-hidden="true">
+          <span class="subscription-modal-dismiss__line"></span>
+          <span class="subscription-modal-dismiss__line"></span>
+        </span>
+      </button>
+      <div class="modal_payment-result__body">
+        <div class="modal_payment-result__spinner" data-role="buy-coins-result-spinner" hidden></div>
+        <h3 class="modal_payment-result__title" data-role="buy-coins-result-title"></h3>
+        <p class="modal_payment-result__text" data-role="buy-coins-result-text"></p>
+        <p class="modal_payment-result__meta" data-role="buy-coins-result-meta" hidden></p>
+      </div>
+      <div class="modal__footer modal_payment-result__footer" data-role="buy-coins-result-actions"></div>
+    </div>
+  </dialog>
 </div>
