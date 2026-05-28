@@ -1,6 +1,8 @@
 import {
   paymentService,
+  PENDING_PAYMENT_CONTEXT_KEY,
   PENDING_PAYMENT_KEY,
+  PAYMENT_CONTEXT_COINS,
 } from "@/js/PaymentService.js";
 import { authStore } from "@/store/authStore.js";
 import { getApiErrorMessage } from "@/utils/apiError.js";
@@ -56,7 +58,13 @@ export async function pollPaymentStatus(paymentId, { signal } = {}) {
 
     if (status === "succeeded") {
       sessionStorage.removeItem(PENDING_PAYMENT_KEY);
-      await authStore.refreshAfterPayment();
+
+      const paymentContext = sessionStorage.getItem(PENDING_PAYMENT_CONTEXT_KEY);
+      if (paymentContext === PAYMENT_CONTEXT_COINS) {
+        await authStore.refreshUserProfile();
+      } else {
+        await authStore.refreshAfterPayment();
+      }
 
       const subscription = authStore.getState().user?.subscription;
 

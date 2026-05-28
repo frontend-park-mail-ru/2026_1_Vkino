@@ -18,11 +18,22 @@ import {
   getDefaultSubscriptionPlansPreview,
 } from "@/utils/subscriptionDisplay.js";
 import {
+  extractCoinsBalanceFromProfile,
   normalizeCoinsHistoryResponse,
   VKINO_COINS_INFO_TEXT,
   VKINO_COIN_ICON_SRC,
 } from "@/utils/coinsDisplay.js";
 import { initCoinsInfoPopover } from "@/js/coinsInfoPopover.js";
+import {
+  paymentService,
+  PENDING_PAYMENT_KEY,
+  PENDING_PAYMENT_CONTEXT_KEY,
+  PAYMENT_CONTEXT_COINS,
+} from "@/js/PaymentService.js";
+import {
+  pollPaymentStatus,
+  resolvePaymentId,
+} from "@/js/paymentStatusPoll.js";
 
 const BIRTHDATE_MIN_YEAR = 1900;
 const BIRTHDATE_MONTH_NAMES = [
@@ -65,6 +76,9 @@ export default class SettingsPage extends BasePage {
     const finalContext = {
       userData: { email: "", birthDate: "", avatarUrl: "" }, // временно
       coinHistory: [],
+      coinsBalance: "—",
+      coinsPacks: [],
+      coinsPacksError: "Загрузка пакетов…",
       coinsIconSrc: VKINO_COIN_ICON_SRC,
       coinsInfoText: VKINO_COINS_INFO_TEXT,
       emptyCoinsTitle: "Пока здесь пусто",
@@ -97,12 +111,19 @@ export default class SettingsPage extends BasePage {
     this._avatarInputHandler = null;
     this._pendingAvatarFile = null;
     this._authUnsubscribe = null;
-    /** Чтобы refresh → init не запускали _loadSubscriptionSection снова (бесконечный цикл). */
     this._settingsSubscriptionHydrated = false;
-    this._settingsCoinsHydrated = false;
+    this._coinsSectionHydrated = false;
     this._destroyCoinsInfoPopover = null;
+    this._buyCoinsModalHandlers = [];
+    this._bodyLockSnapshot = null;
+    this._paymentPollController = null;
+    this._paymentReturnHandled = false;
+    this._coinsPaymentResultToShow = null;
 
     this.context.userData = this._buildUserDataFromStore(authStore.getState());
+    this.context.coinsBalance = this._formatCoinsBalance(
+      authStore.getState().user,
+    );
   }
 
   init() {
@@ -121,7 +142,7 @@ export default class SettingsPage extends BasePage {
         this._authUnsubscribe = null;
 
         this._settingsSubscriptionHydrated = false;
-        this._settingsCoinsHydrated = false;
+        this._coinsSectionHydrated = false;
         this.refresh({
           ...this.context,
           userData: this._buildUserDataFromStore(newState),
@@ -138,13 +159,16 @@ export default class SettingsPage extends BasePage {
 
     this.context.userData = this._buildUserDataFromStore(state);
     super.init();
+
     if (!this._settingsSubscriptionHydrated) {
       void this._loadSubscriptionSection();
     }
-    if (!this._settingsCoinsHydrated) {
-      void this._loadCoinsHistory();
+    if (!this._coinsSectionHydrated) {
+      void this.loadCoinsContext();
     }
     this._scrollSubscriptionIntoViewIfNeeded();
+    this._scrollBuyCoinsIntoViewIfNeeded();
+
     return this;
   }
 
@@ -215,17 +239,62 @@ export default class SettingsPage extends BasePage {
     this._scrollSubscriptionIntoViewIfNeeded();
   }
 
-  async _loadCoinsHistory() {
-    const historyRes = await userService.getCoinsHistory({ limit: 50, offset: 0 });
+  async loadCoinsContext({ afterPayment = false } = {}) {
+    if (afterPayment) {
+      await authStore.refreshUserProfile();
+    }
+
+    const [historyRes, packsRes] = await Promise.all([
+      userService.getCoinsHistory({ limit: 50, offset: 0 }),
+      paymentService.getCoinsPacks(),
+    ]);
+
     const coinHistory = historyRes.ok
       ? normalizeCoinsHistoryResponse(historyRes.resp).items
       : [];
 
-    this._settingsCoinsHydrated = true;
+    let coinsPacks = [];
+    let coinsPacksError = "";
+
+    if (packsRes.ok && Array.isArray(packsRes.resp?.packs)) {
+      coinsPacks = packsRes.resp.packs.map((pack) => ({
+        id: pack.id,
+        title: pack.title || `${pack.coins_amount} VKino coins`,
+        coinsAmount: pack.coins_amount,
+        priceLabel: `${pack.price_money} ₽`,
+      }));
+    } else {
+      coinsPacksError = getApiErrorMessage(packsRes, {
+        fallback: "Не удалось загрузить пакеты. Попробуйте позже.",
+      });
+    }
+
+    const coinsBalance = this._formatCoinsBalance(authStore.getState().user);
+
+    this._coinsSectionHydrated = true;
     this.refresh({
       ...this.context,
       coinHistory,
+      coinsBalance,
+      coinsPacks,
+      coinsPacksError: coinsPacksError || (coinsPacks.length ? "" : "Пакеты временно недоступны."),
     });
+
+    if (this._coinsPaymentResultToShow) {
+      this._openBuyCoinsResultModal();
+      this._setBuyCoinsResultView(this._coinsPaymentResultToShow);
+      this._coinsPaymentResultToShow = null;
+      sessionStorage.removeItem(PENDING_PAYMENT_CONTEXT_KEY);
+      this._cleanPaymentReturnUrl();
+      return;
+    }
+
+    void this._handlePaymentReturn();
+  }
+
+  _formatCoinsBalance(user) {
+    const balance = extractCoinsBalanceFromProfile(user);
+    return balance === null ? "—" : String(balance);
   }
 
   _buildUsageSummary(usage, capabilities) {
@@ -255,6 +324,17 @@ export default class SettingsPage extends BasePage {
     });
   }
 
+  _scrollBuyCoinsIntoViewIfNeeded() {
+    if (window.location.hash !== "#buy-coins") {
+      return;
+    }
+    requestAnimationFrame(() => {
+      document
+        .getElementById("buy-coins")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
   addEventListeners() {
     this._destroyPasswordToggle = initPasswordToggle(this.el);
     this._destroyCoinsInfoPopover = initCoinsInfoPopover(this.el);
@@ -263,6 +343,7 @@ export default class SettingsPage extends BasePage {
     this._setupAvatarUpload();
     this._setupPasswordValidation();
     this._setupButtonHandlers();
+    this._setupBuyCoinsModal();
     this._checkForChanges();
   }
 
@@ -1058,11 +1139,407 @@ export default class SettingsPage extends BasePage {
     );
   }
 
+  _setupBuyCoinsModal() {
+    const buyModal = this.el.querySelector("#buyCoinsModal");
+    const resultModal = this.el.querySelector("#buyCoinsResultModal");
+    const openBtn = this.el.querySelector('[data-action="open-buy-coins-modal"]');
+    const confirmBtn = this.el.querySelector('[data-action="confirm-buy-coins"]');
+
+    const onOpen = (event) => {
+      event.preventDefault();
+      this._openBuyCoinsModal();
+    };
+
+    const onConfirm = async (event) => {
+      event.preventDefault();
+      await this._confirmBuyCoins();
+    };
+
+    if (openBtn) {
+      openBtn.addEventListener("click", onOpen);
+      this._buyCoinsModalHandlers.push({ target: openBtn, type: "click", handler: onOpen });
+    }
+
+    if (confirmBtn) {
+      confirmBtn.addEventListener("click", onConfirm);
+      this._buyCoinsModalHandlers.push({
+        target: confirmBtn,
+        type: "click",
+        handler: onConfirm,
+      });
+    }
+
+    if (buyModal) {
+      buyModal.querySelectorAll('[data-role="coins-pack-option"]').forEach((option) => {
+        const radio = option.querySelector('input[type="radio"]');
+        const syncActive = () => {
+          buyModal.querySelectorAll('[data-role="coins-pack-option"]').forEach((el) => {
+            el.classList.toggle(
+              "payment-method_active",
+              el.querySelector('input[type="radio"]')?.checked === true,
+            );
+          });
+        };
+        if (radio) {
+          radio.addEventListener("change", syncActive);
+          this._buyCoinsModalHandlers.push({
+            target: radio,
+            type: "change",
+            handler: syncActive,
+          });
+        }
+        syncActive();
+      });
+    }
+
+    [buyModal, resultModal].forEach((modal) => {
+      if (!modal) return;
+
+      modal.querySelectorAll('[data-action="close-buy-coins-modal"], [data-action="close-buy-coins-result"]').forEach((btn) => {
+        const handler = () => this._closeDialog(modal);
+        btn.addEventListener("click", handler);
+        this._buyCoinsModalHandlers.push({ target: btn, type: "click", handler });
+      });
+
+      const onBackdrop = (event) => {
+        if (event.target === modal) {
+          this._closeDialog(modal);
+        }
+      };
+      modal.addEventListener("click", onBackdrop);
+      this._buyCoinsModalHandlers.push({ target: modal, type: "click", handler: onBackdrop });
+
+      const onClose = () => this._syncModalScrollLock();
+      modal.addEventListener("close", onClose);
+      this._buyCoinsModalHandlers.push({ target: modal, type: "close", handler: onClose });
+    });
+  }
+
+  _openBuyCoinsModal() {
+    const modal = this.el.querySelector("#buyCoinsModal");
+    if (!modal) return;
+
+    if (typeof modal.showModal === "function") {
+      modal.showModal();
+    } else {
+      modal.setAttribute("open", "open");
+    }
+    this._lockBodyScroll();
+  }
+
+  _closeDialog(modal) {
+    if (!modal) return;
+
+    if (modal.id === "buyCoinsResultModal") {
+      this._abortPaymentPoll();
+      this._cleanPaymentReturnUrl();
+    }
+
+    if (typeof modal.close === "function") {
+      modal.close();
+    } else {
+      modal.removeAttribute("open");
+    }
+
+    this._syncModalScrollLock();
+  }
+
+  _lockBodyScroll() {
+    if (this._bodyLockSnapshot) return;
+    this._bodyLockSnapshot = { overflow: document.body.style.overflow };
+    document.body.style.overflow = "hidden";
+  }
+
+  _restoreBodyScroll() {
+    if (!this._bodyLockSnapshot) return;
+    document.body.style.overflow = this._bodyLockSnapshot.overflow;
+    this._bodyLockSnapshot = null;
+  }
+
+  _releaseBodyScrollLock() {
+    if (this._bodyLockSnapshot) {
+      document.body.style.overflow = this._bodyLockSnapshot.overflow || "";
+      this._bodyLockSnapshot = null;
+      return;
+    }
+    if (document.body.style.overflow === "hidden") {
+      document.body.style.overflow = "";
+    }
+  }
+
+  _syncModalScrollLock() {
+    const hasOpenModal = Boolean(
+      this.el?.querySelector("#buyCoinsModal[open], #buyCoinsResultModal[open]"),
+    );
+    if (!hasOpenModal) {
+      this._restoreBodyScroll();
+    }
+  }
+
+  _getSelectedCoinsPackId() {
+    const selected = this.el.querySelector('input[name="coins-pack"]:checked');
+    return Number(selected?.value);
+  }
+
+  async _confirmBuyCoins() {
+    const packId = this._getSelectedCoinsPackId();
+    const confirmBtn = this.el.querySelector("#confirmBuyCoinsBtn");
+
+    if (!Number.isFinite(packId) || packId <= 0) {
+      return;
+    }
+
+    if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = "Создаём платёж…";
+    }
+
+    const paymentResult = await paymentService.createCoinsPayment(packId);
+
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = "Перейти к оплате";
+    }
+
+    if (!paymentResult.ok) {
+      window.alert(
+        getApiErrorMessage(paymentResult, {
+          fallback: "Не удалось создать платёж. Попробуйте позже.",
+        }),
+      );
+      return;
+    }
+
+    const paymentId = paymentResult.resp?.payment_id;
+    const confirmationUrl = paymentResult.resp?.confirmation_url;
+
+    if (paymentId) {
+      sessionStorage.setItem(PENDING_PAYMENT_KEY, String(paymentId));
+      sessionStorage.setItem(PENDING_PAYMENT_CONTEXT_KEY, PAYMENT_CONTEXT_COINS);
+    }
+
+    if (confirmationUrl) {
+      this._closeDialog(this.el.querySelector("#buyCoinsModal"));
+      window.location.href = confirmationUrl;
+      return;
+    }
+
+    window.alert("Не получена ссылка на оплату.");
+  }
+
+  _abortPaymentPoll() {
+    this._paymentPollController?.abort();
+    this._paymentPollController = null;
+  }
+
+  _cleanPaymentReturnUrl() {
+    const onReturnPath = window.location.pathname.endsWith("/payments/return");
+    const hasPaymentQuery = /payment|orderId/i.test(window.location.search);
+
+    if (onReturnPath || hasPaymentQuery) {
+      const url = new URL(window.location.href);
+      url.pathname = "/settings";
+      url.searchParams.delete("payment_id");
+      url.searchParams.delete("paymentId");
+      url.searchParams.delete("orderId");
+      window.history.replaceState(
+        null,
+        "",
+        `${url.pathname}${url.search}${url.hash}`,
+      );
+    }
+  }
+
+  async _handlePaymentReturn() {
+    if (this._paymentReturnHandled) {
+      return;
+    }
+
+    const paymentContext = sessionStorage.getItem(PENDING_PAYMENT_CONTEXT_KEY);
+    const onReturnPath = window.location.pathname.endsWith("/payments/return");
+    const params = new URLSearchParams(window.location.search);
+    const hasUrlPaymentId = Boolean(
+      params.get("payment_id") || params.get("paymentId") || params.get("orderId"),
+    );
+    const paymentId = resolvePaymentId();
+
+    if (!paymentId) {
+      if (onReturnPath && paymentContext === PAYMENT_CONTEXT_COINS) {
+        this._paymentReturnHandled = true;
+        this._openBuyCoinsResultModal();
+        this._setBuyCoinsResultView({
+          kind: "error",
+          message: "Не найден идентификатор платежа.",
+        });
+      }
+      return;
+    }
+
+    if (onReturnPath && paymentContext && paymentContext !== PAYMENT_CONTEXT_COINS) {
+      router.go(`/subscription${window.location.search}`);
+      return;
+    }
+
+    if (!onReturnPath && paymentContext !== PAYMENT_CONTEXT_COINS) {
+      return;
+    }
+
+    if (!onReturnPath && !hasUrlPaymentId) {
+      return;
+    }
+
+    this._paymentReturnHandled = true;
+    await this._runCoinsPaymentPoll(paymentId);
+  }
+
+  _openBuyCoinsResultModal() {
+    const modal = this.el.querySelector("#buyCoinsResultModal");
+    if (!modal) return;
+
+    if (typeof modal.showModal === "function") {
+      modal.showModal();
+    } else {
+      modal.setAttribute("open", "open");
+    }
+    this._lockBodyScroll();
+  }
+
+  _setBuyCoinsResultView(result) {
+    const modal = this.el.querySelector("#buyCoinsResultModal");
+    if (!modal) return;
+
+    const spinner = modal.querySelector('[data-role="buy-coins-result-spinner"]');
+    const titleEl = modal.querySelector('[data-role="buy-coins-result-title"]');
+    const textEl = modal.querySelector('[data-role="buy-coins-result-text"]');
+    const metaEl = modal.querySelector('[data-role="buy-coins-result-meta"]');
+    const actionsEl = modal.querySelector('[data-role="buy-coins-result-actions"]');
+
+    spinner.hidden = result.kind !== "loading";
+    metaEl.hidden = true;
+    metaEl.textContent = "";
+
+    let actionsHtml = "";
+
+    switch (result.kind) {
+      case "loading":
+        titleEl.textContent = "Обрабатываем оплату…";
+        textEl.textContent = "Пожалуйста, подождите. Мы проверяем статус платежа.";
+        break;
+      case "success": {
+        titleEl.textContent = "VKino coins зачислены";
+        const balance = extractCoinsBalanceFromProfile(authStore.getState().user);
+        textEl.textContent = "Баланс обновлён.";
+        if (balance !== null) {
+          metaEl.innerHTML = `<span class="modal_payment-result__balance-line">Текущий баланс: <img class="modal_payment-result__balance-icon" src="${VKINO_COIN_ICON_SRC}" alt="" width="16" height="16" /><strong>${balance}</strong></span>`;
+          metaEl.hidden = false;
+        }
+        actionsHtml =
+          '<button type="button" class="btn btn_accent" data-action="close-buy-coins-result">Отлично</button>';
+        break;
+      }
+      case "canceled":
+        titleEl.textContent = "Оплата отменена";
+        textEl.textContent = "Платёж не был завершён. Вы можете попробовать снова.";
+        actionsHtml =
+          '<button type="button" class="btn btn_accent" data-action="close-buy-coins-result">Понятно</button>';
+        break;
+      case "incomplete":
+        titleEl.textContent = "Оплата не завершена";
+        textEl.textContent =
+          "Если вы отменили оплату на стороне ЮKassa, попробуйте снова. Если оплата прошла, баланс обновится в течение минуты.";
+        actionsHtml =
+          '<button type="button" class="btn btn_accent" data-action="close-buy-coins-result">Понятно</button>';
+        break;
+      case "timeout":
+        titleEl.textContent = "Статус уточняется";
+        textEl.textContent = "Если оплата прошла, обновите страницу настроек.";
+        actionsHtml =
+          '<button type="button" class="btn btn_outline" data-action="retry-coins-payment-check">Проверить снова</button>';
+        break;
+      case "error":
+        titleEl.textContent = "Не удалось проверить оплату";
+        textEl.textContent = result.message || "Попробуйте позже.";
+        actionsHtml =
+          '<button type="button" class="btn btn_accent" data-action="close-buy-coins-result">Понятно</button>';
+        break;
+      default:
+        return;
+    }
+
+    actionsEl.innerHTML = actionsHtml;
+    actionsEl.className =
+      "modal__footer modal_payment-result__footer" +
+      (result.kind === "timeout"
+        ? ""
+        : " modal_payment-result__footer--center");
+
+    actionsEl.querySelectorAll("[data-action]").forEach((btn) => {
+      const handler = async (event) => {
+        event.preventDefault();
+        const { action } = btn.dataset;
+
+        if (action === "close-buy-coins-result") {
+          this._closeDialog(modal);
+          return;
+        }
+
+        if (action === "retry-coins-payment-check") {
+          const retryId = resolvePaymentId();
+          if (retryId) {
+            await this._runCoinsPaymentPoll(retryId);
+          }
+        }
+      };
+
+      btn.addEventListener("click", handler);
+      this._buyCoinsModalHandlers.push({ target: btn, type: "click", handler });
+    });
+  }
+
+  async _runCoinsPaymentPoll(paymentId) {
+    this._abortPaymentPoll();
+    this._paymentPollController = new AbortController();
+
+    this._openBuyCoinsResultModal();
+    this._setBuyCoinsResultView({ kind: "loading" });
+
+    const result = await pollPaymentStatus(paymentId, {
+      signal: this._paymentPollController.signal,
+    });
+
+    if (result.kind === "aborted") {
+      this._releaseBodyScrollLock();
+      return;
+    }
+
+    if (result.kind === "unauthorized") {
+      this._releaseBodyScrollLock();
+      router.go("/sign-in");
+      return;
+    }
+
+    if (result.kind === "success") {
+      this._coinsPaymentResultToShow = { kind: "success" };
+      await this.loadCoinsContext({ afterPayment: true });
+      return;
+    }
+
+    this._setBuyCoinsResultView(result);
+  }
+
   removeEventListeners() {
     if (this._authUnsubscribe) {
       this._authUnsubscribe();
       this._authUnsubscribe = null;
     }
+
+    this._abortPaymentPoll();
+    this._releaseBodyScrollLock();
+
+    for (const { target, type, handler } of this._buyCoinsModalHandlers) {
+      target.removeEventListener(type, handler);
+    }
+    this._buyCoinsModalHandlers = [];
 
     for (const [input, handler] of this._editableInputHandlers) {
       input.removeEventListener("input", handler);
