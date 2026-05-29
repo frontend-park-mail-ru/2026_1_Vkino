@@ -110,6 +110,7 @@ export default class ProfilePage extends BasePage {
     };
 
     super.init();
+    this._scrollToRequestedSection();
 
     if (this.context.isLoading) {
       this.loadContext();
@@ -212,6 +213,7 @@ export default class ProfilePage extends BasePage {
         ? ""
         : profileResult.error || "Не удалось обновить профиль с сервера",
     });
+    this._scrollToRequestedSection();
   }
 
   /**
@@ -268,6 +270,27 @@ export default class ProfilePage extends BasePage {
       errorMessage: "",
     });
   };
+
+  _scrollToRequestedSection() {
+    if (window.location.hash !== "#favorites") {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      const favoritesSection = this.el?.querySelector(
+        "#profile-favorites-section",
+      );
+
+      if (!(favoritesSection instanceof HTMLElement)) {
+        return;
+      }
+
+      favoritesSection.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }
 
   _setupProfileCarousels() {
     buildProfileCarousels(this.context).forEach((carousel) => {

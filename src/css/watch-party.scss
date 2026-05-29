@@ -610,9 +610,9 @@
 
 .watch-party__room-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 320px));
-  gap: var(--space-4);
-  justify-content: flex-start;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  column-gap: clamp(0.75rem, 2vw, 1.5rem);
+  row-gap: var(--space-4);
   align-items: start;
 }
 

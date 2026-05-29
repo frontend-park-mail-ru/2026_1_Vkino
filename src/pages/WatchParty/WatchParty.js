@@ -2964,21 +2964,22 @@ function buildRoomPlayerMovieData(roomData = {}) {
 
 function mapOverviewToPageData(overview, fallbackData) {
   const normalizedOverview = overview && typeof overview === "object" && !Array.isArray(overview) ? overview : {};
-  const featuredRoomItems = readArray(normalizedOverview, [
-    "featuredRooms",
-    "featured_rooms",
-    "onlineRooms",
-    "online_rooms",
-    "active_rooms",
-    "rooms",
-  ]);
+  const activeRoomItems =
+    readArray(normalizedOverview, ["activeRooms", "active_rooms"]) ||
+    readArray(normalizedOverview, [
+      "featuredRooms",
+      "featured_rooms",
+      "onlineRooms",
+      "online_rooms",
+      "rooms",
+    ]);
   const heroPosterItems = readArray(normalizedOverview, ["heroPosters", "hero_posters", "posters"]);
 
   return {
     heroPosters: mapHeroPosters(
       heroPosterItems,
-      Array.isArray(featuredRoomItems) && featuredRoomItems.length
-        ? mapHeroPostersFromRooms(featuredRoomItems, fallbackData.heroPosters)
+      Array.isArray(activeRoomItems) && activeRoomItems.length
+        ? mapHeroPostersFromRooms(activeRoomItems, fallbackData.heroPosters)
         : fallbackData.heroPosters,
     ),
     visibilityOptions: mapVisibilityOptions(
@@ -2990,7 +2991,7 @@ function mapOverviewToPageData(overview, fallbackData) {
       ]),
       fallbackData.visibilityOptions,
     ),
-    featuredRooms: mapFeaturedRooms(featuredRoomItems, fallbackData.featuredRooms),
+    featuredRooms: mapFeaturedRooms(activeRoomItems, fallbackData.featuredRooms),
     myRooms: mapMyRooms(readArray(normalizedOverview, ["myRooms", "my_rooms", "ownedRooms", "owned_rooms"])),
   };
 }
@@ -4017,13 +4018,13 @@ function mapVisibilityOptions(items, fallbackItems) {
 
 function mapFeaturedRooms(items, fallbackItems) {
   if (!Array.isArray(items) || !items.length) {
-    return fallbackItems.slice(0, 2).map((item, index) => ({
+    return fallbackItems.map((item, index) => ({
       imageUrl: index % 2 === 0 ? "/img/cards/interstellar.webp" : "/img/joker.jpeg",
       ...item,
     }));
   }
 
-  return items.slice(0, 2).map((item, index) => {
+  return items.map((item, index) => {
     const fallback = fallbackItems[index % fallbackItems.length] || fallbackItems[0];
     const membersCount = normalizeCount(
       item?.membersCount ??

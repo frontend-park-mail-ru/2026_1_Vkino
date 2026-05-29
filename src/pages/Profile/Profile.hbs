@@ -76,7 +76,7 @@
       {{/if}}
       {{#if shouldGroupEmptyStates}}
         <div class="profile-empty-row">
-          <section class="profile-section profile-section--empty">
+          <section class="profile-section profile-section--empty" id="profile-favorites-section">
             <h2 class="profile-section-title"><a href="/favorites" router-link>Избранное</a></h2>
             <div class="empty-state-card">
               <a
@@ -117,12 +117,12 @@
         </div>
       {{else}}
         {{#if favorites.length}}
-          <section class="profile-section">
+          <section class="profile-section" id="profile-favorites-section">
             <h2 class="profile-section-title"><a href="/favorites" router-link>Избранное</a></h2>
             <div class="profile-carousel-slot" data-profile-carousel="favorites"></div>
           </section>
         {{else}}
-          <section class="profile-section profile-section--empty">
+          <section class="profile-section profile-section--empty" id="profile-favorites-section">
             <h2 class="profile-section-title"><a href="/favorites" router-link>Избранное</a></h2>
             <div class="empty-state-card">
               <a
