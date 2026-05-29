@@ -81,6 +81,14 @@ export class ApiService {
     );
   }
 
+  buildRootUrl(endpoint = "", query = null) {
+    const normalizedEndpoint = endpoint
+      ? `/${String(endpoint).replace(/^\/+/, "")}`
+      : "";
+
+    return appendQueryParams(`${this.baseUrl}${normalizedEndpoint}`, query);
+  }
+
   /**
    * Главный метод, выполняет HTTP-запрос к API.
    * @async
@@ -119,6 +127,29 @@ export class ApiService {
   }
 
   async _performRequest(
+    url,
+    { method = "GET", data = null, headers = {}, signal = null } = {},
+  ) {
+    const result = await this._sendRequest(url, { method, data, headers, signal });
+
+    if (
+      result.status !== 401 ||
+      signal?.aborted ||
+      !shouldAttemptAccessTokenRefresh(url)
+    ) {
+      return result;
+    }
+
+    const refreshed = await this._refreshAccessToken();
+
+    if (!refreshed) {
+      return result;
+    }
+
+    return this._sendRequest(url, { method, data, headers, signal });
+  }
+
+  async _sendRequest(
     url,
     { method = "GET", data = null, headers = {}, signal = null } = {},
   ) {
@@ -186,6 +217,38 @@ export class ApiService {
       aborted: false,
       meta: extractResponseMeta(response),
     };
+  }
+
+  async _refreshAccessToken() {
+    if (ApiService._refreshAccessTokenPromise) {
+      return ApiService._refreshAccessTokenPromise;
+    }
+
+    ApiService._refreshAccessTokenPromise = this._sendRequest(
+      this.buildRootUrl("/user/refresh"),
+      {
+        method: "POST",
+      },
+    )
+      .then((result) => {
+        const accessToken = result?.resp?.access_token;
+
+        if (result?.ok && accessToken) {
+          this.setAccessToken(accessToken);
+          return true;
+        }
+
+        if (shouldClearSessionAfterRefreshFailure(result?.status)) {
+          this.clearAccessToken();
+        }
+
+        return false;
+      })
+      .finally(() => {
+        ApiService._refreshAccessTokenPromise = null;
+      });
+
+    return ApiService._refreshAccessTokenPromise;
   }
 
   /**
@@ -304,6 +367,29 @@ function createResponseMeta(source) {
     source,
     servedFromCache: source === "cache-fallback",
   };
+}
+
+function shouldAttemptAccessTokenRefresh(url) {
+  const pathname = safeUrlPathname(url);
+
+  return ![
+    "/user/sign-in",
+    "/user/sign-up",
+    "/user/refresh",
+    "/user/logout",
+  ].some((authPath) => pathname.endsWith(authPath));
+}
+
+function shouldClearSessionAfterRefreshFailure(status) {
+  return status === 401 || status === 403;
+}
+
+function safeUrlPathname(url) {
+  try {
+    return new URL(url, window.location.origin).pathname.replace(/\/+$/, "");
+  } catch {
+    return String(url || "").split("?")[0].replace(/\/+$/, "");
+  }
 }
 
 // читаем baseUrl из .env (с сервера) или ставим дефолтный для dev

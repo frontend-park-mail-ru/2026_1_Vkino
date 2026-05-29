@@ -53,6 +53,9 @@ export default class MoviePlayerComponent extends BaseComponent {
     this._lastNonZeroVolume = DEFAULT_VOLUME;
     this._suppressPlaybackEvents = false;
     this._suppressPlaybackEventsUntil = 0;
+    this._suppressedPlaybackEventTypes = new Set();
+    this._ignorePauseEventsUntil = 0;
+    this._isChangingVideoSource = false;
 
     this._onDocumentKeyDownBound = this._onDocumentKeyDown.bind(this);
     this._onDocumentMouseMoveBound = this._onDocumentMouseMove.bind(this);
@@ -202,21 +205,13 @@ export default class MoviePlayerComponent extends BaseComponent {
   }
 
   seekToExternal(positionSeconds = 0) {
-    this._suppressPlaybackEvents = true;
-    this._suppressPlaybackEventsUntil =
-      Date.now() + EXTERNAL_PLAYBACK_SYNC_SUPPRESS_MS;
     this._seekTo(Math.max(0, Number(positionSeconds) || 0), {
       emitEvent: false,
     });
-    window.setTimeout(() => {
-      this._suppressPlaybackEvents = false;
-    }, 0);
   }
 
   pauseExternal(positionSeconds = null) {
-    this._suppressPlaybackEvents = true;
-    this._suppressPlaybackEventsUntil =
-      Date.now() + EXTERNAL_PLAYBACK_SYNC_SUPPRESS_MS;
+    this._suppressPlaybackEventsFor(["pause"]);
     this._pendingAutoplay = false;
 
     if (positionSeconds !== null) {
@@ -228,14 +223,11 @@ export default class MoviePlayerComponent extends BaseComponent {
     this.pause();
     window.requestAnimationFrame(() => {
       this.pause();
-      this._suppressPlaybackEvents = false;
     });
   }
 
   playExternal(positionSeconds = null) {
-    this._suppressPlaybackEvents = true;
-    this._suppressPlaybackEventsUntil =
-      Date.now() + EXTERNAL_PLAYBACK_SYNC_SUPPRESS_MS;
+    this._suppressPlaybackEventsFor(["play"]);
     this._pendingAutoplay = true;
 
     if (positionSeconds !== null) {
@@ -245,9 +237,6 @@ export default class MoviePlayerComponent extends BaseComponent {
     }
 
     this.play();
-    window.setTimeout(() => {
-      this._suppressPlaybackEvents = false;
-    }, 0);
   }
 
   applyExternalPlaybackState({
@@ -273,10 +262,6 @@ export default class MoviePlayerComponent extends BaseComponent {
       return;
     }
 
-    this._suppressPlaybackEvents = true;
-    this._suppressPlaybackEventsUntil =
-      Date.now() + EXTERNAL_PLAYBACK_SYNC_SUPPRESS_MS;
-
     if (nextPositionSeconds !== null) {
       this._seekTo(nextPositionSeconds, { emitEvent: false });
     }
@@ -284,18 +269,16 @@ export default class MoviePlayerComponent extends BaseComponent {
     this._pendingAutoplay = normalizedStatus === "playing";
 
     if (normalizedStatus === "paused") {
+      this._suppressPlaybackEventsFor(["pause"]);
       this._pendingAutoplay = false;
       this.pause();
       window.requestAnimationFrame(() => {
         this.pause();
       });
     } else if (normalizedStatus === "playing") {
+      this._suppressPlaybackEventsFor(["play"]);
       this.play();
     }
-
-    window.setTimeout(() => {
-      this._suppressPlaybackEvents = false;
-    }, 0);
   }
 
   syncPlaybackState({
@@ -313,9 +296,6 @@ export default class MoviePlayerComponent extends BaseComponent {
         ? autoplay
         : normalizedStatus === "playing";
 
-    this._suppressPlaybackEvents = true;
-    this._suppressPlaybackEventsUntil =
-      Date.now() + EXTERNAL_PLAYBACK_SYNC_SUPPRESS_MS;
     this._pendingAutoplay = shouldPlay;
 
     console.debug("[watch-party][player] syncPlaybackState", {
@@ -337,8 +317,6 @@ export default class MoviePlayerComponent extends BaseComponent {
         autoplay: shouldPlay,
         restoreProgress: false,
         startAtSeconds: nextPositionSeconds || 0,
-      }).finally(() => {
-        this._suppressPlaybackEvents = false;
       });
       return;
     }
@@ -348,15 +326,13 @@ export default class MoviePlayerComponent extends BaseComponent {
     }
 
     if (shouldPlay) {
+      this._suppressPlaybackEventsFor(["play"]);
       this.play();
     } else if (normalizedStatus === "paused") {
+      this._suppressPlaybackEventsFor(["pause"]);
       this._pendingAutoplay = false;
       this.pause();
     }
-
-    window.setTimeout(() => {
-      this._suppressPlaybackEvents = false;
-    }, 0);
   }
 
   async loadEpisode(
@@ -409,6 +385,9 @@ export default class MoviePlayerComponent extends BaseComponent {
         activeEpisode?.description || this.context.movieDescription,
     };
 
+    this._ignorePauseEventsUntil =
+      Date.now() + EXTERNAL_PLAYBACK_SYNC_SUPPRESS_MS;
+    this._isChangingVideoSource = true;
     this.pause();
     this._throttledProgressSaveAt = 0;
     this._lastSavedSecond = -1;
@@ -431,6 +410,8 @@ export default class MoviePlayerComponent extends BaseComponent {
     const { ok, status, resp, error } = playbackResult;
 
     if (!ok) {
+      this._clearPlaybackEventSuppression();
+      this._isChangingVideoSource = false;
       this.context = {
         ...this.context,
         isLoading: false,
@@ -444,25 +425,11 @@ export default class MoviePlayerComponent extends BaseComponent {
     const playbackUrl = normalizeString(resp?.playback_url);
 
     if (!playbackUrl) {
+      this._clearPlaybackEventSuppression();
+      this._isChangingVideoSource = false;
       this.context = {
         ...this.context,
         isLoading: false,
-        isEmpty: true,
-        emptyText: UNAVAILABLE_MOVIE_TEXT,
-      };
-      this._clearVideoSource();
-      this.updateUI();
-      return;
-    }
-
-    const playbackAvailability = await checkPlaybackAvailability(playbackUrl);
-
-    if (playbackAvailability?.status === 404) {
-      this.context = {
-        ...this.context,
-        isLoading: false,
-        hasError: false,
-        errorText: "",
         isEmpty: true,
         emptyText: UNAVAILABLE_MOVIE_TEXT,
       };
@@ -479,7 +446,9 @@ export default class MoviePlayerComponent extends BaseComponent {
     const restoredProgressSeconds =
       restoreProgress && !activeEpisode?.isDirectPlayback
         ? await this.restoreProgress(normalizedEpisodeId, playbackPositionSeconds)
-        : Math.max(playbackPositionSeconds, resolvedStartAtSeconds);
+        : restoreProgress
+          ? Math.max(playbackPositionSeconds, resolvedStartAtSeconds)
+          : resolvedStartAtSeconds;
 
     let seekSeconds = restoredProgressSeconds;
     if (this._urlStartSeconds > 0) {
@@ -517,6 +486,8 @@ export default class MoviePlayerComponent extends BaseComponent {
       episodeTitle: normalizeString(resp?.title) || this.context.episodeTitle,
     };
 
+    this._ignorePauseEventsUntil =
+      Date.now() + EXTERNAL_PLAYBACK_SYNC_SUPPRESS_MS;
     this._setVideoSource(playbackUrl);
     this.updateUI();
     this._emitPlaybackEvent("episode_loaded", {
@@ -525,6 +496,8 @@ export default class MoviePlayerComponent extends BaseComponent {
       durationSeconds: Number(resp?.duration_seconds) || 0,
       positionSeconds: seekSeconds,
       title: normalizeString(resp?.title) || this.context.episodeTitle,
+    }, {
+      force: true,
     });
 
     if (this.context.isOpen && !this.context.isEmbedded) {
@@ -547,6 +520,7 @@ export default class MoviePlayerComponent extends BaseComponent {
 
     if (playPromise && typeof playPromise.catch === "function") {
       playPromise.catch(() => {
+        this._clearPlaybackEventSuppression("play");
         this.context = {
           ...this.context,
           isPlaying: false,
@@ -675,6 +649,13 @@ export default class MoviePlayerComponent extends BaseComponent {
   }
 
   async saveProgress({ force = false, resetOnEnded = false } = {}) {
+    if (this.context.disableProgressPersistence) {
+      return {
+        ok: true,
+        skipped: true,
+      };
+    }
+
     const isAuthenticated = authStore.getState().status === "authenticated";
     if (this.context.isAuthenticated !== isAuthenticated) {
       this.context = {
@@ -729,7 +710,11 @@ export default class MoviePlayerComponent extends BaseComponent {
   }
 
   async restoreProgress(episodeId, playbackPositionSeconds = 0) {
-    if (!this.context.isAuthenticated || this.context.isDirectPlayback) {
+    if (
+      this.context.disableProgressPersistence ||
+      !this.context.isAuthenticated ||
+      this.context.isDirectPlayback
+    ) {
       return Math.max(0, Math.floor(Number(playbackPositionSeconds) || 0));
     }
 
@@ -1508,6 +1493,7 @@ export default class MoviePlayerComponent extends BaseComponent {
     };
     this.updateUI();
 
+    this._isChangingVideoSource = false;
     if (this._pendingAutoplay) {
       this.play();
     }
@@ -1574,6 +1560,17 @@ export default class MoviePlayerComponent extends BaseComponent {
   };
 
   _onPause = () => {
+    if (this._isChangingVideoSource || Date.now() < this._ignorePauseEventsUntil) {
+      this.context = {
+        ...this.context,
+        isPlaying: false,
+        playButtonLabel: "Play",
+        areControlsVisible: true,
+      };
+      this.updateUI();
+      return;
+    }
+
     void this.saveProgress({ force: true });
     this.context = {
       ...this.context,
@@ -1630,6 +1627,7 @@ export default class MoviePlayerComponent extends BaseComponent {
   }
 
   _onVideoError = () => {
+    this._isChangingVideoSource = false;
     this.context = {
       ...this.context,
       isLoading: false,
@@ -1642,11 +1640,64 @@ export default class MoviePlayerComponent extends BaseComponent {
     this.updateUI();
   };
 
-  _emitPlaybackEvent(type, detail = {}) {
-    if (
-      this._suppressPlaybackEvents ||
-      Date.now() < this._suppressPlaybackEventsUntil
-    ) {
+  _suppressPlaybackEventsFor(
+    eventTypes,
+    durationMs = EXTERNAL_PLAYBACK_SYNC_SUPPRESS_MS,
+  ) {
+    const types = Array.isArray(eventTypes) ? eventTypes : [eventTypes];
+    types
+      .map((type) => normalizeString(type).toLowerCase())
+      .filter(Boolean)
+      .forEach((type) => this._suppressedPlaybackEventTypes.add(type));
+
+    if (!this._suppressedPlaybackEventTypes.size) {
+      return;
+    }
+
+    this._suppressPlaybackEvents = true;
+    this._suppressPlaybackEventsUntil = Date.now() + durationMs;
+  }
+
+  _clearPlaybackEventSuppression(eventType = "") {
+    const normalizedType = normalizeString(eventType).toLowerCase();
+
+    if (normalizedType) {
+      this._suppressedPlaybackEventTypes.delete(normalizedType);
+    } else {
+      this._suppressedPlaybackEventTypes.clear();
+    }
+
+    if (!this._suppressedPlaybackEventTypes.size || Date.now() >= this._suppressPlaybackEventsUntil) {
+      this._suppressPlaybackEvents = false;
+      this._suppressPlaybackEventsUntil = 0;
+    }
+  }
+
+  _isPlaybackEventSuppressed(eventType) {
+    if (!this._suppressPlaybackEvents) {
+      return false;
+    }
+
+    if (Date.now() >= this._suppressPlaybackEventsUntil) {
+      this._clearPlaybackEventSuppression();
+      return false;
+    }
+
+    const normalizedType = normalizeString(eventType).toLowerCase();
+    const suppressesType =
+      !this._suppressedPlaybackEventTypes.size ||
+      this._suppressedPlaybackEventTypes.has(normalizedType);
+
+    if (suppressesType) {
+      this._clearPlaybackEventSuppression(normalizedType);
+      return true;
+    }
+
+    return false;
+  }
+
+  _emitPlaybackEvent(type, detail = {}, { force = false } = {}) {
+    if (!force && this._isPlaybackEventSuppressed(type)) {
       return;
     }
 
@@ -1659,6 +1710,9 @@ export default class MoviePlayerComponent extends BaseComponent {
       activeEpisodeId: normalizeString(this.context.activeEpisodeId),
       movieId: normalizeString(this.context.movieId),
       isPlaying: Boolean(this.context.isPlaying),
+      hasWindowFocus: typeof document.hasFocus === "function" ? document.hasFocus() : true,
+      isDocumentHidden: Boolean(document.hidden),
+      visibilityState: normalizeString(document.visibilityState),
       ...detail,
     });
   }
@@ -1758,6 +1812,7 @@ function createInitialContext() {
     showFullscreenControl: true,
     showFavoriteControl: false,
     showChatControl: false,
+    disableProgressPersistence: false,
     fullscreenTargetSelector: "",
     onChatRequested: null,
     onPlaybackEvent: null,
@@ -2083,31 +2138,6 @@ function mapPlaybackError(status, errorText = "") {
   }
 
   return errorText || "Не удалось загрузить видео.";
-}
-
-async function checkPlaybackAvailability(playbackUrl) {
-  const normalizedPlaybackUrl = normalizeString(playbackUrl);
-
-  if (!normalizedPlaybackUrl) {
-    return {
-      ok: false,
-      status: 0,
-    };
-  }
-
-  try {
-    const response = await fetch(normalizedPlaybackUrl, {
-      method: "HEAD",
-      credentials: "include",
-    });
-
-    return {
-      ok: response.ok,
-      status: response.status,
-    };
-  } catch {
-    return null;
-  }
 }
 
 function normalizeString(value) {
