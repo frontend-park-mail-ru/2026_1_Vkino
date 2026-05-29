@@ -11,7 +11,7 @@ const CONTROLS_HIDE_DELAY_MS = 2200;
 const SEEK_STEP_SECONDS = 10;
 const PROGRESS_SAVE_THROTTLE_MS = 10_000;
 const DEFAULT_VOLUME = 1;
-const EXTERNAL_PLAYBACK_SYNC_SUPPRESS_MS = 600;
+const EXTERNAL_PLAYBACK_SYNC_SUPPRESS_MS = 2500;
 const EXTERNAL_SEEK_EPSILON_SECONDS = 5;
 const UNAVAILABLE_MOVIE_TEXT = "Пока данный фильм недоступен для просмотра :(";
 
@@ -1713,12 +1713,7 @@ export default class MoviePlayerComponent extends BaseComponent {
       !this._suppressedPlaybackEventTypes.size ||
       this._suppressedPlaybackEventTypes.has(normalizedType);
 
-    if (suppressesType) {
-      this._clearPlaybackEventSuppression(normalizedType);
-      return true;
-    }
-
-    return false;
+    return suppressesType;
   }
 
   _emitPlaybackEvent(type, detail = {}, { force = false } = {}) {
