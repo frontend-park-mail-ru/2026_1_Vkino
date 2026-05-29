@@ -1142,7 +1142,7 @@ export default class WatchPartyPage extends BasePage {
         this._roomData.messages,
         {
           incrementLocalCount: false,
-          localCoinsAmount: coinsAmount,
+          localCoinsAmount: 0,
         },
       ),
       normalizedOptionId,
@@ -1317,7 +1317,7 @@ export default class WatchPartyPage extends BasePage {
     });
   }
 
-  _handleFeedMonkey() {
+  async _handleFeedMonkey() {
     if (this._mode !== "room") {
       return;
     }
@@ -1326,6 +1326,20 @@ export default class WatchPartyPage extends BasePage {
 
     if (widget instanceof HTMLElement && widget.classList.contains("is-feeding")) {
       return;
+    }
+
+    const result = await userService.feedMonkey();
+
+    if (!result.ok) {
+      this._setRoomStatus(result.error || "Не удалось покормить обезьяну.", "error");
+      return;
+    }
+
+    const nextCoinsBalance =
+      result.resp?.vkino_coins_balance ?? result.resp?.vkinoCoinsBalance;
+
+    if (nextCoinsBalance !== null && nextCoinsBalance !== undefined) {
+      authStore.updateUserCoinsBalance(nextCoinsBalance);
     }
 
     this._startFeedMonkeyAnimation();
@@ -2435,7 +2449,9 @@ export default class WatchPartyPage extends BasePage {
     const pollWithVoteCounts = selectedOptionId
       ? applyPollVoteCount(pollItem, selectedOptionId, this._roomData.messages, {
           incrementLocalCount: !voteBelongsToViewer,
-          localCoinsAmount: payload?.vote?.coins_amount ?? payload?.vote?.coinsAmount,
+          localCoinsAmount: voteBelongsToViewer
+            ? 0
+            : payload?.vote?.coins_amount ?? payload?.vote?.coinsAmount,
         })
       : pollItem;
     const nextPoll = voteBelongsToViewer

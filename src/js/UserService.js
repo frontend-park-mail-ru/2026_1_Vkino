@@ -239,6 +239,15 @@ export class UserService {
   }
 
   /**
+   * Списывает 1 VKino coin за кормление обезьяны.
+   * Backend не ожидает body/query/path параметры.
+   * @returns {Promise<{ok: boolean, resp: {coins_spent?: number, vkino_coins_balance?: number}}>}
+   */
+  async feedMonkey() {
+    return this.api.post("/coins/feed-monkey");
+  }
+
+  /**
    * Создает или обновляет отзыв пользователя к фильму.
    * @async
    * @param {string|number} movieId ID фильма.
