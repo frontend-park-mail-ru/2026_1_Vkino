@@ -15,10 +15,14 @@ const DEFAULT_PAGE_SIZE = 12;
 const SEARCH_MIN_QUERY_LENGTH = 2;
 const GENRE_IMAGE_BY_SLUG = {
   adventure: "/img/genres/adventure.png",
+  animation: "/img/genres/animation.png",
   bio: "/img/genres/bio.png",
+  comedy: "/img/genres/comedy.png",
   crime: "/img/genres/crime.png",
   detective: "/img/genres/detective.png",
   drama: "/img/genres/drama.png",
+  family: "/img/genres/family.png",
+  fantasy: "/img/genres/fantasy.png",
   fiction: "/img/genres/fiction.png",
   sport: "/img/genres/sport.png",
   thriller: "/img/genres/thriller.png",
@@ -26,10 +30,18 @@ const GENRE_IMAGE_BY_SLUG = {
 };
 const GENRE_SLUG_BY_TITLE = {
   приключения: "adventure",
+  анимация: "animation",
+  мультфильм: "animation",
+  мультфильмы: "animation",
   биография: "bio",
+  комедия: "comedy",
   криминал: "crime",
   детектив: "detective",
   драма: "drama",
+  семейный: "family",
+  семейное: "family",
+  семья: "family",
+  фэнтези: "fantasy",
   фантастика: "fiction",
   спорт: "sport",
   триллер: "thriller",
