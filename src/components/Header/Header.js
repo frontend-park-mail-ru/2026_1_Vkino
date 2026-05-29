@@ -48,6 +48,7 @@ export default class HeaderComponent extends BaseComponent {
     this._searchRequestToken = 0;
     this._pendingSearchQuery = "";
     this._onDocumentClickBound = this._onDocumentClick.bind(this);
+    this._onDocumentKeyDownBound = this._onDocumentKeyDown.bind(this);
     this._onWindowScrollBound = this._onWindowScroll.bind(this);
   }
 
@@ -96,6 +97,7 @@ export default class HeaderComponent extends BaseComponent {
     this._bindSubmitForm('[data-menu="search"]', this._onSearchSubmit);
     this._bindInput('[data-role="header-search-input"]', this._onSearchInput);
     document.addEventListener("click", this._onDocumentClickBound);
+    document.addEventListener("keydown", this._onDocumentKeyDownBound);
     window.addEventListener("scroll", this._onWindowScrollBound, {
       passive: true,
     });
@@ -139,6 +141,7 @@ export default class HeaderComponent extends BaseComponent {
     this._unbindSubmitForm('[data-menu="search"]', this._onSearchSubmit);
     this._unbindInput('[data-role="header-search-input"]', this._onSearchInput);
     document.removeEventListener("click", this._onDocumentClickBound);
+    document.removeEventListener("keydown", this._onDocumentKeyDownBound);
     window.removeEventListener("scroll", this._onWindowScrollBound);
     window.clearTimeout(this._searchDebounceTimer);
   }
@@ -309,7 +312,7 @@ export default class HeaderComponent extends BaseComponent {
   };
 
   _onDocumentClick(e) {
-    if (!this.context.isAnyMenuOpen) {
+    if (!this.context.isAnyMenuOpen && !this.context.isSearchOpen) {
       return;
     }
 
@@ -317,6 +320,15 @@ export default class HeaderComponent extends BaseComponent {
       return;
     }
 
+    this.closeAllMenus();
+  }
+
+  _onDocumentKeyDown(event) {
+    if (event.code !== "Escape" || !this.context.isSearchOpen) {
+      return;
+    }
+
+    event.preventDefault();
     this.closeAllMenus();
   }
 
