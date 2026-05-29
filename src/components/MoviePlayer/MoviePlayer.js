@@ -12,6 +12,7 @@ const SEEK_STEP_SECONDS = 10;
 const PROGRESS_SAVE_THROTTLE_MS = 10_000;
 const DEFAULT_VOLUME = 1;
 const EXTERNAL_PLAYBACK_SYNC_SUPPRESS_MS = 600;
+const EXTERNAL_SEEK_EPSILON_SECONDS = 5;
 const UNAVAILABLE_MOVIE_TEXT = "Пока данный фильм недоступен для просмотра :(";
 
 export default class MoviePlayerComponent extends BaseComponent {
@@ -207,6 +208,7 @@ export default class MoviePlayerComponent extends BaseComponent {
   seekToExternal(positionSeconds = 0) {
     this._seekTo(Math.max(0, Number(positionSeconds) || 0), {
       emitEvent: false,
+      skipIfNearCurrent: true,
     });
   }
 
@@ -217,6 +219,7 @@ export default class MoviePlayerComponent extends BaseComponent {
     if (positionSeconds !== null) {
       this._seekTo(Math.max(0, Number(positionSeconds) || 0), {
         emitEvent: false,
+        skipIfNearCurrent: true,
       });
     }
 
@@ -233,6 +236,7 @@ export default class MoviePlayerComponent extends BaseComponent {
     if (positionSeconds !== null) {
       this._seekTo(Math.max(0, Number(positionSeconds) || 0), {
         emitEvent: false,
+        skipIfNearCurrent: true,
       });
     }
 
@@ -263,7 +267,10 @@ export default class MoviePlayerComponent extends BaseComponent {
     }
 
     if (nextPositionSeconds !== null) {
-      this._seekTo(nextPositionSeconds, { emitEvent: false });
+      this._seekTo(nextPositionSeconds, {
+        emitEvent: false,
+        skipIfNearCurrent: true,
+      });
     }
 
     this._pendingAutoplay = normalizedStatus === "playing";
@@ -322,7 +329,10 @@ export default class MoviePlayerComponent extends BaseComponent {
     }
 
     if (nextPositionSeconds !== null) {
-      this._seekTo(nextPositionSeconds, { emitEvent: false });
+      this._seekTo(nextPositionSeconds, {
+        emitEvent: false,
+        skipIfNearCurrent: true,
+      });
     }
 
     if (shouldPlay) {
@@ -1230,7 +1240,7 @@ export default class MoviePlayerComponent extends BaseComponent {
     return episodes[0];
   }
 
-  _seekTo(nextTime, { emitEvent = true } = {}) {
+  _seekTo(nextTime, { emitEvent = true, skipIfNearCurrent = false } = {}) {
     if (!this.videoEl) {
       return;
     }
@@ -1241,6 +1251,21 @@ export default class MoviePlayerComponent extends BaseComponent {
       Math.max(Number(nextTime) || 0, 0),
       duration || Number.MAX_SAFE_INTEGER,
     );
+    const currentTime = Number(this.videoEl.currentTime) || 0;
+
+    if (
+      skipIfNearCurrent &&
+      Math.abs(currentTime - boundedTime) < EXTERNAL_SEEK_EPSILON_SECONDS
+    ) {
+      this.context = {
+        ...this.context,
+        currentTime,
+        currentTimeLabel: formatTime(currentTime),
+        progressPercent: calculateProgressPercent(currentTime, duration),
+      };
+      this.updateUI();
+      return;
+    }
 
     this.videoEl.currentTime = boundedTime;
     this.context = {
