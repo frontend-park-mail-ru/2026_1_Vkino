@@ -121,7 +121,7 @@
       <nav class="vk-header__nav" aria-label="Основная навигация">
         <a
           class="{{#if isWatchPartyActive}}is-active{{/if}}"
-          href="/watch-party"
+          href="{{watchPartyHref}}"
           router-link
         >
           Совместный просмотр
@@ -212,7 +212,7 @@
   <nav class="vk-header__drawer-nav" aria-label="Категории">
     <a
       class="{{#if isWatchPartyActive}}is-active{{/if}}"
-      href="/watch-party"
+      href="{{watchPartyHref}}"
       router-link
       data-action="close-all-menus"
     >

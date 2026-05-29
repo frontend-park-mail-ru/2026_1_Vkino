@@ -116,6 +116,10 @@ export default class WatchPartyPage extends BasePage {
   }
 
   init() {
+    if (this._redirectGuestFromProtectedWatchParty()) {
+      return this;
+    }
+
     super.init();
 
     if (!this._contextLoaded) {
@@ -123,6 +127,15 @@ export default class WatchPartyPage extends BasePage {
     }
 
     return this;
+  }
+
+  _redirectGuestFromProtectedWatchParty() {
+    if (authStore.getState().status === "authenticated") {
+      return false;
+    }
+
+    router.go(buildSignUpPath());
+    return true;
   }
 
   async loadContext({ showLoading = false } = {}) {
@@ -5240,6 +5253,14 @@ function buildRoomSubscriptionUrl(roomId) {
   } catch {
     return "";
   }
+}
+
+function buildSignUpPath() {
+  const returnTo = encodeURIComponent(
+    `${window.location.pathname}${window.location.search}`,
+  );
+
+  return `/sign-up?return_to=${returnTo}`;
 }
 
 function isJwtExpiringSoon(token, thresholdSeconds = 60) {

@@ -362,6 +362,7 @@ export default class HeaderComponent extends BaseComponent {
       state.user?.role,
     );
     const currentPath = window.location.pathname;
+    const signUpHref = buildSignUpPath();
     const rawBalance = state.user?.coinsBalance;
     const nextContext = {
       ...currentContext,
@@ -371,7 +372,8 @@ export default class HeaderComponent extends BaseComponent {
       coinsBalance: rawBalance ?? 0,
       showCoinsBalance: isAuthorized && rawBalance != null,
       coinsIconSrc: VKINO_COIN_ICON_SRC,
-      favoritesHref: isAuthorized ? "/profile" : "/sign-in",
+      favoritesHref: isAuthorized ? "/profile" : signUpHref,
+      watchPartyHref: isAuthorized ? "/watch-party" : signUpHref,
       supportTicketsHref: "/support",
       supportTicketsLabel: canManageSupportTickets
         ? "Панель поддержки"
@@ -516,6 +518,14 @@ function shouldShowSearchPanel(context = {}) {
     context.isSearchOpen &&
       (context.isSearchLoading || normalizeText(context.searchQuery)),
   );
+}
+
+function buildSignUpPath() {
+  const returnTo = encodeURIComponent(
+    `${window.location.pathname}${window.location.search}`,
+  );
+
+  return `/sign-up?return_to=${returnTo}`;
 }
 
 function buildSearchContextPatch(

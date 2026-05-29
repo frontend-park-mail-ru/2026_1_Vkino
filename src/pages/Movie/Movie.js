@@ -452,7 +452,7 @@ export default class MoviePage extends BasePage {
       const returnTo = encodeURIComponent(
         window.location.pathname + window.location.search,
       );
-      router.go(`/sign-in?return_to=${returnTo}`);
+      router.go(`/sign-up?return_to=${returnTo}`);
       return;
     }
 
@@ -496,7 +496,7 @@ export default class MoviePage extends BasePage {
       const returnTo = encodeURIComponent(
         window.location.pathname + window.location.search,
       );
-      router.go(`/sign-in?return_to=${returnTo}`);
+      router.go(`/sign-up?return_to=${returnTo}`);
       return;
     }
 
