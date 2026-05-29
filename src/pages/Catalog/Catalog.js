@@ -6,6 +6,8 @@ import HeaderComponent from "@/components/Header/Header.js";
 import MoviePosterComponent from "@/components/MoviePoster/MoviePoster.js";
 import PaginationComponent from "@/components/Pagination/Pagination.js";
 import { movieService } from "@/js/MovieService.js";
+import { router } from "@/router/index.js";
+import { authStore } from "@/store/authStore.js";
 import { getCacheFallbackNotice } from "@/utils/apiMeta.js";
 import { MEDIA_BUCKETS, resolveMediaUrl } from "@/utils/media.js";
 
@@ -123,6 +125,10 @@ export default class CatalogPage extends BasePage {
   }
 
   init() {
+    if (this._redirectGuestFromProtectedCatalog()) {
+      return this;
+    }
+
     super.init();
     applyCatalogDocumentTitle(this.context.catalogKey, this.context.title);
 
@@ -135,6 +141,21 @@ export default class CatalogPage extends BasePage {
 
   beforeDestroy() {
     this._isDestroyed = true;
+  }
+
+  _redirectGuestFromProtectedCatalog() {
+    const catalogKey = normalizeString(this.context.catalogKey).toLowerCase();
+
+    if (catalogKey !== "favorites") {
+      return false;
+    }
+
+    if (authStore.getState().status === "authenticated") {
+      return false;
+    }
+
+    router.go(buildSignUpPath());
+    return true;
   }
 
   async loadContext() {
@@ -540,6 +561,14 @@ function resolveCatalogConfig(catalogKey = "") {
   const normalizedKey = normalizeString(catalogKey).toLowerCase();
 
   return CATALOG_CONFIGS[normalizedKey] || CATALOG_CONFIGS.movies;
+}
+
+function buildSignUpPath() {
+  const returnTo = encodeURIComponent(
+    `${window.location.pathname}${window.location.search}`,
+  );
+
+  return `/sign-up?return_to=${returnTo}`;
 }
 
 function resolveRequestedSelectionTitles(context = {}) {

@@ -116,6 +116,10 @@ export default class WatchPartyPage extends BasePage {
   }
 
   init() {
+    if (this._redirectGuestFromProtectedWatchParty()) {
+      return this;
+    }
+
     super.init();
 
     if (!this._contextLoaded) {
@@ -123,6 +127,15 @@ export default class WatchPartyPage extends BasePage {
     }
 
     return this;
+  }
+
+  _redirectGuestFromProtectedWatchParty() {
+    if (authStore.getState().status === "authenticated") {
+      return false;
+    }
+
+    router.go(buildSignUpPath());
+    return true;
   }
 
   async loadContext({ showLoading = false } = {}) {
@@ -1142,7 +1155,7 @@ export default class WatchPartyPage extends BasePage {
         this._roomData.messages,
         {
           incrementLocalCount: false,
-          localCoinsAmount: coinsAmount,
+          localCoinsAmount: 0,
         },
       ),
       normalizedOptionId,
@@ -1317,7 +1330,7 @@ export default class WatchPartyPage extends BasePage {
     });
   }
 
-  _handleFeedMonkey() {
+  async _handleFeedMonkey() {
     if (this._mode !== "room") {
       return;
     }
@@ -1326,6 +1339,20 @@ export default class WatchPartyPage extends BasePage {
 
     if (widget instanceof HTMLElement && widget.classList.contains("is-feeding")) {
       return;
+    }
+
+    const result = await userService.feedMonkey();
+
+    if (!result.ok) {
+      this._setRoomStatus(result.error || "Не удалось покормить обезьяну.", "error");
+      return;
+    }
+
+    const nextCoinsBalance =
+      result.resp?.vkino_coins_balance ?? result.resp?.vkinoCoinsBalance;
+
+    if (nextCoinsBalance !== null && nextCoinsBalance !== undefined) {
+      authStore.updateUserCoinsBalance(nextCoinsBalance);
     }
 
     this._startFeedMonkeyAnimation();
@@ -2435,7 +2462,9 @@ export default class WatchPartyPage extends BasePage {
     const pollWithVoteCounts = selectedOptionId
       ? applyPollVoteCount(pollItem, selectedOptionId, this._roomData.messages, {
           incrementLocalCount: !voteBelongsToViewer,
-          localCoinsAmount: payload?.vote?.coins_amount ?? payload?.vote?.coinsAmount,
+          localCoinsAmount: voteBelongsToViewer
+            ? 0
+            : payload?.vote?.coins_amount ?? payload?.vote?.coinsAmount,
         })
       : pollItem;
     const nextPoll = voteBelongsToViewer
@@ -2935,21 +2964,22 @@ function buildRoomPlayerMovieData(roomData = {}) {
 
 function mapOverviewToPageData(overview, fallbackData) {
   const normalizedOverview = overview && typeof overview === "object" && !Array.isArray(overview) ? overview : {};
-  const featuredRoomItems = readArray(normalizedOverview, [
-    "featuredRooms",
-    "featured_rooms",
-    "onlineRooms",
-    "online_rooms",
-    "active_rooms",
-    "rooms",
-  ]);
+  const activeRoomItems =
+    readArray(normalizedOverview, ["activeRooms", "active_rooms"]) ||
+    readArray(normalizedOverview, [
+      "featuredRooms",
+      "featured_rooms",
+      "onlineRooms",
+      "online_rooms",
+      "rooms",
+    ]);
   const heroPosterItems = readArray(normalizedOverview, ["heroPosters", "hero_posters", "posters"]);
 
   return {
     heroPosters: mapHeroPosters(
       heroPosterItems,
-      Array.isArray(featuredRoomItems) && featuredRoomItems.length
-        ? mapHeroPostersFromRooms(featuredRoomItems, fallbackData.heroPosters)
+      Array.isArray(activeRoomItems) && activeRoomItems.length
+        ? mapHeroPostersFromRooms(activeRoomItems, fallbackData.heroPosters)
         : fallbackData.heroPosters,
     ),
     visibilityOptions: mapVisibilityOptions(
@@ -2961,7 +2991,7 @@ function mapOverviewToPageData(overview, fallbackData) {
       ]),
       fallbackData.visibilityOptions,
     ),
-    featuredRooms: mapFeaturedRooms(featuredRoomItems, fallbackData.featuredRooms),
+    featuredRooms: mapFeaturedRooms(activeRoomItems, fallbackData.featuredRooms),
     myRooms: mapMyRooms(readArray(normalizedOverview, ["myRooms", "my_rooms", "ownedRooms", "owned_rooms"])),
   };
 }
@@ -3988,13 +4018,13 @@ function mapVisibilityOptions(items, fallbackItems) {
 
 function mapFeaturedRooms(items, fallbackItems) {
   if (!Array.isArray(items) || !items.length) {
-    return fallbackItems.slice(0, 2).map((item, index) => ({
+    return fallbackItems.map((item, index) => ({
       imageUrl: index % 2 === 0 ? "/img/cards/interstellar.webp" : "/img/joker.jpeg",
       ...item,
     }));
   }
 
-  return items.slice(0, 2).map((item, index) => {
+  return items.map((item, index) => {
     const fallback = fallbackItems[index % fallbackItems.length] || fallbackItems[0];
     const membersCount = normalizeCount(
       item?.membersCount ??
@@ -5224,6 +5254,14 @@ function buildRoomSubscriptionUrl(roomId) {
   } catch {
     return "";
   }
+}
+
+function buildSignUpPath() {
+  const returnTo = encodeURIComponent(
+    `${window.location.pathname}${window.location.search}`,
+  );
+
+  return `/sign-up?return_to=${returnTo}`;
 }
 
 function isJwtExpiringSoon(token, thresholdSeconds = 60) {

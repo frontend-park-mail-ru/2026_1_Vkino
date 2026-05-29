@@ -1322,7 +1322,7 @@ export default class MoviePlayerComponent extends BaseComponent {
       const returnTo = encodeURIComponent(
         window.location.pathname + window.location.search,
       );
-      router.go(`/sign-in?return_to=${returnTo}`);
+      router.go(`/sign-up?return_to=${returnTo}`);
       return;
     }
 

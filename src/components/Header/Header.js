@@ -90,6 +90,10 @@ export default class HeaderComponent extends BaseComponent {
       '[data-action="scroll-to-section"]',
       this._onScrollToSectionClick,
     );
+    this._bindNodeList(
+      '[data-action="scroll-profile-favorites"]',
+      this._onScrollProfileFavoritesClick,
+    );
     this._bindSubmitForm('[data-menu="search"]', this._onSearchSubmit);
     this._bindInput('[data-role="header-search-input"]', this._onSearchInput);
     document.addEventListener("click", this._onDocumentClickBound);
@@ -129,6 +133,10 @@ export default class HeaderComponent extends BaseComponent {
     this._unbindNodeList(
       '[data-action="scroll-to-section"]',
       this._onScrollToSectionClick,
+    );
+    this._unbindNodeList(
+      '[data-action="scroll-profile-favorites"]',
+      this._onScrollProfileFavoritesClick,
     );
     this._unbindSubmitForm('[data-menu="search"]', this._onSearchSubmit);
     this._unbindInput('[data-role="header-search-input"]', this._onSearchInput);
@@ -171,6 +179,29 @@ export default class HeaderComponent extends BaseComponent {
 
   _onCloseAllMenusClick = () => {
     this.closeAllMenus();
+  };
+
+  _onScrollProfileFavoritesClick = (e) => {
+    if (window.location.pathname !== "/profile") {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    this.closeAllMenus();
+
+    const favoritesSection = document.querySelector(
+      "#profile-favorites-section",
+    );
+
+    if (!(favoritesSection instanceof HTMLElement)) {
+      return;
+    }
+
+    favoritesSection.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   };
 
   _onScrollToSectionClick = (e) => {
@@ -374,6 +405,7 @@ export default class HeaderComponent extends BaseComponent {
       state.user?.role,
     );
     const currentPath = window.location.pathname;
+    const signUpHref = buildSignUpPath();
     const rawBalance = state.user?.coinsBalance;
     const nextContext = {
       ...currentContext,
@@ -383,7 +415,8 @@ export default class HeaderComponent extends BaseComponent {
       coinsBalance: rawBalance ?? 0,
       showCoinsBalance: isAuthorized && rawBalance != null,
       coinsIconSrc: VKINO_COIN_ICON_SRC,
-      favoritesHref: isAuthorized ? "/profile" : "/sign-in",
+      favoritesHref: isAuthorized ? "/profile" : signUpHref,
+      watchPartyHref: isAuthorized ? "/watch-party" : signUpHref,
       supportTicketsHref: "/support",
       supportTicketsLabel: canManageSupportTickets
         ? "Панель поддержки"
@@ -528,6 +561,14 @@ function shouldShowSearchPanel(context = {}) {
     context.isSearchOpen &&
       (context.isSearchLoading || normalizeText(context.searchQuery)),
   );
+}
+
+function buildSignUpPath() {
+  const returnTo = encodeURIComponent(
+    `${window.location.pathname}${window.location.search}`,
+  );
+
+  return `/sign-up?return_to=${returnTo}`;
 }
 
 function buildSearchContextPatch(

@@ -120,12 +120,12 @@
       <nav class="vk-header__nav" aria-label="Основная навигация">
         <a
           class="{{#if isWatchPartyActive}}is-active{{/if}}"
-          href="/watch-party"
+          href="{{watchPartyHref}}"
           router-link
         >
           Совместный просмотр
         </a>
-        <a href="{{favoritesHref}}" router-link>Избранное</a>
+        <a href="{{favoritesHref}}" router-link data-action="scroll-profile-favorites">Избранное</a>
         <button
           class="vk-header__search"
           type="button"
@@ -211,7 +211,7 @@
   <nav class="vk-header__drawer-nav" aria-label="Категории">
     <a
       class="{{#if isWatchPartyActive}}is-active{{/if}}"
-      href="/watch-party"
+      href="{{watchPartyHref}}"
       router-link
       data-action="close-all-menus"
     >
