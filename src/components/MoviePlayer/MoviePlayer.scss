@@ -443,22 +443,6 @@
   display: none;
 }
 
-.movie-player__shell:fullscreen .movie-player__sidebar {
-  display: none;
-}
-
-.movie-player__shell:fullscreen .movie-player__content--with-sidebar {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.movie-player.is-fullscreen-fallback .movie-player__sidebar {
-  display: none;
-}
-
-.movie-player.is-fullscreen-fallback .movie-player__content--with-sidebar {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 .movie-player__timeline {
   width: 100%;
 }
