@@ -5,7 +5,7 @@ export const VKINO_COIN_ICON_SRC = `data:image/svg+xml;charset=utf-8,${encodeURI
 )}`;
 
 export const VKINO_COINS_INFO_TEXT =
-  "Начисляются ежедневно, количество начисляемых Vkino coins зависит от уровня подписки. Можно тратить на ставки в комнатах и оплату подписки. Vkino coins можно купить за рубли.";
+  "VKino coins — внутренняя валюта платформы. Они начисляются ежедневно, количество начисляемых VKino coins зависит от уровня подписки. Можно тратить на ставки в комнатах и оплату подписки. VKino coins можно купить за рубли.";
 
 const OPERATION_TYPE_META = Object.freeze({
   daily: { label: "Ежедневное начисление", isPositive: true },
