@@ -4221,6 +4221,7 @@ function mapFeaturedRooms(items, fallbackItems) {
 
   return items.map((item, index) => {
     const fallback = fallbackItems[index % fallbackItems.length] || fallbackItems[0];
+    const roomId = normalizeText(item?.id || item?.roomId || item?.room_id) || normalizeText(fallback?.id) || String(index + 1);
     const membersCount = normalizeCount(
       item?.membersCount ??
         item?.members_count ??
@@ -4230,9 +4231,22 @@ function mapFeaturedRooms(items, fallbackItems) {
         item?.viewers_count,
     );
     const resolvedMembersCount = membersCount || fallback?.membersCount || 0;
+    const roomHref =
+      resolveInviteLink(
+        item?.roomHref ||
+          item?.roomLink ||
+          item?.room_link ||
+          item?.joinUrl ||
+          item?.join_url ||
+          item?.shareUrl ||
+          item?.share_url ||
+          item?.inviteLink ||
+          item?.invite_link,
+      ) || "";
+    const isPublicRoom = normalizeText(item?.visibility || item?.visibility_label || item?.visibilityLabel).toLowerCase() === "public";
 
     return {
-      id: normalizeText(item?.id || item?.roomId || item?.room_id) || normalizeText(fallback?.id) || String(index + 1),
+      id: roomId,
       title: normalizeText(item?.title || item?.name) || fallback?.title || "Комната",
       hostName:
         normalizeText(item?.hostName || item?.host_name || item?.ownerName || item?.owner_name) ||
@@ -4258,18 +4272,8 @@ function mapFeaturedRooms(items, fallbackItems) {
         fallback?.progressLabel ||
         "0:00",
       isLive: resolveLiveLabel(item?.live ?? item?.status ?? item?.playback?.status, fallback?.isLive ? "LIVE" : ""),
-      roomHref:
-        resolveInviteLink(
-          item?.roomHref ||
-            item?.roomLink ||
-            item?.room_link ||
-            item?.joinUrl ||
-            item?.join_url ||
-            item?.shareUrl ||
-            item?.share_url ||
-            item?.inviteLink ||
-            item?.invite_link,
-        ) || "",
+      roomHref,
+      directRoomHref: !roomHref && isPublicRoom ? buildWatchPartyRoomPath(roomId) : "",
       imageUrl: resolveImageUrl(item, fallback?.imageUrl || "/img/cards/interstellar.webp"),
     };
   });

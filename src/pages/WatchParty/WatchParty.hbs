@@ -835,13 +835,25 @@
                           Сссылка
                         </button>
                       {{else}}
-                        <button
-                          class="watch-party__button watch-party__button--ghost"
-                          type="button"
-                          disabled
-                        >
-                          Нужна ссылка
-                        </button>
+                        {{#if this.directRoomHref}}
+                          <button
+                            class="watch-party__button watch-party__button--accent"
+                            type="button"
+                            data-action="join-featured-room"
+                            data-room-link="{{this.directRoomHref}}"
+                            data-room-id="{{this.id}}"
+                          >
+                            Войти
+                          </button>
+                        {{else}}
+                          <button
+                            class="watch-party__button watch-party__button--ghost"
+                            type="button"
+                            disabled
+                          >
+                            Нужна ссылка
+                          </button>
+                        {{/if}}
                       {{/if}}
                     </div>
                   </div>
