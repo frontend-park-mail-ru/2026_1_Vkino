@@ -35,11 +35,8 @@
             <div class="watch-room-shell__layout">
               <div class="watch-room-shell__main">
                 <section class="watch-room-player-slot">
-                    <section
-                      class="watch-room-selection"
-                      data-role="room-movie-selector"
-                      {{#unless isRoomMovieSelectorVisible}}hidden{{/unless}}
-                    >
+                  {{#if isRoomMovieSelectorVisible}}
+                    <section class="watch-room-selection">
                       <div class="watch-room-selection__header">
                         <div>
                           <div class="watch-room-selection__kicker">{{roomMovieSelectorKicker}}</div>
@@ -114,11 +111,9 @@
                         </div>
                       {{/if}}
                     </section>
-                    <div
-                      id="watch-party-room-player"
-                      data-role="room-movie-player"
-                      {{#if isRoomMovieSelectorVisible}}hidden{{/if}}
-                    ></div>
+                  {{else}}
+                    <div id="watch-party-room-player"></div>
+                  {{/if}}
                 </section>
 
                 <div class="watch-room-topbar">
@@ -271,11 +266,8 @@
               ></section>
             </aside>
 
-              <div
-                class="watch-room-feed"
-                data-role="room-feed-monkey-modal"
-                {{#unless isFeedMonkeyModalOpen}}hidden{{/unless}}
-              >
+            {{#if isFeedMonkeyModalOpen}}
+              <div class="watch-room-feed">
                 <button
                   class="watch-room-feed__backdrop"
                   type="button"
@@ -453,13 +445,11 @@
                   </div>
                 </section>
               </div>
+            {{/if}}
 
             {{#if canInviteFriends}}
-              <div
-                class="watch-room-invite"
-                data-role="room-invite-modal"
-                {{#unless isInviteModalOpen}}hidden{{/unless}}
-              >
+              {{#if isInviteModalOpen}}
+              <div class="watch-room-invite">
                 <button
                   class="watch-room-invite__backdrop"
                   type="button"
@@ -568,6 +558,7 @@
                   </div>
                 </section>
               </div>
+              {{/if}}
             {{/if}}
           </section>
         {{/if}}
