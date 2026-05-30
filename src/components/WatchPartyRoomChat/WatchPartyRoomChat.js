@@ -38,42 +38,6 @@ export default class WatchPartyRoomChatComponent extends BaseComponent {
     return super.refresh(this._buildContext(newContext));
   }
 
-  appendOrUpdateFeedItem(messageItem) {
-    if (!messageItem || !this.el) {
-      return false;
-    }
-
-    if (messageItem.isBet) {
-      return false;
-    }
-
-    this._captureDraft();
-
-    const messagesContainer = this.el.querySelector(".watch-room-chat__messages");
-
-    if (!messagesContainer) {
-      return false;
-    }
-
-    const feedNode = createWatchPartyChatFeedNode(messageItem);
-
-    if (!feedNode) {
-      return false;
-    }
-
-    const feedItemId = getWatchPartyChatFeedItemId(messageItem);
-    const existingNode = messagesContainer.querySelector(`[data-feed-item-id="${feedItemId}"]`);
-
-    if (existingNode) {
-      existingNode.replaceWith(feedNode);
-    } else {
-      messagesContainer.appendChild(feedNode);
-    }
-
-    this._scrollMessagesToBottom();
-    return true;
-  }
-
   addBetOption() {
     this._captureDraft();
 
@@ -183,68 +147,6 @@ export default class WatchPartyRoomChatComponent extends BaseComponent {
 
     messages.scrollTop = messages.scrollHeight;
   }
-}
-
-function getWatchPartyChatFeedItemId(messageItem = {}) {
-  return normalizeText(messageItem.id) || "";
-}
-
-function createWatchPartyChatFeedNode(messageItem = {}) {
-  const feedItemId = getWatchPartyChatFeedItemId(messageItem);
-
-  if (!feedItemId) {
-    return null;
-  }
-
-  const messageNode = document.createElement("div");
-  messageNode.className = "watch-room-chat__message";
-  messageNode.dataset.feedItemId = feedItemId;
-
-  const avatar = document.createElement("div");
-  avatar.className = "watch-room-chat__avatar";
-  avatar.style.setProperty("--watch-party-avatar-tint", messageItem.authorTint || "#5b6cff");
-  avatar.textContent = messageItem.authorInitial || "";
-
-  const body = document.createElement("div");
-  body.className = "watch-room-chat__body";
-
-  const line = document.createElement("div");
-  line.className = "watch-room-chat__line";
-
-  const authorName = document.createElement("span");
-  authorName.className = "watch-room-chat__name";
-  authorName.textContent = messageItem.authorName || "Участник";
-
-  const timeLabel = document.createElement("span");
-  timeLabel.className = "watch-room-chat__time";
-  timeLabel.textContent = messageItem.timeLabel || "";
-
-  line.appendChild(authorName);
-  line.appendChild(timeLabel);
-  body.appendChild(line);
-
-  if (!messageItem.isReactionOnly && messageItem.text) {
-    const text = document.createElement("div");
-    text.className = "watch-room-chat__text";
-    text.textContent = messageItem.text;
-    body.appendChild(text);
-  }
-
-  if (messageItem.reactionText) {
-    const reaction = document.createElement("div");
-    reaction.className = "watch-room-chat__reaction";
-    reaction.textContent = messageItem.reactionText;
-    body.appendChild(reaction);
-  }
-
-  messageNode.appendChild(avatar);
-  messageNode.appendChild(body);
-
-  return messageNode;
-}
-
-function normalizeText(value) {
-  return String(value ?? "").trim();
 }
 
 function normalizeBetOptions(options) {
