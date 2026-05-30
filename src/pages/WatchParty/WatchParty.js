@@ -2717,10 +2717,6 @@ export default class WatchPartyPage extends BasePage {
     }
 
     if (eventType === "play" || eventType === "pause" || eventType === "seek") {
-      if (!isCurrentViewerRoomHost(this._roomData)) {
-        return;
-      }
-
       if (
         eventType === "pause" &&
         this._roomData.player?.isPlaying &&
